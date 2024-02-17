@@ -888,7 +888,7 @@ int initGraphics() {
 
   int err = glfwGetError(NULL);
   if (err != GLFW_NO_ERROR) {
-    handleError("GLFW error: %s", std::to_string(err));
+    handleError("GLFW error: %d", err);
   }
 
   setWindowState();

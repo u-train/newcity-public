@@ -113,7 +113,7 @@ bool conCallbackDebug(std::string data) {
   else if (data[0] == 't' || data[0] == 'T' || data[0] == '1')
     setDebugMode(true);
   else
-    consolePrintLine(sprintf_o("Invalid value for debug flag %s", data));
+    consolePrintLine(sprintf_o("Invalid value for debug flag %s", data.c_str()));
 
   if (debugMode() != currentDebug) {
     consolePrintLine(sprintf_o("Debug is now: %s",
@@ -795,7 +795,7 @@ bool conCallbackSongEnable(std::string data) {
   else if (data[0] == 't' || data[0] == 'T' || data[0] == '1')
     setSongsEnabled(true);
   else
-    consolePrintLine(sprintf_o("Invalid value for songs enabled flag %s", data));
+    consolePrintLine(sprintf_o("Invalid value for songs enabled flag %s", data.c_str()));
 
   if (getSongsEnabled() != currentSongsEnabled) {
     consolePrintLine(sprintf_o("Music is now: %s",
