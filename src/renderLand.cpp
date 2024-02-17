@@ -18,12 +18,23 @@
 #include "thread.hpp"
 #include "time.hpp"
 #include "util.hpp"
+#include "spdlog/spdlog.h"
 
 struct TileData {
-  vec3 l;
-  vec3 lw;
-  vec3 n;
-  vec3 x;
+  // The starting corner for the tile.
+  vec3 location;
+  
+  // The sea level is 0 on the z-axis, so that axis will be initalized to zero for this location.
+  // However, it retains the same coordinates for the x and y axis for the tile location.
+  // It's convenient for rendering water quads.
+  vec3 waterLocation;
+
+  // The direction the tile is facing upwards.
+  vec3 normal;
+  
+  // The terrain color the tile should be rendered with.
+  // This is ignored if the tile is dense enough.
+  vec3 color;
 };
 
 //Colors
@@ -326,12 +337,12 @@ float getTerrainColorU(float z, float nz) {
 TileData computeTileData(RenderChunkIndex ndx, item x, item y) {
   TileData td;
 
-  // Location
-  td.l = getTileLocation(ndx, x, y);
-  td.lw = td.l;
-  td.lw.z = 0;
+  // Location 
+  td.location = getTileLocation(ndx, x, y);
+  td.waterCoordinate = td.location;
+  td.waterCoordinate.z = 0;
   float z = getHeight(ndx, x, y);
-  td.l.z = z;
+  td.location.z = z;
 
   // Normal
   float z10 = getHeight(ndx, x+1, y);
@@ -344,14 +355,14 @@ TileData computeTileData(RenderChunkIndex ndx, item x, item y) {
   float nz = td.n.z;
   nz = clamp(pow(nz*2, 0.2), 0.25, 1.5);
   float u = getTerrainColorU(z, nz);
-  td.x = getTerrainColor(u, getLandConfig().flags & _landDesert);
+  td.color = getTerrainColor(u, getLandConfig().flags & _landDesert);
 
   return td;
 }
 
 TileData getTileData(RenderChunkIndex ndx, item x, item y) {
-  TileData td;
-  td.x.y = 0;
+  TileData tileData;
+  tileData.color.y = 0;
   int renderChunkSize = getRenderChunkSize();
 
   item x0 = ndx.x*renderChunkSize + x;
@@ -360,35 +371,35 @@ TileData getTileData(RenderChunkIndex ndx, item x, item y) {
 
   if (cacheNdx < 0) handleError("TileData less than zero");
   if (cacheNdx < tileDataCache.size()) {
-    td = tileDataCache.at(cacheNdx);
+    tileData = tileDataCache.at(cacheNdx);
   }
 
-  if (td.x.y == 0) {
-    td = computeTileData(ndx, x, y);
+  if (tileData.color.y == 0) {
+    tileData = computeTileData(ndx, x, y);
     tileDataCache.ensureSize(cacheNdx+1);
-    tileDataCache.set(cacheNdx, td);
+    tileDataCache.set(cacheNdx, tileData);
   }
 
   int chunkSize = getRenderChunkSize();
   float chunkRenderSize = chunkSize * tileSize;
   vec3 offset = vec3((ndx.x + 0.5f) * chunkRenderSize,
       (ndx.y + 0.5f) * chunkRenderSize, 0);
-  td.l -= offset;
-  td.lw = td.l;
-  td.lw.z = 0;
+  tileData.location -= offset;
+  tileData.waterCoordinate = tileData.location;
+  tileData.waterCoordinate.z = 0;
 
-  return td;
+  return tileData;
 }
 
 TileData getTileData(RenderChunkIndex ndx, item x, item y, float z) {
   TileData td = getTileData(ndx, x, y);
-  td.l.z = z;
+  td.location.z = z;
 
   // Adjust color for slope
   float nz = td.n.z;
   nz = clamp(pow(nz*2, 0.2), 0.25, 1.5);
   float u = getTerrainColorU(z, nz);
-  td.x = getTerrainColor(u, getLandConfig().flags & _landDesert);
+  td.color = getTerrainColor(u, getLandConfig().flags & _landDesert);
 
   return td;
 }
@@ -447,10 +458,10 @@ void renderTile(RenderChunkIndex ndx, int xs, int xe, int ys, int ye,
     getTileData(ndx, xe, ye, tz99)
   };
 
-  td[0].l.z -= zOffset;
-  td[1].l.z -= zOffset;
-  td[2].l.z -= zOffset;
-  td[3].l.z -= zOffset;
+  td[0].location.z -= zOffset;
+  td[1].location.z -= zOffset;
+  td[2].location.z -= zOffset;
+  td[3].location.z -= zOffset;
 
   bool dense = isTileDense(ndx, xs, ys) && isTileDense(ndx, xs, ye) &&
     isTileDense(ndx, xe, ys) && isTileDense(ndx, xe, xe);
@@ -459,26 +470,26 @@ void renderTile(RenderChunkIndex ndx, int xs, int xe, int ys, int ye,
       //td[0].x, td[0].x);
 
   // Render the tile, either as pavement or not
-  if (abs(td[0].l.z - td[3].l.z) > abs(td[2].l.z - td[1].l.z)) {
+  if (abs(td[0].location.z - td[3].location.z) > abs(td[2].location.z - td[1].location.z)) {
     if (dense) {
-      makeQuad(landMesh, td[3].l, td[1].l, td[2].l, td[0].l,
+      makeQuad(landMesh, td[3].location, td[1].location, td[2].location, td[0].location,
           colorDensityPavement, colorDensityPavement);
 
     } else {
-      makeQuad(landMesh, td[3].l, td[1].l, td[2].l, td[0].l,
+      makeQuad(landMesh, td[3].location, td[1].location, td[2].location, td[0].location,
           td[3].n, td[1].n, td[2].n, td[0].n,
-          td[3].x, td[1].x, td[2].x, td[0].x);
+          td[3].color, td[1].color, td[2].color, td[0].color);
     }
 
   } else {
     if (dense) {
-      makeQuad(landMesh, td[1].l, td[0].l, td[3].l, td[2].l,
+      makeQuad(landMesh, td[1].location, td[0].location, td[3].location, td[2].location,
           colorDensityPavement, colorDensityPavement);
 
     } else {
-      makeQuad(landMesh, td[1].l, td[0].l, td[3].l, td[2].l,
+      makeQuad(landMesh, td[1].location, td[0].location, td[3].location, td[2].location,
           td[1].n, td[0].n, td[3].n, td[2].n,
-          td[1].x, td[0].x, td[3].x, td[2].x);
+          td[1].color, td[0].color, td[3].color, td[2].color);
     }
   }
 
@@ -511,8 +522,8 @@ void renderTile(RenderChunkIndex ndx, int xs, int xe, int ys, int ye,
       v1 = 1;
     }
 
-    vec3 l0 = td[v0].l;
-    vec3 l1 = td[v1].l;
+    vec3 l0 = td[v0].location;
+    vec3 l1 = td[v1].location;
     vec3 l2 = l0;
     vec3 l3 = l1;
     l2.z = landBottom - zOffset;
@@ -566,8 +577,8 @@ void renderWaterTile(RenderChunkIndex ndx, int x, int y, int stride,
 
   } else {
     for (int i = 0; i < 4; i++) {
-      if (td[i].l.z > -beachLine) setOnlyWaterForChunk(ndx, false);
-      if (td[i].l.z < 1) {
+      if (td[i].location.z > -beachLine) setOnlyWaterForChunk(ndx, false);
+      if (td[i].location.z < 1) {
         isWater[i] = true;
         int ix = i%2 + (!(i/2))*2;
         int iy = (i/2)*2 + !(i%2);
@@ -588,7 +599,7 @@ void renderWaterTile(RenderChunkIndex ndx, int x, int y, int stride,
     if (numWater == 3) {
       vector<vec3> waters;
       for (int i = 0; i < 4; i++) {
-        if (isWater[i]) waters.push_back(td[i].lw);
+        if (isWater[i]) waters.push_back(td[i].waterCoordinate);
       }
       if (cross(waters[0]-waters[1], waters[0]-waters[2]).z < 0) {
         makeTriangle(waterMesh, waters[0], waters[2], waters[1], tx);
@@ -597,32 +608,32 @@ void renderWaterTile(RenderChunkIndex ndx, int x, int y, int stride,
       }
 
     } else if ((x+y)%2 == 0) {
-      makeQuad(waterMesh, td[3].lw, td[1].lw, td[2].lw, td[0].lw, tx, tx);
+      makeQuad(waterMesh, td[3].waterCoordinate, td[1].waterCoordinate, td[2].waterCoordinate, td[0].waterCoordinate, tx, tx);
     } else {
-      makeQuad(waterMesh, td[1].lw, td[0].lw, td[3].lw, td[2].lw, tx, tx);
+      makeQuad(waterMesh, td[1].waterCoordinate, td[0].waterCoordinate, td[3].waterCoordinate, td[2].waterCoordinate, tx, tx);
     }
   }
 }
 
 struct TileDiff {
   int x, y;
-  float diff;
+  float heightDifference;
 };
 
-TileDiff getMaxTileDiff(RenderChunkIndex ndx, int xs, int xe, int ys, int ye,
-    float tz00, float tz09, float tz90, float tz99, int ee) {
+TileDiff getMaxTileDiff(RenderChunkIndex ndx, int xStart, int xEnd, int yStart, int yEnd,
+    float tz00, float tz09, float tz90, float tz99, int inset) {
 
   TileDiff result;
-  result.x = xs;
-  result.y = ys;
-  result.diff = 0;
+  result.x = xStart;
+  result.y = yStart;
+  result.heightDifference = 0;
 
-  for (int x = xs+ee; x <= xe-ee; x ++) {
-    for (int y = ys+ee; y <= ye-ee; y ++) {
+  for (int x = xStart+inset; x <= xEnd-inset; x ++) {
+    for (int y = yStart+inset; y <= yEnd-inset; y ++) {
       float z = getHeight(ndx, x, y);
-      float tz0 = mix(tz00, tz09, float(y-ys)/nonZero(ye-ys));
-      float tz1 = mix(tz90, tz99, float(y-ys)/nonZero(ye-ys));
-      float tz2 = mix(tz0, tz1, float(x-xs)/nonZero(xe-xs));
+      float tz0 = mix(tz00, tz09, float(y-yStart)/nonZero(yEnd-yStart));
+      float tz1 = mix(tz90, tz99, float(y-yStart)/nonZero(yEnd-yStart));
+      float tz2 = mix(tz0, tz1, float(x-xStart)/nonZero(xEnd-xStart));
       float diff = z < tz2 ? c(CLandErrorConcaveFactor)*(tz2-z) : abs(tz2-z);
       /*
       if ((z < beachLine-1) != (tz2 < beachLine-1)) {
@@ -635,8 +646,8 @@ TileDiff getMaxTileDiff(RenderChunkIndex ndx, int xs, int xe, int ys, int ye,
       float uError = abs(u-tz2u);
       diff += c(CLandErrorColorFactor) * uError;
 
-      if (diff > result.diff) {
-        result.diff = diff;
+      if (diff > result.heightDifference) {
+        result.heightDifference = diff;
         result.x = x;
         result.y = y;
       }
@@ -663,7 +674,7 @@ void renderInnerTileRecursive(RenderChunkIndex ndx, int xs, int xe, int ys, int 
     TileDiff td = getMaxTileDiff(ndx, xs, xe, ys, ye,
         tz00, tz09, tz90, tz99, 1);
 
-    if (td.diff > maxDiff) {
+    if (td.heightDifference > maxDiff) {
       // Split the tile into four
       float tz55 = getHeight(ndx, td.x, td.y);
       float tz05 = mix(tz00, tz09, float(td.y-ys)/(ye-ys));
@@ -693,23 +704,24 @@ void renderInnerTileRecursive(RenderChunkIndex ndx, int xs, int xe, int ys, int 
       landMesh, waterMesh, dirtMesh);
 }
 
-vector<item> getBreakpoints(RenderChunkIndex ndx, int ks, int ke, bool isY, int j,
-    float tz0, float tz9, float maxDiff) {
+vector<item> getBreakpoints(RenderChunkIndex ndx, int keyStart, int keyEnd, bool isY, int keyAxis,
+    float tz0, float tz9, float maxHeightDifference) {
 
-  if (ks == ke) return vector<item>();
+  if (keyStart == keyEnd) return vector<item>();
 
   TileDiff td = isY ?
-    getMaxTileDiff(ndx, j, j, ks, ke, tz0, tz9, tz0, tz9, 0) :
-    getMaxTileDiff(ndx, ks, ke, j, j, tz0, tz0, tz9, tz9, 0);
+    getMaxTileDiff(ndx, keyAxis, keyAxis, keyStart, keyEnd, tz0, tz9, tz0, tz9, 0) :
+    getMaxTileDiff(ndx, keyStart, keyEnd, keyAxis, keyAxis, tz0, tz0, tz9, tz9, 0);
 
-  if (td.diff > maxDiff) {
+  if (td.heightDifference > maxHeightDifference) {
     float tz5 = getHeight(ndx, td.x, td.y);
-    vector<item> result0 = getBreakpoints(ndx, ks, isY ? td.y : td.x, isY,
-        j, tz0, tz5, maxDiff);
-    vector<item> result1 = getBreakpoints(ndx, isY ? td.y : td.x, ke, isY,
-        j, tz5, tz9, maxDiff);
-    int k = isY ? td.y : td.x;
-    result0.push_back(k);
+    vector<item> result0 = getBreakpoints(ndx, keyStart, isY ? td.y : td.x, isY,
+        keyAxis, tz0, tz5, maxHeightDifference);
+    vector<item> result1 = getBreakpoints(ndx, isY ? td.y : td.x, keyEnd, isY,
+        keyAxis, tz5, tz9, maxHeightDifference);
+    
+    int key = isY ? td.y : td.x;
+    result0.push_back(key);
     result0.insert(result0.end(), result1.begin(), result1.end());
     return result0;
   }
@@ -717,31 +729,31 @@ vector<item> getBreakpoints(RenderChunkIndex ndx, int ks, int ke, bool isY, int 
   return vector<item>();
 }
 
-void renderTileRecursive(RenderChunkIndex ndx, int xs, int xe, int ys, int ye,
+void renderTileRecursive(RenderChunkIndex ndx, int xStart, int xEnd, int yStart, int yEnd,
     float tz00, float tz09, float tz90, float tz99,
-    float maxDiff, Mesh* landMesh, Mesh* waterMesh, Mesh* dirtMesh) {
+    float heightDifferenceThreshold, Mesh* landMesh, Mesh* waterMesh, Mesh* dirtMesh) {
 
-  if (xs >= xe || ys >= ye) return;
-  makeTileBox(ndx, xs, xe, ys, ye, tz00, tz09, tz90, tz99, 0,
+  if (xStart >= xEnd || yStart >= yEnd) return;
+  makeTileBox(ndx, xStart, xEnd, yStart, yEnd, tz00, tz09, tz90, tz99, 0,
       landMesh, colorRed);
 
-  vector<item> bps[4] = {
-    getBreakpoints(ndx, xs, xe, false, ys, tz00, tz90, maxDiff),
-    getBreakpoints(ndx, xs, xe, false, ye, tz09, tz99, maxDiff),
-    getBreakpoints(ndx, ys, ye, true, xs, tz00, tz09, maxDiff),
-    getBreakpoints(ndx, ys, ye, true, xe, tz90, tz99, maxDiff),
+  vector<item> breakpoints[4] = {
+    getBreakpoints(ndx, xStart, xEnd, false, yStart, tz00, tz90, heightDifferenceThreshold),
+    getBreakpoints(ndx, xStart, xEnd, false, yEnd, tz09, tz99, heightDifferenceThreshold),
+    getBreakpoints(ndx, yStart, yEnd, true, xStart, tz00, tz09, heightDifferenceThreshold),
+    getBreakpoints(ndx, yStart, yEnd, true, xEnd, tz90, tz99, heightDifferenceThreshold),
   };
 
-  vector<item> bpx = bps[0];
-  bpx.insert(bpx.end(), bps[1].begin(), bps[1].end());
-  bpx.push_back(xs);
-  bpx.push_back(xe);
+  vector<item> bpx = breakpoints[0];
+  bpx.insert(bpx.end(), breakpoints[1].begin(), breakpoints[1].end());
+  bpx.push_back(xStart);
+  bpx.push_back(xEnd);
   sort(bpx.begin(), bpx.end());
 
-  vector<item> bpy = bps[2];
-  bpy.insert(bpy.end(), bps[3].begin(), bps[3].end());
-  bpy.push_back(ys);
-  bpy.push_back(ye);
+  vector<item> bpy = breakpoints[2];
+  bpy.insert(bpy.end(), breakpoints[3].begin(), breakpoints[3].end());
+  bpy.push_back(yStart);
+  bpy.push_back(yEnd);
   sort(bpy.begin(), bpy.end());
 
   if (bpx.size() > 2 || bpy.size() > 2) {
@@ -762,32 +774,32 @@ void renderTileRecursive(RenderChunkIndex ndx, int xs, int xe, int ys, int ye,
       }
     }
 
-    zs[xs*cs + ys] = tz00;
-    zs[xs*cs + ye] = tz09;
-    zs[xe*cs + ys] = tz90;
-    zs[xe*cs + ye] = tz99;
+    zs[xStart*cs + yStart] = tz00;
+    zs[xStart*cs + yEnd] = tz09;
+    zs[xEnd*cs + yStart] = tz90;
+    zs[xEnd*cs + yEnd] = tz99;
 
     for (int i = 0; i < 4; i++) {
       bool isY = i >= 2;
       bool isEnd = i%2;
-      vector<item> a = bps[i];
-      vector<item> b = bps[isY*2 + !isEnd];
+      vector<item> a = breakpoints[i];
+      vector<item> b = breakpoints[isY*2 + !isEnd];
       int aS = a.size();
 
       for (int k = 0; k < aS; k++) {
-        int x = isY ? (isEnd ? xe : xs) : a[k];
-        int y = isY ? a[k] : (isEnd ? ye : ys);
+        int x = isY ? (isEnd ? xEnd : xStart) : a[k];
+        int y = isY ? a[k] : (isEnd ? yEnd : yStart);
         zs[x*cs + y] = getHeight(ndx, x, y);
       }
 
       int an = -1;
       float tz0 = isEnd ? (isY ? tz90 : tz09) : tz00;
       float tz9 = tz0;
-      int k0 = isY ? ys : xs;
+      int k0 = isY ? yStart : xStart;
       int k9 = k0; //aS > 0 ? a[0] : (isY ? ye : xe);
       for (int k = 0; k < b.size(); k++) {
-        int x = isY ? (isEnd ? xe : xs) : b[k];
-        int y = isY ? b[k] : (isEnd ? ye : ys);
+        int x = isY ? (isEnd ? xEnd : xStart) : b[k];
+        int y = isY ? b[k] : (isEnd ? yEnd : yStart);
         while (an < aS && (an < 0 || a[an] < b[k])) {
           an ++;
           k0 = k9;
@@ -798,7 +810,7 @@ void renderTileRecursive(RenderChunkIndex ndx, int xs, int xe, int ys, int ye,
             int ay = isY ? k9 : y;
             tz9 = getHeight(ndx, ax, ay);
           } else {
-            k9 = isY ? ye : xe;
+            k9 = isY ? yEnd : xEnd;
             tz9 = isEnd ? tz99 : (isY ? tz09 : tz90);
           }
         }
@@ -820,7 +832,7 @@ void renderTileRecursive(RenderChunkIndex ndx, int xs, int xe, int ys, int ye,
           zs[xsa*cs + yea],
           zs[xea*cs + ysa],
           zs[xea*cs + yea],
-          maxDiff, landMesh, waterMesh, dirtMesh);
+          heightDifferenceThreshold, landMesh, waterMesh, dirtMesh);
           //landMesh, waterMesh, dirtMesh);
       }
     }
@@ -828,20 +840,20 @@ void renderTileRecursive(RenderChunkIndex ndx, int xs, int xe, int ys, int ye,
     zsPool.free(zsNdx);
 
   } else {
-    renderInnerTileRecursive(ndx, xs, xe, ys, ye,
+    renderInnerTileRecursive(ndx, xStart, xEnd, yStart, yEnd,
         tz00, tz09, tz90, tz99,
-        maxDiff, landMesh, waterMesh, dirtMesh);
+        heightDifferenceThreshold, landMesh, waterMesh, dirtMesh);
   }
 }
 
-void renderTileRecursive(RenderChunkIndex ndx, int xs, int xe, int ys, int ye,
+void renderTileRecursive(RenderChunkIndex ndx, int xStart, int xEnd, int yStart, int yEnd,
     float maxDiff, Mesh* landMesh, Mesh* waterMesh, Mesh* dirtMesh) {
 
-  renderTileRecursive(ndx, xs, xe, ys, ye,
-    getHeight(ndx, xs, ys),
-    getHeight(ndx, xs, ye),
-    getHeight(ndx, xe, ys),
-    getHeight(ndx, xe, ye),
+  renderTileRecursive(ndx, xStart, xEnd, yStart, yEnd,
+    getHeight(ndx, xStart, yStart),
+    getHeight(ndx, xStart, yEnd),
+    getHeight(ndx, xEnd, yStart),
+    getHeight(ndx, xEnd, yEnd),
     maxDiff, landMesh, waterMesh, dirtMesh);
 }
 
