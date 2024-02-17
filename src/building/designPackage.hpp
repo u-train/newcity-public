@@ -1,7 +1,7 @@
 #pragma once
 
 #include "../item.hpp"
-
+#include <cstdint>
 #include <vector>
 #include <string>
 
