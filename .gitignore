@@ -13,6 +13,10 @@ callgrind.*
 /sdk/
 
 /Build
+CMakeFiles
+CMakeCache.txt
+
+.cache
 /.vs/VSWorkspaceState.json
 /.vs/ProjectSettings.json
 /.vs/*.sqlite
