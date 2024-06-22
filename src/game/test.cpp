@@ -58,3 +58,6 @@ TEST_CASE( "Factorials are computed", "[factorial]" ) {
     }
 } */
 
+int main() {
+    return 0;
+}

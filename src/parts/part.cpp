@@ -1,20 +1,16 @@
 #include "part.hpp"
 
-#include "../draw/buffer.hpp"
 #include "../draw/camera.hpp"
-#include "../draw/entity.hpp"
 #include "../sound.hpp"
 #include "../util.hpp"
 
 #include "console.hpp"
 #include "error.hpp"
-#include "loader.hpp"
 #include "renderParts.hpp"
 #include "root.hpp"
 #include "tooltip.hpp"
 
 #include <stdio.h>
-#include <csignal>
 
 Part* rootPart = NULL;
 Part* focusedPart = NULL;

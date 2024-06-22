@@ -1,7 +1,6 @@
 #pragma once
 
 #include "item.hpp"
-#include "line.hpp"
 #include "land.hpp"
 
 bool getTreesVisible();

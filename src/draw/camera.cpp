@@ -14,6 +14,7 @@
 #include "../tutorial.hpp"
 #include "../util.hpp"
 #include "../weather.hpp"
+#include "../game/constants.hpp"
 
 #include "entity.hpp"
 #include "framebuffer.hpp"
@@ -25,7 +26,7 @@
 #include <glm/glm.hpp>
 #include <glm/gtx/rotate_vector.hpp>
 #include <stdio.h>
-#include "../game/constants.hpp"
+
 #ifdef _WIN32
 #define GLFW_EXPOSE_NATIVE_WIN32
 #define GLFW_EXPOSE_NATIVE_WGL
@@ -253,7 +254,6 @@ void computeCameraMatricies(Camera *camera, glm::vec3 mirror, float angle,
   glm::dvec3 camX = normalize(cross(glm::dvec3(0.0f, 0.0f, 1.0f), camDir));
   glm::dvec3 camUp = -normalize(cross(camDir, camX));
   camUp = rotate(camUp, camera->roll, camera->direction);
-
   // glm::dvec3 up = camera->direction + glm::dvec3(0,0,1);
   double effectiveDistance = camera->distance;
   if (fov <= 0) {

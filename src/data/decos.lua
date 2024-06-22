@@ -837,7 +837,7 @@ addBuildingDecoration({
   name = "Traditional Stair Blue",
   group = "DecoGrpStructure",
   mesh = "models/decorations/traditional-stair-blue.obj",
-  simpleMesh = "models/decorations/tradtional-stair-blue-simple.obj",
+  simpleMesh = "models/decorations/traditional-stair-blue-simple.obj",
 })
 
 addBuildingDecoration({
@@ -845,7 +845,7 @@ addBuildingDecoration({
   name = "Traditional Stair Blue2",
   group = "DecoGrpStructure",
   mesh = "models/decorations/traditional-stair-blue2.obj",
-  simpleMesh = "models/decorations/tradtional-stair-blue-simple.obj",
+  simpleMesh = "models/decorations/traditional-stair-blue-simple.obj",
 })
 
 addBuildingDecoration({
@@ -1550,7 +1550,7 @@ addBuildingDecoration({
   name = "Traditional Stair Blue3",
   group = "DecoGrpStructure",
   mesh = "models/decorations/traditional-stair-blue3.obj",
-  simpleMesh = "models/decorations/tradtional-stair-blue-simple.obj",
+  simpleMesh = "models/decorations/traditional-stair-blue-simple.obj",
 })
 
 

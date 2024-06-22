@@ -7,10 +7,11 @@
 
 #include <cstdint>
 #include <string>
+#include <vector>
 
+#include "parts/part.hpp"
+#include "inputEvent.hpp"
 #include "item.hpp"
-#include "parts/leftPanel.hpp"
-#include "spdlog/spdlog.h"
 
 const double tutorialMaxTimer = 1000000;
 const double tutorialDefaultTimer = 2.0;

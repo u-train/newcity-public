@@ -1,6 +1,7 @@
 #pragma once
 
 #include "line.hpp"
+#include <glm/glm.hpp>
 
 Line iconToSpritesheet(glm::vec3 icon);
 Line iconToSpritesheet(glm::vec3 icon, float wind);

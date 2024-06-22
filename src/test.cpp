@@ -1,10 +1,13 @@
+#include "test.hpp"
 #include "draw/entity.hpp"
+#include "game/game.hpp"
 #include "land.hpp"
 #include "name.hpp"
-#include "game/game.hpp"
-#include "test.hpp"
 #include "testGraph.cpp"
-#include "testRouting.cpp"
+#include "route/testRouting.cpp"
+
+#define CATCH_CONFIG_MAIN
+#include "game/catch.hpp"
 
 void test() {
   setRenderEnabled(false);
@@ -15,3 +18,5 @@ void test() {
   testRouting();
   resetNames();
 }
+
+// void main() {}

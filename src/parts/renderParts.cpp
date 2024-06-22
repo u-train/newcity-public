@@ -12,8 +12,6 @@
 #include "../main.hpp"
 #include "../draw/camera.hpp"
 
-#include "spdlog/spdlog.h"
-#include <stdio.h>
 #include <algorithm>
 
 item currentPartEntity = 0;

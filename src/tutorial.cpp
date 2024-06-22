@@ -16,6 +16,7 @@
 #include "option.hpp"
 #include "string_proxy.hpp"
 #include "main.hpp"
+#include <spdlog/spdlog.h>
 
 static const char* tutorialCodes[TutorialCategory::Num_Categories] = {
   #define TUT(N) "Tutorial::" #N,

@@ -14,8 +14,6 @@
 #include "../string_proxy.hpp"
 
 #include <glm/glm.hpp>
-#include <stdio.h>
-#include <algorithm>
 
 static const char* errorTitle = "Error";
 static const char* errorLoadTitle = "LOADING PAUSED";

@@ -13,11 +13,11 @@
 #include "../string_proxy.hpp"
 #include "../time.hpp"
 #include "../weather.hpp"
-#include "../error.hpp"
 #include "../main.hpp"
 
 #include "spdlog/spdlog.h"
 
+#include "part.hpp"
 #include "button.hpp"
 #include "hr.hpp"
 #include "icon.hpp"

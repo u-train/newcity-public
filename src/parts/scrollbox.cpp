@@ -2,6 +2,8 @@
 
 #include "panel.hpp"
 #include "slider.hpp"
+#include "part.hpp"
+
 #include "../game/constants.hpp"
 #include "../main.hpp"
 

@@ -4,13 +4,12 @@
 #include "button.hpp"
 #include "label.hpp"
 #include "panel.hpp"
+#include "part.hpp"
 
 #include "../icons.hpp"
 #include "../string.hpp"
 #include "../string_proxy.hpp"
 #include "../main.hpp"
-
-#include "spdlog/spdlog.h"
 
 #include <algorithm>
 
