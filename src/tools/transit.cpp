@@ -138,7 +138,7 @@ void transit_move(InputEvent event) {
 
   Lane* lane = getLane(loc.lane);
   LaneBlock* blk = getLaneBlock(loc.lane);
-  loc.dap = clamp(loc.dap, c(CTileSize), lane->length - c(CTileSize));
+  loc.dap = glm::clamp(loc.dap, c(CTileSize), lane->length - c(CTileSize));
   loc.dap = round(loc.dap/c(CTileSize)) * c(CTileSize);
 
   if (blk->graphElements[1] > 0) {
@@ -159,7 +159,7 @@ void transit_move(InputEvent event) {
     return;
   }
 
-  vec3 location = getLocation(loc);
+  glm::vec3 location = getLocation(loc);
   float locMouseDist = pointLineDistance(location, event.mouseLine);
   //float stopMouseDist = 0;
   float stopLocDist = 100000;
@@ -259,15 +259,15 @@ void transit_render(Part* pnl) {
         (system->flags & _transitComplete)) {
 
       Part* newLineButt = r(pnl,
-          superButton(vec2(2.f, 1.5f),
-            vec2(7, .9f), iconAddTransitLine, strdup_s("Add Transit Line"),
+          superButton(glm::vec2(2.f, 1.5f),
+            glm::vec2(7, .9f), iconAddTransitLine, strdup_s("Add Transit Line"),
             addTransitLine, 0, ActTTAddTransitLine, false));
       setPartTooltipValues(newLineButt, TooltipType::TransNewLine);
 
       if (getCurrentLine() != 0) {
         Part* addingButt = r(pnl,
-            superButton(vec2(2.f, 2.5f),
-              vec2(7, .9f), iconAddBusStop, strdup_s("Add Stops to Line"),
+            superButton(glm::vec2(2.f, 2.5f),
+              glm::vec2(7, .9f), iconAddBusStop, strdup_s("Add Stops to Line"),
               toggleAddingStop, 0, ActTTAddStopsToLine, isAddingStop));
         setPartTooltipValues(addingButt, TooltipType::TransAddStops);
       }
@@ -275,9 +275,9 @@ void transit_render(Part* pnl) {
     }
   }
 
-  r(pnl, labelCenter(vec2(1,2.5f), vec2(8,.85),
+  r(pnl, labelCenter(glm::vec2(1,2.5f), glm::vec2(8,.85),
         strdup_s("Select a transportation")));
-  r(pnl, labelCenter(vec2(1,3.5f), vec2(8,.85),
+  r(pnl, labelCenter(glm::vec2(1,3.5f), glm::vec2(8,.85),
         strdup_s("system below.")));
 }
 

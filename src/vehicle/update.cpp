@@ -47,17 +47,17 @@ struct VehicleCommand {
     type(t), ndx(n) {}
 };
 
-vector<VehicleCommand> nextCommands;
-vector<VehicleCommand> backCommands;
+std::vector<VehicleCommand> nextCommands;
+std::vector<VehicleCommand> backCommands;
 
 static double vehicleDurationRemaining = 0;
-static atomic<bool> vehicleMemoryBarrier(false);
-static atomic<bool> resetVehiclesFlag(false);
-static atomic<bool> killVehiclesFlag(false);
-static atomic<bool> isVehicleThreadWaiting(false);
-static atomic<bool> doFullSwap(true);
+static std::atomic<bool> vehicleMemoryBarrier(false);
+static std::atomic<bool> resetVehiclesFlag(false);
+static std::atomic<bool> killVehiclesFlag(false);
+static std::atomic<bool> isVehicleThreadWaiting(false);
+static std::atomic<bool> doFullSwap(true);
 static double vehicleTime = 0;
-static atomic<int> updatesPending(0);
+static std::atomic<int> updatesPending(0);
 static int framesSinceSwap = 0;
 static int framesSinceFullSwap = 0;
 

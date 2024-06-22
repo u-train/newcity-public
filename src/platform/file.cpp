@@ -10,8 +10,9 @@
 #include "spdlog/spdlog.h"
 #include <algorithm>
 #include <stdio.h>
-#include <set>
+#include <string>
 #include <sys/stat.h>
+#include <set>
 
 namespace fs = std::experimental::filesystem;
 
@@ -53,7 +54,7 @@ bool fileExists(const char* filename) {
   */
 }
 
-bool fileExists(string filename) {
+bool fileExists(std::string filename) {
   return fileExists(filename.c_str());
 }
 
@@ -129,8 +130,8 @@ char* getFilenameInModNonNull(const char* filename) {
   return getFilenameInMod(filename, true);
 }
 
-vector<char*> readDirectory(const char* dirName, const char* ext) {
-  vector<char*> files;
+std::vector<char*> readDirectory(const char* dirName, const char* ext) {
+  std::vector<char*> files;
   int extLength = strlength(ext);
 
   #if defined (__linux__) || defined (__APPLE__)
@@ -171,30 +172,30 @@ vector<char*> readDirectory(const char* dirName, const char* ext) {
   return files;
 }
 
-struct less_char_star : binary_function <char*,char*,bool> {
+struct less_char_star : std::binary_function <char*,char*,bool> {
   bool operator() (char* const& x, char* const& y) const {
     int cmp = strcmpi_s(x, y);
     return cmp < 0;
   }
 };
 
-vector<char*> readDirectoryMod(const char* dirName, const char* ext,
+std::vector<char*> readDirectoryMod(const char* dirName, const char* ext,
     bool nonNull) {
-  vector<char*> mainFiles = readDirectory(dirName, ext);
-  vector<char*> result;
+  std::vector<char*> mainFiles = readDirectory(dirName, ext);
+  std::vector<char*> result;
 
   const char* mod = nonNull ? modDirectoryNonNull() : modDirectory();
   char* modDir = sprintf_o("%s%s", mod, dirName);
   #ifdef __linux__
     if (!fileExists(modDir)) return mainFiles;
   #endif
-  vector<char*> modFiles = readDirectory(modDir, ext);
+  std::vector<char*> modFiles = readDirectory(modDir, ext);
   free(modDir);
 
   if(modFiles.size() > 0) {
-    set<char*,less_char_star> dedupe(modFiles.begin(),modFiles.end());
+    std::set<char*,less_char_star> dedupe(modFiles.begin(),modFiles.end());
     dedupe.insert(mainFiles.begin(),mainFiles.end());
-    result = vector<char*>(dedupe.begin(),dedupe.end());
+    result = std::vector<char*>(dedupe.begin(),dedupe.end());
   } else {
     result = mainFiles;
   }
@@ -202,55 +203,55 @@ vector<char*> readDirectoryMod(const char* dirName, const char* ext,
   return result;
 }
 
-vector<char*> readDirectoryMod(const char* dirName, const char* ext) {
+std::vector<char*> readDirectoryMod(const char* dirName, const char* ext) {
   return readDirectoryMod(dirName, ext, false);
 }
 
-vector<char*> readDirectoryModNonNull(const char* dirName, const char* ext) {
+std::vector<char*> readDirectoryModNonNull(const char* dirName, const char* ext) {
   return readDirectoryMod(dirName, ext, true);
 }
 
-vector<char*> readDirectoryModOnly(const char* dirName,
+std::vector<char*> readDirectoryModOnly(const char* dirName,
     const char* ext, bool nonNull) {
   const char* mod = nonNull ? modDirectoryNonNull() : modDirectory();
   char* modDir = sprintf_o("%s%s", mod, dirName);
   #ifdef __linux__
-    if (!fileExists(modDir)) return vector<char*>();
+    if (!fileExists(modDir)) return std::vector<char*>();
   #endif
-  vector<char*> modFiles = readDirectory(modDir, ext);
+  std::vector<char*> modFiles = readDirectory(modDir, ext);
   free(modDir);
 
   return modFiles;
 }
 
-vector<char*> readDirectoryModOnlyNonNull(const char* dirName,
+std::vector<char*> readDirectoryModOnlyNonNull(const char* dirName,
     const char* ext) {
   return readDirectoryModOnly(dirName, ext, true);
 }
 
-vector<char*> readDirectoryModOnly(const char* dirName,
+std::vector<char*> readDirectoryModOnly(const char* dirName,
     const char* ext) {
   return readDirectoryModOnly(dirName, ext, false);
 }
 
-vector<char*> readDirectoryWorkshopOnly(const char* dirName, const char* ext) {
+std::vector<char*> readDirectoryWorkshopOnly(const char* dirName, const char* ext) {
   std::string relativeDir = steamws_rootPath + "/" + dirName;
-  if(!fileExists(relativeDir.c_str())) return vector<char*>();
+  if(!fileExists(relativeDir.c_str())) return std::vector<char*>();
 
-  vector<char*> workshopFiles = readDirectory(relativeDir.c_str(), ext);
+  std::vector<char*> workshopFiles = readDirectory(relativeDir.c_str(), ext);
 
   return workshopFiles;
 }
 
-vector<char*> readDirectoryModAndWorkshopOnly(const char* dirName, const char* ext, bool nonNull) {
-  vector<char*> modFiles = readDirectoryModOnly(dirName, ext, nonNull);
-  vector<char*> workshopFiles = readDirectoryWorkshopOnly(dirName, ext);
-  vector<char*> combinedFiles;
+std::vector<char*> readDirectoryModAndWorkshopOnly(const char* dirName, const char* ext, bool nonNull) {
+  std::vector<char*> modFiles = readDirectoryModOnly(dirName, ext, nonNull);
+  std::vector<char*> workshopFiles = readDirectoryWorkshopOnly(dirName, ext);
+  std::vector<char*> combinedFiles;
 
   if(workshopFiles.size() > 0) {
-    set<char*, less_char_star> dedupe(workshopFiles.begin(), workshopFiles.end());
+    std::set<char*, less_char_star> dedupe(workshopFiles.begin(), workshopFiles.end());
     dedupe.insert(modFiles.begin(), modFiles.end());
-    combinedFiles = vector<char*>(dedupe.begin(), dedupe.end());
+    combinedFiles = std::vector<char*>(dedupe.begin(), dedupe.end());
   } else {
     combinedFiles = modFiles;
   }
@@ -258,23 +259,23 @@ vector<char*> readDirectoryModAndWorkshopOnly(const char* dirName, const char* e
   return combinedFiles;
 }
 
-vector<char*> readDirectoryModAndWorkshopOnly(const char* dirName, const char* ext) {
+std::vector<char*> readDirectoryModAndWorkshopOnly(const char* dirName, const char* ext) {
   return readDirectoryModAndWorkshopOnly(dirName, ext, false);
 }
 
-vector<char*> readDirectoryModAndWorkshopOnlyNonNull(const char* dirName, const char* ext) {
+std::vector<char*> readDirectoryModAndWorkshopOnlyNonNull(const char* dirName, const char* ext) {
   return readDirectoryModAndWorkshopOnly(dirName, ext, true);
 }
 
-vector<char*> readDirectoryAll(const char* dirName, const char* ext, bool nonNull) {
-  vector<char*> baseAndModFiles = readDirectoryMod(dirName, ext, nonNull);
-  vector<char*> workshopFiles = readDirectoryWorkshopOnly(dirName, ext);
-  vector<char*> combinedFiles;
+std::vector<char*> readDirectoryAll(const char* dirName, const char* ext, bool nonNull) {
+  std::vector<char*> baseAndModFiles = readDirectoryMod(dirName, ext, nonNull);
+  std::vector<char*> workshopFiles = readDirectoryWorkshopOnly(dirName, ext);
+  std::vector<char*> combinedFiles;
 
   if(workshopFiles.size() > 0) {
-    set<char*, less_char_star> dedupe(workshopFiles.begin(), workshopFiles.end());
+    std::set<char*, less_char_star> dedupe(workshopFiles.begin(), workshopFiles.end());
     dedupe.insert(baseAndModFiles.begin(), baseAndModFiles.end());
-    combinedFiles = vector<char*>(dedupe.begin(), dedupe.end());
+    combinedFiles = std::vector<char*>(dedupe.begin(), dedupe.end());
   } else {
     combinedFiles = baseAndModFiles;
   }
@@ -282,11 +283,11 @@ vector<char*> readDirectoryAll(const char* dirName, const char* ext, bool nonNul
   return combinedFiles;
 }
 
-vector<char*> readDirectoryAll(const char* filename, const char* ext) {
+std::vector<char*> readDirectoryAll(const char* filename, const char* ext) {
   return readDirectoryAll(filename, ext, false);
 }
 
-vector<char*> readDirectoryAllNonNull(const char* filename, const char* ext) {
+std::vector<char*> readDirectoryAllNonNull(const char* filename, const char* ext) {
   return readDirectoryAll(filename, ext, true);
 }
 
@@ -329,7 +330,7 @@ void makeDirectoryForFilename(const char* filename) {
   fs::create_directories(p);
 }
 
-string getParentDirectory(string filepath) {
+std::string getParentDirectory(std::string filepath) {
   fs::path p(filepath);
   return p.parent_path().string();
 }
@@ -352,7 +353,7 @@ bool copyFile(std::string filePath, std::string destPath) {
   std::error_code err;
   fs::copy(fs::path(filePath), fs::path(destPath), err);
   if (err) {
-    string msg = err.message();
+    std::string msg = err.message();
     handleError("Could not copy %s to %s: %s", filePath.c_str(), destPath.c_str(), msg.c_str());
   }
   return true;
@@ -384,11 +385,11 @@ std::string getAbsolutePath(std::string relPath) {
   return absPath;
 }
 
-bool deleteFile(string filePath) {
+bool deleteFile(std::string filePath) {
   std::error_code err;
   fs::remove(fs::path(filePath), err);
   if (err) {
-    string msg = err.message();
+    std::string msg = err.message();
     handleError("Could not delete %s: %s", filePath.c_str(), msg.c_str());
     return false;
   } else {
@@ -396,11 +397,11 @@ bool deleteFile(string filePath) {
   }
 }
 
-bool deleteDir(string filePath) {
+bool deleteDir(std::string filePath) {
   std::error_code err;
   fs::remove_all(fs::path(filePath), err);
   if (err) {
-    string msg = err.message();
+    std::string msg = err.message();
     handleError("Could not delete %s: %s", filePath.c_str(), msg.c_str());
     return false;
   } else {
@@ -432,13 +433,13 @@ bool deleteFilesInDir(std::string dir, bool subDirs) {
   return true;
 }
 
-vector<char*> getSubfoldersInDir(std::string dir) {
+std::vector<char*> getSubfoldersInDir(std::string dir) {
   if(!fileExists(dir.c_str())) {
     SPDLOG_ERROR("Could not get subfolders as char* within dir ({}), dir does not exist...", dir);
-    return vector<char*>();
+    return std::vector<char*>();
   }
 
-  vector<char*> subfolders = vector<char*>();
+  std::vector<char*> subfolders = std::vector<char*>();
 
   SPDLOG_INFO("Getting subfolders as char* in {}", dir);
 
@@ -457,13 +458,13 @@ vector<char*> getSubfoldersInDir(std::string dir) {
   return subfolders;
 }
 
-vector<std::string> getSubfoldersInDir(std::string dir, bool fullPath) {
+std::vector<std::string> getSubfoldersInDir(std::string dir, bool fullPath) {
   if(!fileExists(dir.c_str())) {
     SPDLOG_ERROR("Could not get subfolders within dir ({}), dir does not exist...", dir);
-    return vector<std::string>();
+    return std::vector<std::string>();
   }
 
-  vector<std::string> subfolders = vector<std::string>();
+  std::vector<std::string> subfolders = std::vector<std::string>();
 
   SPDLOG_INFO("Getting subfolders in {}", dir);
 

@@ -1,6 +1,8 @@
 #pragma once
 
 #include "../serialize.hpp"
+#include <string>
+#include <glm/vec3.hpp>
 
 enum LegacyDecoTypes {
   TreeDeco, VerticalFence, HorizontalFence, ShrubsV, ShrubsH,
@@ -33,7 +35,7 @@ struct DecoType {
 
 struct Deco {
   item decoType;
-  vec3 location;
+  glm::vec3 location;
   float yaw;
   float scale;
 };

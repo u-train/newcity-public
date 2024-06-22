@@ -1,8 +1,7 @@
 #pragma once
 
-#include "../main.hpp"
-
 #include <cstdint>
+#include <glm/glm.hpp>
 
 const uint8_t _cullIsSatMap = 1 << 0;
 const uint8_t _cullIsCapture = 1 << 1;
@@ -13,6 +12,6 @@ struct Cull {
   float y = 0;
   float z = 0;
   float fovBias = 1;
-  mat4 viewProjection;
+  glm::mat4 viewProjection;
 };
 

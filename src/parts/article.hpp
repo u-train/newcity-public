@@ -22,7 +22,7 @@ const uint32_t _articleCenter = 1 << 3;
 void followLink(char* link);
 bool followLink(Part* part, InputEvent event);
 char* sanitizeArticleLink(char* in);
-Part* article(vec2 loc, vec2 size, char** articleCode, char** title,
+Part* article(glm::vec2 loc, glm::vec2 size, char** articleCode, char** title,
     ArticleRenderConfig config);
-Part* articleText(vec2 loc, vec2 size, char* text, ArticleRenderConfig config);
+Part* articleText(glm::vec2 loc, glm::vec2 size, char* text, ArticleRenderConfig config);
 

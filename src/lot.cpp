@@ -16,14 +16,14 @@
 #include "time.hpp"
 #include "util.hpp"
 #include "zone.hpp"
-
 #include "parts/toolbar.hpp"
 
+#include <spdlog/spdlog.h>
 #include <glm/gtx/rotate_vector.hpp>
 
 Pool<Lot>* lots = Pool<Lot>::newPool(20000);
-static vector<item> emptyLots[numZoneTypes+1];
-static vector<item> orphanedLots;
+static std::vector<item> emptyLots[numZoneTypes+1];
+static std::vector<item> orphanedLots;
 static item numZonedLots = 0;
 static bool lotsVisible = true;
 static bool parkLotsVisible = false;
@@ -34,7 +34,7 @@ static item currentUpdateLot = 0;
 void reoccupyLot(item lotNdx);
 void occupyLot(item lotNdx, item building);
 
-item addLot(vec3 loc, vec3 normal, item elem) {
+item addLot(glm::vec3 loc, glm::vec3 normal, item elem) {
   item lotNdx = lots->create();
   Lot* lot = getLot(lotNdx);
   lot->flags = _lotExists;
@@ -74,7 +74,7 @@ void unoccupyLot(item lotNdx) {
 
 void reoccupyLot(item lotNdx) {
   Lot* lot = getLot(lotNdx);
-  vector<item> buildings = collideBuilding(getLotBox(lotNdx), 0);
+  std::vector<item> buildings = collideBuilding(getLotBox(lotNdx), 0);
   item bestBuild = 0;
   float bestDist = 10000;
 
@@ -100,7 +100,7 @@ void reoccupyLot(item lotNdx) {
 
 void removeLotFromEmptyLots(item lotNdx) {
   Lot* lot = getLot(lotNdx);
-  vector<item> *table = &emptyLots[lot->zone];
+  std::vector<item> *table = &emptyLots[lot->zone];
   int size = table->size();
   for (int i=size-1; i >= 0; i--) {
     if (table->at(i) == lotNdx) {
@@ -155,7 +155,7 @@ void zoneLot(item lotNdx, item zone, bool overzone) {
     if (lot->zone != 0) {
       removeLotFromEmptyLots(lotNdx);
       /*
-      vector<item> *table = &emptyLots[lot->zone];
+      std::vector<item> *table = &emptyLots[lot->zone];
       for (int i=0; i < table->size(); i++) {
         if (table->at(i) == lotNdx) {
           table->erase(table->begin()+i);
@@ -213,16 +213,16 @@ bool getLotSide(item lotNdx) {
   if (!(lot->flags & _lotExists)) return false;
   if (lot->elem <= 0) return false;
   Line l = getLine(lot->elem);
-  vec3 start = l.start;
-  vec3 along = l.end - start;
+  glm::vec3 start = l.start;
+  glm::vec3 along = l.end - start;
   return cross(lot->loc - start, along).z > 0;
 }
 
-vector<item> getLotsByElem(item elem, bool side) {
-  vector<item> result;
+std::vector<item> getLotsByElem(item elem, bool side) {
+  std::vector<item> result;
   Line l = getLine(elem);
-  vec3 start = l.start;
-  vec3 along = l.end - start;
+  glm::vec3 start = l.start;
+  glm::vec3 along = l.end - start;
 
   for (int i=1; i <= lots->size(); i++) {
     Lot* lot = getLot(i);
@@ -240,8 +240,8 @@ vector<item> getLotsByElem(item elem, bool side) {
   return result;
 }
 
-vector<item> getLotsByRad(vec3 searchOrigin, float radius) {
-  vector<item> result;
+std::vector<item> getLotsByRad(glm::vec3 searchOrigin, float radius) {
+  std::vector<item> result;
   for(int i = 1; i <= lots->size(); i++) {
     Lot* lot = getLot(i);
     if(lot == 0) {
@@ -279,7 +279,7 @@ void setLotMaxDensity(item lotNdx, int max) {
   lot->flags |= (val << _lotMaxDensityShift) & _lotMaxDensityMask;
 }
 
-void zoneLots(vector<item> toZone, item zoneType, item densityValue) {
+void zoneLots(std::vector<item> toZone, item zoneType, item densityValue) {
   bool overzone = getOverzoneMode();
   for (int i=0; i < toZone.size(); i++) {
     item ndx = toZone[i];
@@ -288,18 +288,18 @@ void zoneLots(vector<item> toZone, item zoneType, item densityValue) {
   }
 }
 
-void changeDensityLots(vector<item> toChange, int val) {
+void changeDensityLots(std::vector<item> toChange, int val) {
   for(int i=0; i < toChange.size(); i++) {
     setLotMaxDensity(toChange[i], val);
   }
 }
 
-Box getLotBox(vec3 loc, vec3 normal) {
+Box getLotBox(glm::vec3 loc, glm::vec3 normal) {
   float size = tileSize - lotGap;
-  vec2 normnorm = normalize(vec2(normal));
-  vec2 axis1 = vec2(normnorm.y, -normnorm.x) * size;
-  vec2 axis0 = normnorm * size;
-  vec2 corner = vec2(loc) - axis1*.5f;
+  glm::vec2 normnorm = normalize(glm::vec2(normal));
+  glm::vec2 axis1 = glm::vec2(normnorm.y, -normnorm.x) * size;
+  glm::vec2 axis0 = normnorm * size;
+  glm::vec2 corner = glm::vec2(loc) - axis1*.5f;
   return box(corner, axis1, axis0);
 }
 
@@ -308,7 +308,7 @@ Box getLotBox(item ndx) {
   return getLotBox(lot->loc, lot->normal);
 }
 
-void maybeAddLot(vec3 loc, vec3 normal, item elem) {
+void maybeAddLot(glm::vec3 loc, glm::vec3 normal, item elem) {
   float mapSize = getMapSize();
   if (loc.x < 0 || loc.x > mapSize ||
     loc.y < 0 || loc.y > mapSize) return;
@@ -326,7 +326,7 @@ void maybeAddLot(vec3 loc, vec3 normal, item elem) {
   }
 }
 
-void makeLotsInner(vec3 cursor, vec3 along, vec3 normal, float l, item elem) {
+void makeLotsInner(glm::vec3 cursor, glm::vec3 along, glm::vec3 normal, float l, item elem) {
   cursor += along*0.5f;
   for (; l > tileSize; l -= tileSize) {
     maybeAddLot(cursor,normal,elem);
@@ -353,16 +353,16 @@ void makeLots(Line line, float size, item element) {
     return;
   }
 
-  vec3 transverse = line.end - line.start;
+  glm::vec3 transverse = line.end - line.start;
   float l = length(transverse);
-  vec3 along = transverse * tileSize / l;
-  vec3 normal = normalize(vec3(along.y, -along.x, 0));
-  vec3 buildNorm = normal*buildDistance(element);
+  glm::vec3 along = transverse * tileSize / l;
+  glm::vec3 normal = normalize(glm::vec3(along.y, -along.x, 0));
+  glm::vec3 buildNorm = normal*buildDistance(element);
   makeLotsInner(line.start + buildNorm, along, normal, l, element);
   makeLotsInner(line.start - buildNorm, along, -normal, l, element);
 }
 
-void makeNodeLots(vec3 loc, vec3 normal, item element) {
+void makeNodeLots(glm::vec3 loc, glm::vec3 normal, item element) {
   if (element >= 0) return; // Element/ndx should be less than than 0
   Configuration config = getElementConfiguration(element);
 
@@ -379,8 +379,8 @@ void makeNodeLots(vec3 loc, vec3 normal, item element) {
   float dist = buildDistance(element);
   normal = normalize(normal)*dist;
   for (int i=0; i < 8; i ++) {
-    vec3 rotNorm = rotate(normal, float(i*pi_o/4), vec3(0,0,1.f));
-    vec3 lotLoc = loc + rotNorm;
+    glm::vec3 rotNorm = rotate(normal, float(i*pi_o/4), glm::vec3(0,0,1.f));
+    glm::vec3 lotLoc = loc + rotNorm;
     maybeAddLot(lotLoc, normalize(rotNorm), element);
   }
 }
@@ -405,7 +405,7 @@ item randomLot() {
 }
 
 item getEmptyLot(item zone) {
-  vector<item> *table = &emptyLots[zone];
+  std::vector<item> *table = &emptyLots[zone];
   int size = table->size();
   if (size == 0) {
     return 0;
@@ -417,7 +417,7 @@ item getEmptyLot(item zone) {
 }
 
 void removeLots(Box box) {
-  vector<item> clots = collidingLots(box);
+  std::vector<item> clots = collidingLots(box);
   for (int i = 0; i < clots.size(); i ++) {
     removeLot(clots[i]);
   }
@@ -452,7 +452,7 @@ void updateLot(item ndx) {
   if (deleted) {
     // Elem was deleted/replaced, see if we can find it's replacement
     targetElem = 0;
-    vector<item> children = getGraphChildren(lot->elem);
+    std::vector<item> children = getGraphChildren(lot->elem);
     float bestChildDist = tileSize*.5f;
 
     for (int i = 0; i < children.size(); i++) {
@@ -460,7 +460,7 @@ void updateLot(item ndx) {
       if (childNdx == 0) continue;
       Configuration config = getElementConfiguration(childNdx);
       if (config.type != ConfigTypeRoad) continue;
-      vec3 loc = nearestPointOnLine(lot->loc, getLine(childNdx));
+      glm::vec3 loc = nearestPointOnLine(lot->loc, getLine(childNdx));
       float dist = vecDistance(loc, lot->loc);
       dist -= buildDistance(childNdx);
 
@@ -471,7 +471,7 @@ void updateLot(item ndx) {
     }
 
   } else if (targetElem != 0) {
-    vec3 loc = nearestPointOnLine(lot->loc, getLine(targetElem));
+    glm::vec3 loc = nearestPointOnLine(lot->loc, getLine(targetElem));
     float dist = vecDistance(loc, lot->loc) - buildDistance(targetElem);
     if (dist > tileSize*.5f) targetElem = 0;
   }
@@ -494,22 +494,22 @@ void updateLot(item ndx) {
   }
 
   if (targetElem != lot->elem) {
-    vec3 p = nearestPointOnLine(lot->loc, getLine(targetElem));
-    vec3 norm = lot->loc - p;
+    glm::vec3 p = nearestPointOnLine(lot->loc, getLine(targetElem));
+    glm::vec3 norm = lot->loc - p;
     float dist = length(norm) - buildDistance(targetElem);
     if (dist > tileSize*.5f) {
       removeLot(ndx);
       return;
     }
 
-    vec3 unorm = normalize(norm);
-    vec3 finalLoc = p + unorm * buildDistance(targetElem);
+    glm::vec3 unorm = normalize(norm);
+    glm::vec3 finalLoc = p + unorm * buildDistance(targetElem);
     lot->loc = finalLoc;
     lot->elem = targetElem;
     lot->normal = unorm;
 
     // See if there are colliding lots
-    vector<item> collisions = getCollisions(LotCollisions, getLotBox(ndx), ndx);
+    std::vector<item> collisions = getCollisions(LotCollisions, getLotBox(ndx), ndx);
     if (collisions.size() > 0) {
       removeLot(ndx);
       return;
@@ -533,14 +533,14 @@ void updateLots(double duration) {
   float mag = c(CParkLotThrow);
   float control = getBudgetControl(RecreationExpenses);
   float effect = duration * control;
-  vec3 thrw = vec3(sin(angle), cos(angle), 0.f) * mag;
+  glm::vec3 thrw = glm::vec3(sin(angle), cos(angle), 0.f) * mag;
 
   for (int i = 1; i <= numZoneTypes; i++) {
     for (int j = 0; j < emptyLots[i].size(); j++) {
       Lot* lot = getLot(emptyLots[i][j]);
       if (lot->occupant != 0) continue;
 
-      vec3 loc = lot->loc + thrw;
+      glm::vec3 loc = lot->loc + thrw;
       if (lot->zone == ParkZone && lot->occupant == 0) {
         parkLots ++;
         float z = lot->loc.z;
@@ -575,7 +575,7 @@ void updateLots(double duration) {
   }
 }
 
-vector<item> collidingLots(Box b) {
+std::vector<item> collidingLots(Box b) {
   return getCollisions(LotCollisions, b, 0);
 }
 
@@ -586,7 +586,7 @@ void occupyLot(item lotNdx, item building) {
   renderLot(lotNdx);
 }
 
-void occupyLots(vector<item> lots, item building) {
+void occupyLots(std::vector<item> lots, item building) {
   Building* b0 = getBuilding(building);
   for (int i=0; i < lots.size(); i++) {
     item ndx = lots[i];
@@ -749,7 +749,7 @@ void readLots(FileBuffer* file, int version) {
   if (version < 52) {
     int num = version <= 48 ? 5 : 9;
     for (int j = 0; j < num; j++) {
-      vector<item> temp;
+      std::vector<item> temp;
       fread_item_vector(file, &temp, version);
       //fread_item_vector(file, &emptyLots[j], version);
     }

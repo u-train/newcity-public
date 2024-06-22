@@ -1,32 +1,30 @@
 #include "conDisplay.hpp"
+#include "../string.hpp"
+#include "spdlog/spdlog.h"
 
 static std::string text = "";
 static uint32_t numLines = 0;
-static vec2 conPos = vec2(1,1);
-static vec2 conSize = vec2(conMinSizeX,conMinSizeY);
+static glm::vec2 conPos = glm::vec2(1, 1);
+static glm::vec2 conSize = glm::vec2(conMinSizeX, conMinSizeY);
 static bool conOpen = false;
 
 void addText(std::string s) {
   text += s;
   int len = text.length();
   uint32_t maxStrLen = getMaxStrLen();
-  if(len > maxStrLen) {
-    int diff = len-maxStrLen;
-    text.erase(0,diff);
+  if (len > maxStrLen) {
+    int diff = len - maxStrLen;
+    text.erase(0, diff);
   }
 }
 
-std::string consoleGetText() {
-  return text;
-}
+std::string consoleGetText() { return text; }
 
-uint32_t consoleGetNumLines() {
-  return numLines;
-}
+uint32_t consoleGetNumLines() { return numLines; }
 
 // Prints a string without an appended newline character
 bool consolePrint(std::string data) {
-  if(data.length() == 0 || data[0] == '\0') {
+  if (data.length() == 0 || data[0] == '\0') {
     return false;
   }
 
@@ -36,7 +34,7 @@ bool consolePrint(std::string data) {
 
 // Prints a string and appends a newline character
 bool consolePrintLine(std::string data) {
-  if(data.length() == 0 || data[0] == '\0') {
+  if (data.length() == 0 || data[0] == '\0') {
     return false;
   }
 
@@ -48,7 +46,7 @@ bool consolePrintLine(std::string data) {
 // Prints a debug line in console, with optional bool arg
 // to also pass data to spdlog
 bool consolePrintDebug(std::string data, bool log) {
-  if(log) {
+  if (log) {
     SPDLOG_INFO(data);
   }
   // TODO: Modify color or presentation in console
@@ -58,8 +56,8 @@ bool consolePrintDebug(std::string data, bool log) {
 
 // Prints an error line in console, appending the info to
 // the text for the error fetched with getConsoleError(ConStatus val)
-bool consolePrintError(const char* err, std::string info) {
-  if(err == 0) {
+bool consolePrintError(const char *err, std::string info) {
+  if (err == 0) {
     return false;
   }
 
@@ -81,57 +79,37 @@ void consoleClear() {
   numLines = 0;
 }
 
-void consoleSetSize(float x,float y) {
-  conSize = vec2(x,y);
-}
+void consoleSetSize(float x, float y) { conSize = glm::vec2(x, y); }
 
-vec2 consoleSize() {
-  return conSize;
-}
+glm::vec2 consoleSize() { return conSize; }
 
-void consoleSetSize(vec2 newSize) {
-  conSize = newSize;
-}
+void consoleSetSize(glm::vec2 newSize) { conSize = newSize; }
 
-vec2 consolePos() {
-  return conPos;
-}
+glm::vec2 consolePos() { return conPos; }
 
-void consoleSetPos(vec2 newPos) {
-  conPos = newPos;
-}
+void consoleSetPos(glm::vec2 newPos) { conPos = newPos; }
 
 void consoleToggle() {
   conOpen = !conOpen;
-  conPos = vec2(1,1);
+  conPos = glm::vec2(1, 1);
 }
 
-void consoleSetOpen(bool open) {
-  conOpen = open;
-}
+void consoleSetOpen(bool open) { conOpen = open; }
 
-bool consoleIsOpen() {
-  return conOpen;
-}
+bool consoleIsOpen() { return conOpen; }
 
-void consoleSizeEnforce(float xMax,float yMax) {
+void consoleSizeEnforce(float xMax, float yMax) {
   float conX = conSize.x;
   float conY = conSize.y;
 
-  if(conX == 0 || conY == 0) {
-    consoleSetSize(xMax,yMax);
+  if (conX == 0 || conY == 0) {
+    consoleSetSize(xMax, yMax);
     return;
   }
 
-  if(conX < 1.0f
-    || conY < 1.0f) {
-    consoleSetSize(
-      conX < 1.0f ? 1.0f : conX,
-      conY < 1.0f ? 1.0f : conY);
-  } else if(conX > xMax
-    || conY > yMax) {
-    consoleSetSize(
-      conX > xMax ? xMax : conX,
-      conY > yMax ? yMax : conY);
+  if (conX < 1.0f || conY < 1.0f) {
+    consoleSetSize(conX < 1.0f ? 1.0f : conX, conY < 1.0f ? 1.0f : conY);
+  } else if (conX > xMax || conY > yMax) {
+    consoleSetSize(conX > xMax ? xMax : conX, conY > yMax ? yMax : conY);
   }
 }

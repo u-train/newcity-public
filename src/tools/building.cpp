@@ -19,7 +19,7 @@ static ScrollState buildingScroll;
 static bool anyBuildingPlop;
 static TextBoxState searchTB;
 static char* searchText = 0;
-static vector<item> emDomBuildingsB;
+static std::vector<item> emDomBuildingsB;
 const bool highlightEmDom = false;
 static bool editButtonHover = false;
 
@@ -95,7 +95,7 @@ void building_mouse_move_callback(InputEvent event) {
 
   if (currentDesign > 0) {
     lot = nearestLot(event.mouseLine, true);
-    //vec3 mouseGroundIntersection = landIntersect(event.mouseLine);
+    //glm::vec3 mouseGroundIntersection = landIntersect(event.mouseLine);
     if (lot != 0) {
       item b = addGovernmentBuilding(lot, currentDesign);
       if (b != 0) {
@@ -175,7 +175,7 @@ bool setCurrentDesign(Part* part, InputEvent event) {
 
   if (currentDesign > 0) {
     Design* d = getDesign(currentDesign);
-    string name = d->name;
+    std::string name = d->name;
     if (stringContainsCaseInsensitive(name, "school")) {
       reportTutorialUpdate(TutorialUpdateCode::SelectedSchoolInAmenityTool);
     }
@@ -213,7 +213,7 @@ Part* building_render(Line dim) {
         break;
       } else {
         Part* result = panel(dim);
-        r(result, labelCenter(vec2(0,3), vec2(dim.end.x,1),
+        r(result, labelCenter(glm::vec2(0,3), glm::vec2(dim.end.x,1),
               strdup_s("No Amenities Enabled")));
         return result;
       }
@@ -223,8 +223,8 @@ Part* building_render(Line dim) {
 
   float k = 0;
   float scale = 0.75;
-  vector<item> buildingList;
-  vector<money> buildingCost;
+  std::vector<item> buildingList;
+  std::vector<money> buildingCost;
 
   for (int i=1; i <= sizeDesigns(); i++) {
     Design* d = getDesign(i);
@@ -280,14 +280,14 @@ Part* building_render(Line dim) {
   }
 
   Part* result = panel(dim);
-  r(result, label(vec2(0,0), 1,
+  r(result, label(glm::vec2(0,0), 1,
         strdup_s(getBuildingCategoryString(currentCategory))));
-  Part* scroll = scrollbox(vec2(0,0), vec2(10,4.75));
+  Part* scroll = scrollbox(glm::vec2(0,0), glm::vec2(10,4.75));
 
   for (int i = 0; i < numB; i++) {
     item ndx = buildingList[indices[i]];
     Design* d = getDesign(ndx);
-    Part* butt = button(vec2(0,k), vec2(9,scale),
+    Part* butt = button(glm::vec2(0,k), glm::vec2(9,scale),
       strdup_s(anyPlop ? d->name : d->displayName), setCurrentDesign);
     k += scale;
     butt->itemData = ndx;
@@ -300,9 +300,9 @@ Part* building_render(Line dim) {
     r(scroll, butt);
   }
 
-  r(result, scrollboxFrame(vec2(0,1), vec2(10,4.75), &buildingScroll, scroll));
+  r(result, scrollboxFrame(glm::vec2(0,1), glm::vec2(10,4.75), &buildingScroll, scroll));
 
-  Part* tabPanel = panel(vec2(0,6), vec2(8,1));
+  Part* tabPanel = panel(glm::vec2(0,6), glm::vec2(8,1));
   tabPanel->renderMode = RenderTransparent;
   r(result, tabPanel);
 
@@ -311,7 +311,7 @@ Part* building_render(Line dim) {
       //continue;
     //}
 
-    Part* butt = button(vec2(i,0), iconBuildingCategory[i], setCategory, i);
+    Part* butt = button(glm::vec2(i,0), iconBuildingCategory[i], setCategory, i);
     if (i == currentCategory) {
       butt->flags |= _partHighlight;
     }
@@ -323,7 +323,7 @@ Part* building_render(Line dim) {
 
   if (anyPlop) {
     searchTB.text = &searchText;
-    Part* tb = r(result, textBoxLabel(vec2(5,0), vec2(4, 0.85), &searchTB,
+    Part* tb = r(result, textBoxLabel(glm::vec2(5,0), glm::vec2(4, 0.85), &searchTB,
           iconQuery, "Search"));
   }
 
@@ -341,12 +341,12 @@ void buildingInstructionPanel(Part* pnl) {
     buildingNdx = p->element;
   }
 
-  vec2 partSize = vec2(pnl->dim.end) -
-    vec2(pnl->padding*2, pnl->padding*2);
-  r(pnl, amenityInfoPart(vec2(0,0), partSize, currentDesign,
+  glm::vec2 partSize = glm::vec2(pnl->dim.end) -
+    glm::vec2(pnl->padding*2, pnl->padding*2);
+  r(pnl, amenityInfoPart(glm::vec2(0,0), partSize, currentDesign,
         buildingNdx, true));
 
-  Part* editButt = r(pnl, button(vec2(12.5,0), iconPencil, saveConfirm, 0));
+  Part* editButt = r(pnl, button(glm::vec2(12.5,0), iconPencil, saveConfirm, 0));
   editButt->ptrData = (void*) editInDesigner;
   editButt->flags &= ~_partFreePtr;
   editButt->onHover = setEditButtonHover;
@@ -355,13 +355,13 @@ void buildingInstructionPanel(Part* pnl) {
   if (editButtonHover) {
     Design* design = getDesign(currentDesign);
     float hoverTextScale = 0.75;
-    vec2 pos = vec2(14,0.5-hoverTextScale*0.5);
+    glm::vec2 pos = glm::vec2(14,0.5-hoverTextScale*0.5);
     float txtWidth = stringWidth(design->name)*(hoverTextScale-0.25f) + 0.25f;
-    Part* ttPanel = panel(pos, vec2(txtWidth, hoverTextScale));
+    Part* ttPanel = panel(pos, glm::vec2(txtWidth, hoverTextScale));
     ttPanel->dim.start.z += 10;
     ttPanel->renderMode = RenderDarkBox;
 
-    Part* ttTxt = label(vec2(0,0), hoverTextScale, strdup_s(design->name));
+    Part* ttTxt = label(glm::vec2(0,0), hoverTextScale, strdup_s(design->name));
     r(ttPanel, ttTxt);
 
     r(pnl, ttPanel);

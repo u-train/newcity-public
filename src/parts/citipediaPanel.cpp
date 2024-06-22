@@ -27,8 +27,8 @@ const std::string citipedia404Content =
 
 static ScrollState citipediaScroll;
 static char* currentArticle = 0;
-static vector<char*> history;
-static vector<ScrollState> scrollHistory;
+static std::vector<char*> history;
+static std::vector<ScrollState> scrollHistory;
 static item historyIndex = -1;
 
 const float cpHeight = 18.5;
@@ -88,8 +88,8 @@ void selectCitipediaArticle(char* link) {
 }
 
 Part* citipediaPanel() {
-  vec2 cpLoc = vec2(0.1, 1.5);
-  vec2 cpSize = vec2(cpWidth+cpPad*2, cpHeight+cpPad*2);
+  glm::vec2 cpLoc = glm::vec2(0.1, 1.5);
+  glm::vec2 cpSize = glm::vec2(cpWidth+cpPad*2, cpHeight+cpPad*2);
   Part* result = panel(cpLoc, cpSize);
   result->padding = cpPad;
   float titleSpacing = 1.2;
@@ -99,24 +99,24 @@ Part* citipediaPanel() {
     pushHistory();
   }
 
-  r(result, icon(vec2(0,0), iconCitipedia));
+  r(result, icon(glm::vec2(0,0), iconCitipedia));
 
-  Part* backButt = r(result, button(vec2(cpWidth-4,0), iconLeft, vec2(1,1),
+  Part* backButt = r(result, button(glm::vec2(cpWidth-4,0), iconLeft, glm::vec2(1,1),
         shiftHistory, -1));
   if (historyIndex <= 0) backButt->foregroundColor = PickerPalette::GrayDark;
 
-  Part* homeButt = r(result, button(vec2(cpWidth-3,0), iconHouse, vec2(1,1),
+  Part* homeButt = r(result, button(glm::vec2(cpWidth-3,0), iconHouse, glm::vec2(1,1),
         followLink, 0));
   homeButt->ptrData = strdup_s("index");
   homeButt->flags |= _partFreePtr;
 
-  Part* foreButt = r(result, button(vec2(cpWidth-2,0), iconRight, vec2(1,1),
+  Part* foreButt = r(result, button(glm::vec2(cpWidth-2,0), iconRight, glm::vec2(1,1),
         shiftHistory, 1));
   if (historyIndex >= history.size()-1) {
     foreButt->foregroundColor = PickerPalette::GrayDark;
   }
 
-  r(result, button(vec2(cpWidth-1,0), iconX, vec2(1,1),
+  r(result, button(glm::vec2(cpWidth-1,0), iconX, glm::vec2(1,1),
         closeCitipediaPanel, 0));
 
   ArticleRenderConfig config;
@@ -128,20 +128,20 @@ Part* citipediaPanel() {
   config.linkHandler = followLink;
   config.chartDate = getCurrentDateTime();
 
-  Part* scroll = scrollbox(vec2(0,0), vec2(cpWidth-1, cpHeight-titleSpacing));
+  Part* scroll = scrollbox(glm::vec2(0,0), glm::vec2(cpWidth-1, cpHeight-titleSpacing));
   char* title = 0;
-  r(scroll, article(vec2(0,0), vec2(cpWidth-1, cpScale),
+  r(scroll, article(glm::vec2(0,0), glm::vec2(cpWidth-1, cpScale),
         &currentArticle, &title, config));
 
   float widthForTitle = cpWidth-4.25;
-  vec2 titleEnd(0,0);
-  Part* titlePart = r(result, spanCenter(vec2(1,0), 1, vec2(widthForTitle+0.5, titleSpacing), title == 0 ? strdup_s("Citipedia") : title, &titleEnd));
+  glm::vec2 titleEnd(0,0);
+  Part* titlePart = r(result, spanCenter(glm::vec2(1,0), 1, glm::vec2(widthForTitle+0.5, titleSpacing), title == 0 ? strdup_s("Citipedia") : title, &titleEnd));
 
   // Align vertically
   float scrollBoxY = std::max(titleSpacing, titleEnd.y);
 
-  Part* scrollFrame = scrollboxFrame(vec2(0,scrollBoxY),
-      vec2(cpWidth, cpHeight-scrollBoxY),
+  Part* scrollFrame = scrollboxFrame(glm::vec2(0,scrollBoxY),
+      glm::vec2(cpWidth, cpHeight-scrollBoxY),
       &citipediaScroll, scroll);
   r(result, scrollFrame);
 

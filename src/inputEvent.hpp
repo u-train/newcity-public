@@ -1,7 +1,12 @@
 #pragma once
 
 #include "line.hpp"
-#include "item.hpp"
+#include <glm/glm.hpp>
+// todo: this should be fixed by moving these two requires to a header files.
+// It happens way too often that glfw3 gets included first in some chain instead of glew.h.
+// Causing some weird compile errors.
+#include <GL/glew.h>
+#include <glfw3.h>
 
 const int UNICODE_INPUT = -1000;
 const int MOUSE_MOVED_INPUT = -1001;
@@ -22,9 +27,9 @@ struct InputEvent {
   int action;
   int mods;
   int unicode;
-  vec2 scroll;
-  vec2 mouseLoc;
-  vec2 cameraSpaceMouseLoc;
+  glm::vec2 scroll;
+  glm::vec2 mouseLoc;
+  glm::vec2 cameraSpaceMouseLoc;
   Line mouseLine;
   bool doubleClick;
   bool isMouse;

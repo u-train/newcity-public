@@ -3,7 +3,8 @@
 #include "error.hpp"
 #include "string_proxy.hpp"
 #include "serialize.hpp"
-
+#include <vector>
+ 
 const int cupMinAlloc = 10;
 const float cupGrowthRate = 1.5f;
 
@@ -12,8 +13,8 @@ class Cup {
   public:
 
     static Cup* newCup(int expectedSize);
-    vector<T> toVector();
-    void fromVector(vector<T> vec);
+    std::vector<T> toVector();
+    void fromVector(std::vector<T> vec);
     T* get(int ndx);
     void set(int ndx, T value);
     T operator[](int ndx);
@@ -52,8 +53,8 @@ Cup<T>* Cup<T>::newCup(int expectedSize) {
 }
 
 template <typename T>
-vector<T> Cup<T>::toVector() {
-  vector<T> result;
+std::vector<T> Cup<T>::toVector() {
+  std::vector<T> result;
   result.reserve(num);
   for (int i = 0; i < num; i++) {
     result.push_back(data[i]);
@@ -62,7 +63,7 @@ vector<T> Cup<T>::toVector() {
 }
 
 template <typename T>
-void Cup<T>::fromVector(vector<T> vec) {
+void Cup<T>::fromVector(std::vector<T> vec) {
   resize(vec.size());
   for (int i = 0; i < num; i++) {
     data[i] = vec[i];

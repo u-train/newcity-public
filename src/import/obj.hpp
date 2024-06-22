@@ -14,10 +14,8 @@
 #include "../string_proxy.hpp"
 
 // Taken from OBJ_Loader.hpp and adapted for our purposes
-struct ObjMaterial
-{
-  ObjMaterial()
-  {
+struct ObjMaterial {
+  ObjMaterial() {
     name;
     Ns = 0.0f;
     Ni = 0.0f;
@@ -28,11 +26,11 @@ struct ObjMaterial
   // Material Name
   std::string name;
   // Ambient Color
-  vec3 Ka;
+  glm::vec3 Ka;
   // Diffuse Color
-  vec3 Kd;
+  glm::vec3 Kd;
   // Specular Color
-  vec3 Ks;
+  glm::vec3 Ks;
   // Specular Exponent
   float Ns;
   // Optical Density
@@ -57,11 +55,11 @@ struct ObjMaterial
 
 // Modeled after objl::Vertex, but with our types
 struct ObjVertex {
-  vec3 pos;
-  vec3 norm;
-  vec2 uv;
+  glm::vec3 pos;
+  glm::vec3 norm;
+  glm::vec2 uv;
 
-  ObjVertex(vec3 p,vec3 n,vec2 u) {
+  ObjVertex(glm::vec3 p, glm::vec3 n, glm::vec2 u) {
     pos = p;
     norm = n;
     uv = u;
@@ -75,10 +73,8 @@ struct ObjMesh {
   std::vector<unsigned int> indices;
   ObjMaterial material;
 
-  ObjMesh(std::string n,
-    std::vector<ObjVertex> v,
-    std::vector<unsigned int> i,
-    ObjMaterial mat = ObjMaterial()) {
+  ObjMesh(std::string n, std::vector<ObjVertex> v, std::vector<unsigned int> i,
+          ObjMaterial mat = ObjMaterial()) {
     name = n;
     vertices = v;
     indices = i;
@@ -96,13 +92,9 @@ struct ObjModel {
   item meshNdx;
   item entNdx;
 
-  ObjModel(std::string n,
-    std::vector<ObjMesh> meshNew,
-    std::vector<ObjVertex> vNew,
-    std::vector<unsigned int> iNew,
-    std::vector<ObjMaterial> matNew,
-    item mn = -1,
-    item en = -1) {
+  ObjModel(std::string n, std::vector<ObjMesh> meshNew,
+           std::vector<ObjVertex> vNew, std::vector<unsigned int> iNew,
+           std::vector<ObjMaterial> matNew, item mn = -1, item en = -1) {
     name = n;
     submeshes = meshNew;
     vertices = vNew;
@@ -115,26 +107,20 @@ struct ObjModel {
   // Currently only checks to see if something loaded
   // TODO: Update with logic to verify the loaded data
   bool isValid() {
-    return submeshes.size() > 0
-      && vertices.size() > 0
-      && indices.size() > 0
-      && materials.size() > 0;
+    return submeshes.size() > 0 && vertices.size() > 0 && indices.size() > 0 &&
+           materials.size() > 0;
   }
 
-  bool isRendered() {
-    return meshNdx != -1;
-  }
+  bool isRendered() { return meshNdx != -1; }
 
-  bool hasEntity() {
-    return entNdx != -1;
-  }
+  bool hasEntity() { return entNdx != -1; }
 };
 
 bool clearObjStore();
 bool loadObjFile(std::string name);
 bool tryPrintObjData(std::string name);
-bool renderObj(ObjModel* obj, Shader shader, int tex, vec3 pos, int size);
+bool renderObj(ObjModel *obj, Shader shader, int tex, glm::vec3 pos, int size);
 bool renderObj(std::string name);
 bool tryUnloadObj(std::string name, bool rmvEnt = true);
-void importObj(const char* name, item meshNdx);
-void importObj(const char* name, item meshNdx, bool buffer);
+void importObj(const char *name, item meshNdx);
+void importObj(const char *name, item meshNdx, bool buffer);

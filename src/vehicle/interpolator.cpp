@@ -11,8 +11,8 @@
 #include "../selection.hpp"
 #include "../time.hpp"
 #include "../util.hpp"
+#include "../game/constants.hpp"
 
-#include "spdlog/spdlog.h"
 #include <atomic>
 
 static item keyOffset = numKeyframes-1;
@@ -23,10 +23,10 @@ double lastInterpolateTime = 0;
 double lastAlpha = 0;
 Cup<double> swapTime;
 static double heatmapsAndWearToGo = 0;
-Cup<vec3> vLastSample;
-atomic<item> currentInterpolatorKeyframe(0);
-atomic<item> currentPhysicalKeyframe(0);
-atomic<float> lastSimulateTime(0);
+Cup<glm::vec3> vLastSample;
+std::atomic<item> currentInterpolatorKeyframe(0);
+std::atomic<item> currentPhysicalKeyframe(0);
+std::atomic<float> lastSimulateTime(0);
 item interpolateSkipNdx = 0;
 const item interpolateSkips = 20;
 //double nextSwapTime = 0;
@@ -60,7 +60,7 @@ GraphLocation getKeyframe(item key, item ndx) {
   //if (keyframes.size() < n) {
     return keyframes[n];
   //} else {
-    //return vec3(0,0,0);
+    //return glm::vec3(0,0,0);
   //}
 }
 
@@ -69,7 +69,7 @@ void setKeyframe(item key, item ndx, GraphLocation val) {
   //SPDLOG_INFO("setKeyframe {} {} {} {} {}", key, ndx, keyOffset, n,
       //keyframes.size());
   keyframes.ensureSize(n+1);
-  val.dap = clamp(val.dap, 0.f, getLaneLength(val.lane));
+  val.dap = glm::clamp(val.dap, 0.f, getLaneLength(val.lane));
   keyframes.set(n, val);
 }
 
@@ -90,12 +90,12 @@ void updateOneVehicleHeatmapsAndWear(item ndx, float duration,
   if (!(v->flags & _vehicleExists)) return;
   if (!(v->flags & _vehiclePlaced)) return;
 
-  vec3 loc = v->location;
+  glm::vec3 loc = v->location;
   item lane = v->laneLoc.lane;
   vLastSample.ensureSize(ndx+1);
-  vec3 lastLoc = vLastSample[ndx];
+  glm::vec3 lastLoc = vLastSample[ndx];
   vLastSample.set(ndx, loc);
-  double distance = clamp(vecDistance(loc, lastLoc), 0.f, 100.f) / trafficRate;
+  double distance = glm::clamp(vecDistance(loc, lastLoc), 0.f, 100.f) / trafficRate;
   double multiplier = duration / trafficRate;
   int type = getVehicleModel(v->model)->type;
   bool truck = type == VhTypeTruck || type == VhTypeTruckFront ||
@@ -175,7 +175,7 @@ void interpolateOneVehicle(item ndx, int key, int key1,
     return;
   }
 
-  vec3 target;
+  glm::vec3 target;
   GraphLocation g1 = getKeyframe(key1, ndx);
   GraphLocation result = g1;
   if (v->trailing != 0) {
@@ -298,8 +298,8 @@ void interpolateOneVehicle(item ndx, int key, int key1,
         GraphLocation r0 = g0, r1 = g1;
         r0.dap = r1.dap = r0.dap + theta;
         result = r1;
-        vec3 l0 = getLocation(r0);
-        vec3 l1 = getLocation(r1);
+        glm::vec3 l0 = getLocation(r0);
+        glm::vec3 l1 = getLocation(r1);
         target = l0*invAlpha + l1*alpha;
 
       } else {
@@ -324,20 +324,20 @@ void interpolateOneVehicle(item ndx, int key, int key1,
     target = getLocation(g1);
   }
 
-  //vec3 l0 = getLocation(g0);
-  //vec3 l1 = getLocation(g1);
-  //vec3 target = l0*invAlpha + l1*alpha;
+  //glm::vec3 l0 = getLocation(g0);
+  //glm::vec3 l1 = getLocation(g1);
+  //glm::vec3 target = l0*invAlpha + l1*alpha;
 
-  vec3 oldLoc = v->location;
-  //vec3 loc = duration > c(CVehicleUpdateTime) ?
-    //target : mix(oldLoc, target, duration);
+  glm::vec3 oldLoc = v->location;
+  //glm::vec3 loc = duration > c(CVehicleUpdateTime) ?
+    //target : glm::mix(oldLoc, target, duration);
   //SPDLOG_INFO("loc:{},{} {} {} {}", l0.x, l0.y, key, ndx, alpha);
 
   if (duration > 0) {
-    vec3 vel = target - oldLoc;
+    glm::vec3 vel = target - oldLoc;
     vel /= duration;
     if (validate(v->velocity)) {
-      v->velocity = mix(v->velocity, vel, 0.1);
+      v->velocity = glm::mix(v->velocity, vel, 0.1);
     } else {
       v->velocity = vel;
     }
@@ -351,7 +351,7 @@ void interpolateOneVehicle(item ndx, int key, int key1,
   vInterpolateLoc.ensureSize(ndx+1);
   vInterpolateLoc.set(ndx, result);
 
-  vec3 dl;
+  glm::vec3 dl;
   GraphLocation dr = result;
   if (result.dap > 0.2) {
     dr.dap -= 0.2;
@@ -361,7 +361,7 @@ void interpolateOneVehicle(item ndx, int key, int key1,
     dl = getLocation(dr) - getLocation(result);
   }
   v->yaw = atan2(dl.x, dl.y);
-  v->pitch = atan2(dl.z, length(vec2(dl)));
+  v->pitch = atan2(dl.z, length(glm::vec2(dl)));
 
   placeVehicle(ndx);
 }
@@ -370,8 +370,8 @@ void interpolateVehicles(double duration) {
   swapTime.ensureSize(numKeyframes);
 
   double iTime = lastInterpolateTime + duration;
-  iTime = clamp(iTime, 0., double(lastSimulateTime));
-  //iTime = mix(iTime, swapTime[numKeyframes/2], 0.001f);
+  iTime = glm::clamp(iTime, 0., double(lastSimulateTime));
+  //iTime = glm::mix(iTime, swapTime[numKeyframes/2], 0.001f);
   //duration = iTime - lastInterpolateTime;
   lastInterpolateTime = iTime;
   //if (iTime < 10) return;
@@ -396,7 +396,7 @@ void interpolateVehicles(double duration) {
   //}
 
   double alpha = (iTime - swapTime[key])/(swapTime[key1] - swapTime[key]);
-  //alpha = clamp(alpha, lastAlpha, 1.);
+  //alpha = glm::clamp(alpha, lastAlpha, 1.);
   lastAlpha = alpha;
 
   //float time = getVehicleTime();

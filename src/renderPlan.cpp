@@ -80,7 +80,7 @@ void renderPlan(item ndx) {
   if (str) {
     float fontSize = set ? 25*boxScale : getCameraDistance()/25;
     float offset = stringWidth(str)*fontSize;
-    vec3 textLoc = planStringLoc - vec3(offset,fontSize*.5f,0);
+    glm::vec3 textLoc = planStringLoc - glm::vec3(offset,fontSize*.5f,0);
     renderString(textMesh, str, textLoc, fontSize);
 
     bool showHoldShift = !legal && !set;
@@ -100,7 +100,7 @@ void renderPlan(item ndx) {
     }
 
     if (showHoldShift) {
-      renderString(textMesh, "(Hold Shift to Demolish)", textLoc + vec3(0, fontSize, 0), fontSize*.75f);
+      renderString(textMesh, "(Hold Shift to Demolish)", textLoc + glm::vec3(0, fontSize, 0), fontSize*.75f);
     }
 
     free(str);
@@ -110,16 +110,16 @@ void renderPlan(item ndx) {
     Line l = planDiscardBox;
     Line iconL = iconToSpritesheet(iconNo);
     makeQuad(iconMesh[planNoIconEntity],
-      l.start, vec3(l.end.x, l.start.y, l.start.z),
-      vec3(l.start.x, l.end.y, l.end.z), l.end,
+      l.start, glm::vec3(l.end.x, l.start.y, l.start.z),
+      glm::vec3(l.start.x, l.end.y, l.end.z), l.end,
       iconL.start, iconL.end);
 
     if (affordable && completable) {
       l = planCompleteBox;
       Line iconL = iconToSpritesheet(iconYes);
       makeQuad(iconMesh[planYesIconEntity],
-        l.start, vec3(l.end.x, l.start.y, l.start.z),
-        vec3(l.start.x, l.end.y, l.end.z), l.end,
+        l.start, glm::vec3(l.end.x, l.start.y, l.start.z),
+        glm::vec3(l.start.x, l.end.y, l.end.z), l.end,
         iconL.start, iconL.end);
     }
   }
@@ -134,12 +134,12 @@ void renderPlan(item ndx) {
       bool complete = node->flags & _graphComplete;
       if (colliding || (!isDupe && (complete || node->edges.size() > 2))) {
         anyIcons = true;
-        vec3 loc = i == 0 ? edge->line.start : edge->line.end;
-        vec3 otherEnd = i != 0 ? edge->line.start : edge->line.end;
+        glm::vec3 loc = i == 0 ? edge->line.start : edge->line.end;
+        glm::vec3 otherEnd = i != 0 ? edge->line.start : edge->line.end;
         float hiconSize = 20;
         Line iconLine = iconToSpritesheet(iconT, 0.f);
-        vec3 hdown = otherEnd-loc;
-        vec3 halong = hiconSize*uzNormal(hdown);
+        glm::vec3 hdown = otherEnd-loc;
+        glm::vec3 halong = hiconSize*uzNormal(hdown);
         hdown = hiconSize*normalize(hdown);
         loc -= plan->location;
         loc += hdown;
@@ -162,8 +162,8 @@ void renderPlan(item ndx) {
       Line l = planWSUIIconBox;
       Line iconL = iconToSpritesheet(iconUpgrade);
       makeQuad(iconMesh[planMarkerWSUIIconEntity],
-        l.start, vec3(l.end.x, l.start.y, l.start.z),
-        vec3(l.start.x, l.end.y, l.end.z), l.end,
+        l.start, glm::vec3(l.end.x, l.start.y, l.start.z),
+        glm::vec3(l.start.x, l.end.y, l.end.z), l.end,
         iconL.start, iconL.end);
     }
   }

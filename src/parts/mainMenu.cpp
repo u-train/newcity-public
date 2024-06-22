@@ -14,6 +14,8 @@
 #include "../string_proxy.hpp"
 #include "../selection.hpp"
 #include "../serialize.hpp"
+#include "../main.hpp"
+#include "../error.hpp"
 
 #include "blank.hpp"
 #include "block.hpp"
@@ -49,8 +51,8 @@ bool saveTestAsCity = false;
 uint32_t loadMenuLookupFlags = _lookupForceMod;
 item saveLoadModeTab = ModeGame;
 
-const vec2 mainMenuLoc=vec2(-5, 5);
-const vec2 mainMenuSize=vec2(14, 22.5);
+const glm::vec2 mainMenuLoc= glm::vec2(-5, 5);
+const glm::vec2 mainMenuSize= glm::vec2(14, 22.5);
 
 void setDoSaveConfirm(bool val) {
   doSaveConfirm = true;
@@ -197,7 +199,7 @@ bool saveConfirm(Part* part, InputEvent event) {
   }
 }
 
-Part* saveConfirmButton(vec2 loc, vec2 size, char* text,
+Part* saveConfirmButton(glm::vec2 loc, glm::vec2 size, char* text,
   InputCallback afterCallback
 ) {
   Part* result = buttonCenter(loc, size, text, saveConfirm);
@@ -327,24 +329,24 @@ Part* mainMenu(float aspectRatio) {
   bool test = mode == ModeTest;
 
   if (menuMode == SaveConfirm) {
-    vec2 center = vec2(uiX*.5f, uiGridSizeY*.5f);
-    vec2 size = vec2(12, 5);
+    glm::vec2 center = glm::vec2(uiX*.5f, uiGridSizeY*.5f);
+    glm::vec2 size = glm::vec2(12, 5);
     Part* saveConfirmPanel = panel(center - size*.5f, size);
     saveConfirmPanel->padding = 0.5f;
 
-    r(saveConfirmPanel, label(vec2(0,0), 1.25,
+    r(saveConfirmPanel, label(glm::vec2(0,0), 1.25,
           strdup_s("Do you want to save?")));
-    r(saveConfirmPanel, button(vec2(0,3), vec2(3,1),
+    r(saveConfirmPanel, button(glm::vec2(0,3), glm::vec2(3,1),
       strdup_s("Yes"), openSaveMenu));
-    r(saveConfirmPanel, button(vec2(4,3), vec2(3,1),
+    r(saveConfirmPanel, button(glm::vec2(4,3), glm::vec2(3,1),
       strdup_s("No"), afterSaveConfirm));
-    r(saveConfirmPanel, button(vec2(8,3), vec2(3,1),
+    r(saveConfirmPanel, button(glm::vec2(8,3), glm::vec2(3,1),
       strdup_s("Cancel"), openMainMenu));
 
     return saveConfirmPanel;
   }
 
-  Part* menu = panel(mainMenuLoc + vec2(uiX-mainMenuSize.x,0), mainMenuSize);
+  Part* menu = panel(mainMenuLoc + glm::vec2(uiX-mainMenuSize.x,0), mainMenuSize);
   menu->padding = 0.5;
 
   float bs = mainMenuSize.x - 1;
@@ -354,13 +356,13 @@ Part* mainMenu(float aspectRatio) {
   float y = 0.25;
 
   if (menuMode == MainMenu) {
-    r(menu, labelCenter(vec2(0,y), vec2(bs, 3),
+    r(menu, labelCenter(glm::vec2(0,y), glm::vec2(bs, 3),
           strdup_s("NewCity")));
     y += 3.5;
-    r(menu, hr(vec2(0,y), bs));
+    r(menu, hr(glm::vec2(0,y), bs));
     y += .25;
     Part* versionLabel =
-      labelCenter(vec2(0,y), vec2(bs,0.75), strdup_s(versionString()));
+      labelCenter(glm::vec2(0,y), glm::vec2(bs,0.75), strdup_s(versionString()));
     y += 1.25;
     //#ifdef LP_DEBUG
      versionLabel->onClick = crashImmediately;
@@ -371,8 +373,8 @@ Part* mainMenu(float aspectRatio) {
     //#endif
     r(menu, versionLabel);
     float buttStart = y+2;
-    Part* playButt = buttonCenter(vec2(buttonx,buttStart-2),
-        vec2(buttonxs, buttys), strdup_s("Play"), closeMenus);
+    Part* playButt = buttonCenter(glm::vec2(buttonx,buttStart-2),
+        glm::vec2(buttonxs, buttys), strdup_s("Play"), closeMenus);
     if (blinkFeature(FPlay)) {
       playButt->flags |= _partBlink;
     }
@@ -380,76 +382,76 @@ Part* mainMenu(float aspectRatio) {
 
     if (organizer) {
       if (isFeatureEnabledGlobal(FBuildingDesigner)) {
-        r(menu, saveConfirmButton(vec2(buttonx,buttStart+4),
-          vec2(buttonxs,buttys), strdup_s("Building Designer"), startDesigner));
+        r(menu, saveConfirmButton(glm::vec2(buttonx,buttStart+4),
+          glm::vec2(buttonxs,buttys), strdup_s("Building Designer"), startDesigner));
       }
-      r(menu, saveConfirmButton(vec2(buttonx,buttStart+5.5),
-        vec2(buttonxs,buttys), strdup_s("Return to City"), returnToGame));
+      r(menu, saveConfirmButton(glm::vec2(buttonx,buttStart+5.5),
+        glm::vec2(buttonxs,buttys), strdup_s("Return to City"), returnToGame));
 
     } else if (designer) {
-      r(menu, saveConfirmButton(vec2(buttonx,buttStart-.5),
-        vec2(buttonxs,buttys), strdup_s("New Design"), newBuildingDesigner));
-      r(menu, saveConfirmButton(vec2(buttonx,buttStart+1),
-        vec2(buttonxs,buttys), strdup_s("Load Design"), openLoadMenu));
-      r(menu, buttonCenter(vec2(buttonx,buttStart+2.5),
-        vec2(buttonxs,buttys), strdup_s("Save Design"), openSaveMenu));
+      r(menu, saveConfirmButton(glm::vec2(buttonx,buttStart-.5),
+        glm::vec2(buttonxs,buttys), strdup_s("New Design"), newBuildingDesigner));
+      r(menu, saveConfirmButton(glm::vec2(buttonx,buttStart+1),
+        glm::vec2(buttonxs,buttys), strdup_s("Load Design"), openLoadMenu));
+      r(menu, buttonCenter(glm::vec2(buttonx,buttStart+2.5),
+        glm::vec2(buttonxs,buttys), strdup_s("Save Design"), openSaveMenu));
       if (c(CEnableDesignOrganizer)) {
-        r(menu, saveConfirmButton(vec2(buttonx,buttStart+4),
-          vec2(buttonxs,buttys), strdup_s("Organize Designs"),
+        r(menu, saveConfirmButton(glm::vec2(buttonx,buttStart+4),
+          glm::vec2(buttonxs,buttys), strdup_s("Organize Designs"),
             toggleDesignOrganizer));
       }
-      r(menu, saveConfirmButton(vec2(buttonx,buttStart+5.5),
-        vec2(buttonxs,buttys), strdup_s(wasTestMode() ? "Return to Test" :
+      r(menu, saveConfirmButton(glm::vec2(buttonx,buttStart+5.5),
+        glm::vec2(buttonxs,buttys), strdup_s(wasTestMode() ? "Return to Test" :
           "Return to City"), returnFromDesigner));
 
     } else if (test) {
-      r(menu, saveConfirmButton(vec2(buttonx,buttStart-.5),
-        vec2(buttonxs,buttys), strdup_s("New Scenario"), newTest));
-      r(menu, saveConfirmButton(vec2(buttonx,buttStart+1),
-        vec2(buttonxs,buttys), strdup_s("Load Scenario"), openLoadMenu));
-      r(menu, buttonCenter(vec2(buttonx,buttStart+2.5),
-        vec2(buttonxs,buttys), strdup_s("Save Scenario"), openSaveMenu));
+      r(menu, saveConfirmButton(glm::vec2(buttonx,buttStart-.5),
+        glm::vec2(buttonxs,buttys), strdup_s("New Scenario"), newTest));
+      r(menu, saveConfirmButton(glm::vec2(buttonx,buttStart+1),
+        glm::vec2(buttonxs,buttys), strdup_s("Load Scenario"), openLoadMenu));
+      r(menu, buttonCenter(glm::vec2(buttonx,buttStart+2.5),
+        glm::vec2(buttonxs,buttys), strdup_s("Save Scenario"), openSaveMenu));
 
       if (isFeatureEnabledGlobal(FBuildingDesigner)) {
-        r(menu, saveConfirmButton(vec2(buttonx,buttStart+4),
-          vec2(buttonxs,buttys), strdup_s("Building Designer"), startDesigner));
+        r(menu, saveConfirmButton(glm::vec2(buttonx,buttStart+4),
+          glm::vec2(buttonxs,buttys), strdup_s("Building Designer"), startDesigner));
       }
 
-      r(menu, saveConfirmButton(vec2(buttonx,buttStart+5.5),
-        vec2(buttonxs,buttys), strdup_s("Return to City"), returnToGame));
+      r(menu, saveConfirmButton(glm::vec2(buttonx,buttStart+5.5),
+        glm::vec2(buttonxs,buttys), strdup_s("Return to City"), returnToGame));
 
     } else {
       if (isFeatureEnabledGlobal(FNewGame)) {
-        r(menu, saveConfirmButton(vec2(buttonx,buttStart-.5),
-          vec2(buttonxs,buttys), strdup_s("New City"), newGame));
-        r(menu, saveConfirmButton(vec2(buttonx,buttStart+1),
-          vec2(buttonxs,buttys), strdup_s("Load City"), openLoadMenu));
-        r(menu, buttonCenter(vec2(buttonx,buttStart+2.5),
-          vec2(buttonxs,buttys), strdup_s("Save City"), openSaveMenu));
+        r(menu, saveConfirmButton(glm::vec2(buttonx,buttStart-.5),
+          glm::vec2(buttonxs,buttys), strdup_s("New City"), newGame));
+        r(menu, saveConfirmButton(glm::vec2(buttonx,buttStart+1),
+          glm::vec2(buttonxs,buttys), strdup_s("Load City"), openLoadMenu));
+        r(menu, buttonCenter(glm::vec2(buttonx,buttStart+2.5),
+          glm::vec2(buttonxs,buttys), strdup_s("Save City"), openSaveMenu));
       }
 
       if (isFeatureEnabledGlobal(FBuildingDesigner)) {
-        r(menu, saveConfirmButton(vec2(buttonx,buttStart+4),
-          vec2(buttonxs,buttys), strdup_s("Building Designer"), startDesigner));
+        r(menu, saveConfirmButton(glm::vec2(buttonx,buttStart+4),
+          glm::vec2(buttonxs,buttys), strdup_s("Building Designer"), startDesigner));
       }
 
       if (isFeatureEnabledGlobal(FTestMode)) {
-        r(menu, saveConfirmButton(vec2(buttonx,buttStart+5.5),
-          vec2(buttonxs,buttys), strdup_s("Scenario Editor"), startTest));
+        r(menu, saveConfirmButton(glm::vec2(buttonx,buttStart+5.5),
+          glm::vec2(buttonxs,buttys), strdup_s("Scenario Editor"), startTest));
       }
     }
 
     if (isFeatureEnabledGlobal(FMods)) {
-      r(menu, buttonCenter(vec2(buttonx,buttStart+8.25),
-        vec2(buttonxs,buttys), strdup_s("Select Modpack"), openSelectMod));
+      r(menu, buttonCenter(glm::vec2(buttonx,buttStart+8.25),
+        glm::vec2(buttonxs,buttys), strdup_s("Select Modpack"), openSelectMod));
     }
 
-    r(menu, buttonCenter(vec2(buttonx, buttStart+9.75),
-          vec2(buttonxs, buttys), strdup_s("Options"), openOptionsMenu));
-    r(menu, buttonCenter(vec2(buttonx, buttStart+11.25),
-          vec2(buttonxs, buttys), strdup_s("About"), openAboutPage));
-    r(menu, buttonCenter(vec2(buttonx, buttStart+12.75),
-          vec2(buttonxs, buttys), strdup_s("Quit"), quitGame));
+    r(menu, buttonCenter(glm::vec2(buttonx, buttStart+9.75),
+          glm::vec2(buttonxs, buttys), strdup_s("Options"), openOptionsMenu));
+    r(menu, buttonCenter(glm::vec2(buttonx, buttStart+11.25),
+          glm::vec2(buttonxs, buttys), strdup_s("About"), openAboutPage));
+    r(menu, buttonCenter(glm::vec2(buttonx, buttStart+12.75),
+          glm::vec2(buttonxs, buttys), strdup_s("Quit"), quitGame));
 
   } else if (menuMode == SaveGameMenu || menuMode == LoadGameMenu ||
       menuMode == ModsMenu) {
@@ -459,21 +461,21 @@ Part* mainMenu(float aspectRatio) {
     ScrollState* scrollState;
 
     if (menuMode == SaveGameMenu) {
-      r(menu, labelCenter(vec2(0,0), vec2(bs,2),
+      r(menu, labelCenter(glm::vec2(0,0), glm::vec2(bs,2),
         strdup_s(designer?"Save Design":test?"Save Scenario":"Save City")));
-      r(menu, textBox(vec2(0,2), vec2(mainMenuSize.x-1, 1.5),
+      r(menu, textBox(glm::vec2(0,2), glm::vec2(mainMenuSize.x-1, 1.5),
             strdup_s(saveFilename)));
       top = 4;
 
       if (designer) {
-        r(menu, label(vec2(0,3.5), 0.85,
+        r(menu, label(glm::vec2(0,3.5), 0.85,
           sprintf_o("Files are saved in\n%sdesigns/", modDirectoryNonNull())));
         top += 1.5;
 
       } else if (test) {
-        r(menu, button(vec2(0, 3.75),
+        r(menu, button(glm::vec2(0, 3.75),
               saveTestAsCity ? iconCheck : iconNull,
-              vec2(mainMenuSize.x-1, 1), strdup_s("Save as City"),
+              glm::vec2(mainMenuSize.x-1, 1), strdup_s("Save as City"),
               toggleSaveTestAsCity, 0));
         top += 1.5;
       }
@@ -483,12 +485,12 @@ Part* mainMenu(float aspectRatio) {
       menu->onText = inputSaveFilenameText;
       menu->onKeyDown = inputSaveFilenameKey;
       float halfWidth = (bs-0.5)*.5f;
-      Part* saveButt = r(menu, button(vec2(halfWidth+0.5,mainMenuSize.y-2),
-              vec2(halfWidth, 1), strdup_s("Save"), saveGameCallback));
+      Part* saveButt = r(menu, button(glm::vec2(halfWidth+0.5,mainMenuSize.y-2),
+              glm::vec2(halfWidth, 1), strdup_s("Save"), saveGameCallback));
       saveButt->flags |= _partAlignCenter;
 
     } else if (menuMode == LoadGameMenu) {
-      r(menu, labelCenter(vec2(0,0), vec2(bs,2), strdup_s(
+      r(menu, labelCenter(glm::vec2(0,0), glm::vec2(bs,2), strdup_s(
               saveLoadModeTab == ModeBuildingDesigner ? "Load Design" :
               saveLoadModeTab == ModeTest ? "Load Scenario" :
               "Load City")));
@@ -499,7 +501,7 @@ Part* mainMenu(float aspectRatio) {
       float modeTabWidth = (mainMenuSize.x-modeTabPad*2)/3;
 
       for (int i = ModeGame; i <= ModeBuildingDesigner; i++) {
-        Part* modeTab = r(menu, buttonCenter(vec2(i*(modeTabWidth+modeTabPad)-0.5, -1.5), vec2(modeTabWidth, 1), strdup_s(
+        Part* modeTab = r(menu, buttonCenter(glm::vec2(i*(modeTabWidth+modeTabPad)-0.5, -1.5), glm::vec2(modeTabWidth, 1), strdup_s(
               i == ModeBuildingDesigner ? "Design" :
               i == ModeTest ? "Scenario" : "City"),
               selectSaveLoadModeTab));
@@ -513,7 +515,7 @@ Part* mainMenu(float aspectRatio) {
       }
       //top += 1;
 
-      //r(menu, gradientBlock(vec2(0,-.75), vec2(bs,0.25), colorPanelGrad0, colorLoweredGrad1));
+      //r(menu, gradientBlock(glm::vec2(0,-.75), glm::vec2(bs,0.25), colorPanelGrad0, colorLoweredGrad1));
       //top += 0.5;
 
       // Checkboxes to filter by directory
@@ -524,17 +526,17 @@ Part* mainMenu(float aspectRatio) {
         float pad = 0.25;
         float lfpWidth = bs;
         float lfpLength = scl*5+1;
-        vec2 loc = vec2(-lfpWidth-1-menu->padding,
+        glm::vec2 loc = glm::vec2(-lfpWidth-1-menu->padding,
           menu->dim.end.y*.5f-4-lfpLength-menu->padding*2);
-        Part* lookupFlagsPanel = r(menu, panel(loc, vec2(lfpWidth, lfpLength)));
+        Part* lookupFlagsPanel = r(menu, panel(loc, glm::vec2(lfpWidth, lfpLength)));
         lookupFlagsPanel->padding = pad;
 
-        r(lookupFlagsPanel, label(vec2(0,lfpY), scl,
+        r(lookupFlagsPanel, label(glm::vec2(0,lfpY), scl,
             strdup_s("Reading files from")));
         lfpY += scl;
 
-        vector<string> directories = lookupFileCandidates("designs", 0);
-        vector<string> selectedDirs = lookupFileCandidates("designs",
+        std::vector<std::string> directories = lookupFileCandidates("designs", 0);
+        std::vector<std::string> selectedDirs = lookupFileCandidates("designs",
             getLoadMenuLookupFlags());
 
         int k = 0;
@@ -546,50 +548,50 @@ Part* mainMenu(float aspectRatio) {
             match = true;
           }
 
-          r(lookupFlagsPanel, button(vec2(bx, lfpY),
+          r(lookupFlagsPanel, button(glm::vec2(bx, lfpY),
                 match ? iconCheck : iconNull,
-                vec2(bs-1, scl), strdup_s(directories[i].c_str()),
+                glm::vec2(bs-1, scl), strdup_s(directories[i].c_str()),
                 toggleShowDesignsDir, 1 << (i+1)));
           lfpY += scl;
         }
       }
 
       searchTB.text = &searchText;
-      Part* tb = r(menu, textBox(vec2(0,top),
-            vec2(mainMenuSize.x-1, 1.5), &searchTB));
+      Part* tb = r(menu, textBox(glm::vec2(0,top),
+            glm::vec2(mainMenuSize.x-1, 1.5), &searchTB));
       tb->onClick = focusSearchBox;
       tb->onCustom = unfocusSearchBox;
       if (searchText == 0 || strlength(searchText) == 0) {
-        Part* search = r(menu, label(vec2(0.25,top+0.25), 1, strdup_s("Search")));
+        Part* search = r(menu, label(glm::vec2(0.25,top+0.25), 1, strdup_s("Search")));
         search->foregroundColor = PickerPalette::GrayDark;
       }
       top += 2;
 
       if (selectedLoadFile.length() > 0) {
         float halfWidth = (bs-0.5)*.5f;
-        Part* loadButt = r(menu, button(vec2(halfWidth+0.5,mainMenuSize.y-2),
-                vec2(halfWidth, 1), strdup_s("Load"), loadGameCallback));
+        Part* loadButt = r(menu, button(glm::vec2(halfWidth+0.5,mainMenuSize.y-2),
+                glm::vec2(halfWidth, 1), strdup_s("Load"), loadGameCallback));
         loadButt->flags |= _partAlignCenter;
       }
 
     } else if (mods) {
-      r(menu, labelCenter(vec2(0,0), vec2(bs,2), strdup_s("Select Modpack")));
-      r(menu, hr(vec2(0,2), bs));
-      r(menu, label(vec2(0,2.25), 1,
+      r(menu, labelCenter(glm::vec2(0,0), glm::vec2(bs,2), strdup_s("Select Modpack")));
+      r(menu, hr(glm::vec2(0,2), bs));
+      r(menu, label(glm::vec2(0,2.25), 1,
         strdup_s("You will need to restart.")));
       top = 4;
       callback = selectModCallback;
       scrollState = &modsScroll;
       float halfWidth = (bs-0.5)*.5f;
-      Part* restartButt = r(menu, button(vec2(halfWidth+0.5,mainMenuSize.y-2),
-              vec2(halfWidth, 1), strdup_s("Restart"), restartGame));
+      Part* restartButt = r(menu, button(glm::vec2(halfWidth+0.5,mainMenuSize.y-2),
+              glm::vec2(halfWidth, 1), strdup_s("Restart"), restartGame));
       restartButt->flags |= _partAlignCenter;
 
     } else {
       handleError("bad menuMode");
     }
 
-    vector<string> files;
+    std::vector<std::string> files;
     bool forceCity = test && saveTestAsCity && menuMode == SaveGameMenu;
     bool isDesigns = (menuMode != LoadGameMenu && designer) ||
       (menuMode == LoadGameMenu && saveLoadModeTab == ModeBuildingDesigner);
@@ -614,13 +616,13 @@ Part* mainMenu(float aspectRatio) {
       }
     }
 
-    vec2 scrollSize = mainMenuSize - vec2(1,top+2.5);
-    Part* scroll = scrollbox(vec2(0,0), scrollSize);
+    glm::vec2 scrollSize = mainMenuSize - glm::vec2(1,top+2.5);
+    Part* scroll = scrollbox(glm::vec2(0,0), scrollSize);
     float sy = 0;
 
     if (mods) {
-      Part* btn = button(vec2(0,0), getMod() == 0 ? iconCheck : iconNull,
-          vec2(bs-1, 1), strdup_s("Disable Mods"), selectNullMod, 0);
+      Part* btn = button(glm::vec2(0,0), getMod() == 0 ? iconCheck : iconNull,
+          glm::vec2(bs-1, 1), strdup_s("Disable Mods"), selectNullMod, 0);
       if (getNextMod() == 0) {
         btn->flags |= _partHighlight;
       }
@@ -628,7 +630,7 @@ Part* mainMenu(float aspectRatio) {
       sy ++;
     }
 
-    string previewFile = "invalid";
+    std::string previewFile = "invalid";
     if (menuMode == ModsMenu && getNextMod() != 0) {
       previewFile = getNextMod();
     } else if (menuMode == LoadGameMenu) {
@@ -657,8 +659,8 @@ Part* mainMenu(float aspectRatio) {
       char* filename = strdup_s(files[i].c_str());
       if (menuMode == ModsMenu) {
         bool isCurrent = streql(filename, getMod());
-        Part* btn = button(vec2(0,i+1), isCurrent ? iconCheck : iconNull,
-            vec2(bs-1, 1), filename, callback, 0);
+        Part* btn = button(glm::vec2(0,i+1), isCurrent ? iconCheck : iconNull,
+            glm::vec2(bs-1, 1), filename, callback, 0);
         if (streql(filename, getNextMod())) {
           btn->flags |= _partHighlight;
         }
@@ -666,7 +668,7 @@ Part* mainMenu(float aspectRatio) {
         sy ++;
 
       } else {
-        Part* btn = r(scroll, button(vec2(0,sy), vec2(bs-1, 1),
+        Part* btn = r(scroll, button(glm::vec2(0,sy), glm::vec2(bs-1, 1),
               filename, callback));
         if (streql(filename, previewFile.c_str())) {
           btn->flags |= _partHighlight;
@@ -675,15 +677,15 @@ Part* mainMenu(float aspectRatio) {
       }
     }
 
-    Part* scrollFrame = scrollboxFrame(vec2(0,top), scrollSize,
+    Part* scrollFrame = scrollboxFrame(glm::vec2(0,top), scrollSize,
       scrollState, scroll);
     r(menu, scrollFrame);
     Part* backButt = r(menu, button(
-          vec2(0, mainMenuSize.y-2), vec2((bs-0.5)*.5f, 1),
+          glm::vec2(0, mainMenuSize.y-2), glm::vec2((bs-0.5)*.5f, 1),
           strdup_s("Back"), openMainMenu));
     backButt->flags |= _partAlignCenter;
 
-    string previewFilename = menuMode == LoadGameMenu ? saveDirectory(saveLoadModeTab) : saveDirectory();
+    std::string previewFilename = menuMode == LoadGameMenu ? saveDirectory(saveLoadModeTab) : saveDirectory();
     if (menuMode != ModsMenu) {
       previewFilename = previewFilename + previewFile;
       if (endsWith(previewFilename.c_str(), "/")) {
@@ -699,8 +701,8 @@ Part* mainMenu(float aspectRatio) {
 
     // Preview Panel
     if (fileExists(previewFilename)) {
-      vec2 size = vec2(16, 8);
-      vec2 loc = vec2(-size.x-1-menu->padding,
+      glm::vec2 size = glm::vec2(16, 8);
+      glm::vec2 loc = glm::vec2(-size.x-1-menu->padding,
           menu->dim.end.y*.5f-size.y*.5f);
       r(menu, loadPreviewPanel(loc, size, previewFilename.c_str()));
     }

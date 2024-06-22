@@ -3,9 +3,7 @@
 #include "../import/mesh-import.hpp"
 #include "../platform/lua.hpp"
 #include "../pool.hpp"
-#include "../renum.hpp"
-
-#include "spdlog/spdlog.h"
+#include "../error.hpp"
 
 Pool<Statue> statues;
 

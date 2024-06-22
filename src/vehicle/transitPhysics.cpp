@@ -1,7 +1,7 @@
 #include "transitPhysics.hpp"
 
-#include "../game/game.hpp"
-#include "../game/update.hpp"
+#include "../item.hpp"
+#include "../game/constants.hpp"
 #include "../graph/stop.hpp"
 #include "../graph/transit.hpp"
 #include "../selection.hpp"
@@ -12,7 +12,7 @@
 
 #include "spdlog/spdlog.h"
 
-Cup<vector<item>> groupsAtStop_v;
+Cup<std::vector<item>> groupsAtStop_v;
 //Cup<item> waitingAtStop_v;
 Cup<item> stopUpdateNdx_v;
 Cup<Route> groupRoute_v;
@@ -64,7 +64,7 @@ void moveGroupTo_v(item groupNdx, Location newLoc) {
     groupsAtStop_v.ensureSize(oldNdx+1);
     //waitingAtStop_v.ensureSize(oldNdx+1);
 
-    vector<item>* groups = groupsAtStop_v.get(oldNdx);
+    std::vector<item>* groups = groupsAtStop_v.get(oldNdx);
     //item num = waitingAtStop_v[oldNdx];
     for (int i = groups->size()-1; i >= 0; i--) {
       item ndx = groups->at(i);
@@ -144,7 +144,7 @@ void swapOneTransitStop(item ndx, bool fromSave) {
   stopUpdateNdx_v.ensureSize(ndx+1);
 
   if (!(stop->flags & _stopExists)) {
-    vector<item> groups = groupsAtStop_v[ndx];
+    std::vector<item> groups = groupsAtStop_v[ndx];
 
     for (int j = 0; j < groups.size(); j++) {
       TravelGroup* group = getTravelGroup_g(groups[j]);
@@ -240,7 +240,7 @@ item getTravelGroupSize_v(item groupNdx) {
 }
 
 bool vehicleAtStop_v(item stopNdx, Location legNdx, item vNdx) {
-  vector<item> groups = groupsAtStop_v[stopNdx];
+  std::vector<item> groups = groupsAtStop_v[stopNdx];
   item updateNdx = stopUpdateNdx_v[stopNdx];
   item numToMove = c(CAlightingRate);
 

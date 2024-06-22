@@ -1,10 +1,9 @@
-#ifndef RENDER_PART_H
-#define RENDER_PART_H
+#pragma once
 
 #include "part.hpp"
 
-void renderPart(Part* part, vec2 mouseLoc);
+void renderPart(Part* part, glm::vec2 mouseLoc);
 void resetPartsRender();
 void resetPartsEntities();
 
-#endif
+

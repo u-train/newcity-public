@@ -1,7 +1,7 @@
 #include "panel.hpp"
 
-Part* panel(vec2 start, vec2 size) {
-  return panel(line(vec3(start,0), vec3(size,0)));
+Part* panel(glm::vec2 start, glm::vec2 size) {
+  return panel(line(glm::vec3(start,0), glm::vec3(size,0)));
 }
 
 Part* panel(Line dim) {

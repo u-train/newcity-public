@@ -23,7 +23,6 @@
 #include "../error.hpp"
 #include "../heatmap.hpp"
 #include "../input.hpp"
-#include "../intersection.hpp"
 #include "../graph.hpp"
 #include "../graph/transit.hpp"
 #include "../graph/stop.hpp"
@@ -52,6 +51,7 @@
 #include "../weather.hpp"
 #include "../tutorial.hpp"
 #include "../util.hpp"
+#include "../main.hpp"
 
 #include "../console/conDisplay.hpp"
 #include "../console/conInput.hpp"
@@ -70,7 +70,6 @@
 #include "../parts/messageBoard.hpp"
 #include "../parts/part.hpp"
 #include "../parts/renderParts.hpp"
-#include "../parts/root.hpp"
 #include "../parts/toolbar.hpp"
 
 #include "../platform/event.hpp"
@@ -95,7 +94,7 @@ static item gameSpeed = 2;
 static item lastGameSpeed = 2;
 static const char* loaderText;
 static char* filenameTarget;
-static atomic<LoadMode> loadMode(LoadTargetAutosave);
+static std::atomic<LoadMode> loadMode(LoadTargetAutosave);
 static GameMode gameModeTarget;
 static bool loaderThreadStarted = true;
 static bool gameLoaded = false;
@@ -106,13 +105,13 @@ static bool menuPause = true;
 static FileBuffer* asyncBuffer;
 static char* asyncFilename = 0;
 static char* asyncAutosaveFilename = 0;
-static atomic<bool> isSaving(false);
-static atomic<bool> isSavingDataCopy(false);
+static std::atomic<bool> isSaving(false);
+static std::atomic<bool> isSavingDataCopy(false);
 static char* cityName = 0;
 static char* nextCityName = 0;
 static bool startedInstrumentation = false;
 static bool presim_g = false;
-vector<item> versionHistory;
+std::vector<item> versionHistory;
 
 char* moveCorruptAutosave();
 FileBuffer* writeDataToFileBuffer(const char* filename, bool saveTestAsCity);
@@ -471,7 +470,7 @@ void postLoad(bool isNew) {
 
 bool loadGame(char* filename, bool isAutosave) {
   FILE *fileHandle;
-  string filePath = saveDirectory();
+  std::string filePath = saveDirectory();
   filePath = filePath + filename + fileExtension();
 
   bool designer = getGameMode() == ModeBuildingDesigner;
@@ -842,7 +841,7 @@ FileBuffer* writeDataToFileBuffer(const char* filename, bool saveTestAsCity) {
 char* getSaveFilename(const char* name, const char* ext) {
   if (getGameMode() == ModeBuildingDesigner ||
       getGameMode() == ModeDesignOrganizer) {
-    string filePath = "designs/";
+    std::string filePath = "designs/";
     filePath = filePath + name + "/design" + ext;
     return strdup_s(lookupSave(filePath).c_str());
   } else {
@@ -936,26 +935,26 @@ void newBuildingDesigner() {
   int chunkSize = getChunkSize();
   float r = tileSize*(chunkSize*landSize)/2;
   int z = c(CSuperflatHeight)+1;
-  item in0 = addNode(vec3(tileSize*5, 0, z), config);
-  item in1 = addNode(vec3(tileSize*5, r*2, z), config);
+  item in0 = addNode(glm::vec3(tileSize*5, 0, z), config);
+  item in1 = addNode(glm::vec3(tileSize*5, r*2, z), config);
   item edge = addEdge(in0, in1, config);
   complete(edge, config);
 
-  vec3 bLoc = pointOnLand(vec3(tileSize*6, r+tileSize*.5f, 0));
+  glm::vec3 bLoc = pointOnLand(glm::vec3(tileSize*6, r+tileSize*.5f, 0));
   Line l = getLine(edge);
-  vec3 intersection = nearestPointOnLine(bLoc, l);
-  vec3 normal = bLoc - intersection;
+  glm::vec3 intersection = nearestPointOnLine(bLoc, l);
+  glm::vec3 normal = bLoc - intersection;
   normal.z = 0;
-  vec3 unorm = normalize(normal);
+  glm::vec3 unorm = normalize(normal);
   normal = unorm * c(CBuildDistance);
   bLoc = intersection + normal;
   bLoc = pointOnLand(bLoc);
 
   if (sizeDesigns() < 1) addDesign();
   Design* d = getDesign(1);
-  vec3 prevSize = d->size;
-  d->size = vec3(tileSize*24*2, tileSize*24*2, 0);
-  addBuilding(bLoc, vec3(1, 0, 0), 1, d->zone);
+  glm::vec3 prevSize = d->size;
+  d->size = glm::vec3(tileSize*24*2, tileSize*24*2, 0);
+  addBuilding(bLoc, glm::vec3(1, 0, 0), 1, d->zone);
   d->size = prevSize;
   setSpawnProbGlobal(0.1f);
 

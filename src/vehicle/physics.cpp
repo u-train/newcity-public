@@ -3,28 +3,24 @@
 #include "interpolator.hpp"
 #include "laneLoc.hpp"
 #include "model.hpp"
-#include "renderVehicle.hpp"
 #include "transitPhysics.hpp"
-#include "travelGroup.hpp"
 #include "vehicle.hpp"
 #include "update.hpp"
 
 #include "../game/constants.hpp"
-#include "../game/game.hpp"
-#include "../game/update.hpp"
-#include "../graph/transit.hpp"
 #include "../cup.hpp"
-#include "../heatmap.hpp"
 #include "../intersection.hpp"
 #include "../selection.hpp"
 #include "../time.hpp"
 #include "../util.hpp"
+#include "../item.hpp"
+#include "../error.hpp"
 
 #include "spdlog/spdlog.h"
 
 Cup<uint32_t> vFlags;
-Cup<vec3> vLoc;
-Cup<vec3> vVel;
+Cup<glm::vec3> vLoc;
+Cup<glm::vec3> vVel;
 Cup<float> vSpeed;
 Cup<double> laneEnterTime;
 Cup<float> creationTime;
@@ -33,7 +29,7 @@ Cup<GraphLocation> vPilot;
 Cup<item> vTrailing;
 Cup<item> vTrailer;
 Cup<Route> vRoute;
-Cup<vector<item>> vPassengers;
+Cup<std::vector<item>> vPassengers;
 Cup<item> vNumPassengers;
 Cup<item> vUpdateNdx;
 Cup<item> vModel;
@@ -130,7 +126,7 @@ void recordLaneLeave(item ndx) {
 
 void removeAllGroupsFromVehicle_v(item vNdx) {
   resizePhysicalVehicles(vNdx+1);
-  vector<item> passengers = vPassengers[vNdx];
+  std::vector<item> passengers = vPassengers[vNdx];
 
   for (int i = passengers.size()-1; i >= 0; i--) {
     removeTravelGroup_v(passengers[i]);
@@ -247,7 +243,7 @@ Impediment getImpediment(item ndx, item nextLane, float distToEnd) {
 
 /*
 float getMergeScore(item ndx, item lane, item nextStep) {
-  vector<item> drains = getLaneDrains(lane);
+  std::vector<item> drains = getLaneDrains(lane);
   bool hasDrain = false;
   for (int i = 0; i < drains.size(); i++) {
     item drain = drains[i];
@@ -272,7 +268,7 @@ bool canEnterLane_g(item lane) {
 
 void putTravelGroupInVehicle_v(item groupNdx, item vNdx) {
   resizePhysicalVehicles(vNdx+1);
-  vector<item> passengers = vPassengers[vNdx];
+  std::vector<item> passengers = vPassengers[vNdx];
   item num = vNumPassengers[vNdx];
   int passengerS = passengers.size();
 
@@ -297,7 +293,7 @@ void putTravelGroupInVehicle_v(item groupNdx, item vNdx) {
 
 void removeTravelGroupFromVehicle_v(item groupNdx, item vNdx) {
   resizePhysicalVehicles(vNdx+1);
-  vector<item> passengers = vPassengers[vNdx];
+  std::vector<item> passengers = vPassengers[vNdx];
   item num = vNumPassengers[vNdx];
 
   for (int i = passengers.size()-1; i >= 0; i--) {
@@ -318,7 +314,7 @@ void removeTravelGroupFromVehicle_v(item groupNdx, item vNdx) {
 bool transitVehicleStop_v(item ndx, Location legStep, Location stopStep) {
   bool done = true;
   item trailer = vTrailer[ndx];
-  vector<item> passengers = vPassengers[ndx];
+  std::vector<item> passengers = vPassengers[ndx];
   item numPassengers = passengers.size();
   if (trailer != 0) {
     done = transitVehicleStop_v(trailer, legStep, stopStep);
@@ -356,7 +352,7 @@ void handleVehicleAtDest(item ndx) {
   if (!(flags & _vehicleHasRoute)) return;
 
   resizePhysicalVehicles(ndx+1);
-  vector<item> passengers = vPassengers[ndx];
+  std::vector<item> passengers = vPassengers[ndx];
   item updateNdx = vUpdateNdx[ndx];
   item numPassengers = passengers.size();
   bool isTransit = flags & _vehicleIsTransit;
@@ -498,7 +494,7 @@ bool updateOneVehicle(item ndx, float duration) {
     } else {
       float physLength = getLaneLength(physc.loc.lane);
       float target = tloc.dap - trailerDist + physLength;
-      target = clamp(target, 0.f, physLength);
+      target = glm::clamp(target, 0.f, physLength);
       float advance = target - physc.loc.dap;
       if (advance > 0) {
         physc = moveInLane(ndx, LLPhysical, advance);
@@ -755,7 +751,7 @@ bool updateOneVehicle(item ndx, float duration) {
     endImpediment.dist = nextStepNdx - pilot.loc.dap;
     endImpediment.speed = 0;
     impediment = combine(impediment, endImpediment);
-    nextStepNdx = clamp(float(nextStepNdx), 0.f, laneLength-10);
+    nextStepNdx = glm::clamp(float(nextStepNdx), 0.f, laneLength-10);
   }
 
   float targetSpeed = getBlockSpeed(physc.loc.lane)*c(CVehicleSpeed);
@@ -786,8 +782,8 @@ bool updateOneVehicle(item ndx, float duration) {
 
     float backpressureFactor = blocksCapacity/vehiclesInBlks *
       c(CBackpressureFactor) - c(CBackpressureBias);
-    backpressureFactor = mix(1.f, backpressureFactor, dapRatio);
-    backpressureFactor = clamp(backpressureFactor, 0.f, 1.f);
+    backpressureFactor = glm::mix(1.f, backpressureFactor, dapRatio);
+    backpressureFactor = glm::clamp(backpressureFactor, 0.f, 1.f);
     //SPDLOG_INFO("backpressure {} {} {} {} {}", blocksCapacity,
       //vehiclesInBlks, backpressureFactor, nextStep, nextBlk2);
     advance *= backpressureFactor;
@@ -796,7 +792,7 @@ bool updateOneVehicle(item ndx, float duration) {
   // Apply acceleration
   float maxSpeed = speed +
     c(CVehicleAcceleration) * duration;
-  advance = clamp(advance, 0.f, maxSpeed * duration);
+  advance = glm::clamp(advance, 0.f, maxSpeed * duration);
 
   pilot = moveInLane(ndx, LLPilot, advance);
   physc = moveInLane(ndx, LLPhysical, advance);
@@ -829,7 +825,7 @@ bool updateOneVehicle(item ndx, float duration) {
       GraphLocation target = pilot.loc;
       target.lane = nextLane;
       target.dap -= laneLength;
-      //target.dap = clamp(target.dap, 0.f, getLaneLength(nextLane));
+      //target.dap = glm::clamp(target.dap, 0.f, getLaneLength(nextLane));
       //float laneLength = getLaneLength(nextLane);
       //if (target.dap > laneLength && laneLength > 10) {
       //  target.dap = laneLength;
@@ -897,11 +893,11 @@ void swapOneVehicle(item ndx, item keyframe) {
 
   LaneLocInfo physc = getLaneLoc(ndx, LLPhysical);
   LaneLocInfo pilot = getLaneLoc(ndx, LLPilot);
-  vec3 oldPos = vLoc[ndx];
-  vec3 pos = getLocationV(physc.loc);
+  glm::vec3 oldPos = vLoc[ndx];
+  glm::vec3 pos = getLocationV(physc.loc);
   if (validate(pos)) {
     vLoc.set(ndx, pos);
-    //vec3 vel = (pos-oldPos)/c(CVehicleUpdateTime);
+    //glm::vec3 vel = (pos-oldPos)/c(CVehicleUpdateTime);
     //vVel.set(ndx, vel);
   } else {
     pos = oldPos;
@@ -956,7 +952,7 @@ void setTripLimit(item ndx) {
     }
   }
 
-  tripLimit = clamp(tripLimit, float(oneHour), c(CMaxVehicleAge));
+  tripLimit = glm::clamp(tripLimit, float(oneHour), c(CMaxVehicleAge));
   vTripLimit.set(ndx, tripLimit);
 }
 
@@ -1012,7 +1008,7 @@ void swapOneVehicleBack(item ndx) {
     v->numPassengers = num;
 
   } else {
-    vLoc.set(ndx, vec3(-1,-1,0));
+    vLoc.set(ndx, glm::vec3(-1,-1,0));
     clearRoute(vRoute.get(ndx));
     validateRoute(ndx);
     creationTime.set(ndx, 0);

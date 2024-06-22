@@ -2,24 +2,23 @@
 
 #include "../pipeline.hpp"
 #include "../pool.hpp"
-#include "../platform/file.hpp"
 #include "../platform/lookup.hpp"
 #include "../util.hpp"
+#include "../string_proxy.hpp"
+#include "../game/constants.hpp"
 
 #include "camera.hpp"
-#include "framebuffer.hpp"
 #include "image.hpp"
 #include "shader.hpp"
 
 #include "spdlog/spdlog.h"
-#include <stdio.h>
 #include <unordered_map>
 #include <string>
-using namespace std;
 
-unordered_map<string, item> textureByFile;
-unordered_map<string, item> textureByData;
-unordered_map<item, item> makeTextureCache;
+
+std::unordered_map<std::string, item> textureByFile;
+std::unordered_map<std::string, item> textureByData;
+std::unordered_map<item, item> makeTextureCache;
 Pipeline<item> texturesToLoad;
 Pool<Texture>* textures = Pool<Texture>::newPool(40);
 Cup<GLuint> textureIDPool;
@@ -157,7 +156,7 @@ Texture* getTexture(int ndx) {
 }
 
 item loadImage(const char* filename, bool filter, int wrapX, int wrapY,
-    vec2* dimensions) {
+    glm::vec2* dimensions) {
   if (filename == 0) return 0;
   int x = 0, y = 0, n = 0;
   GLuint id = 0;
@@ -175,7 +174,7 @@ item loadImage(const char* filename, bool filter, int wrapX, int wrapY,
   }
 
   char* dataHashChar = sprintf_o("%dx%d %0x", x, y, dataCount);
-  string dataHash = dataHashChar;
+  std::string dataHash = dataHashChar;
   free(dataHashChar);
   item linkedTex = textureByData[dataHash];
   //SPDLOG_INFO("loadImage hash {} file {} tex {}", dataHash, filename, linkedTex);
@@ -209,7 +208,7 @@ item loadImage(const char* filename, bool filter, int wrapX, int wrapY,
 }
 
 item loadImage(const char* filename, bool filter, bool wrapX, bool wrapY,
-    vec2* dimensions) {
+    glm::vec2* dimensions) {
   return loadImage(filename, filter,
       wrapX ? GL_REPEAT : GL_CLAMP_TO_EDGE,
       wrapY ? GL_REPEAT : GL_CLAMP_TO_EDGE,
@@ -217,12 +216,12 @@ item loadImage(const char* filename, bool filter, bool wrapX, bool wrapY,
 }
 
 item loadImage(const char* filename, bool filter, bool wrapX, bool wrapY) {
-  vec2 trash;
+  glm::vec2 trash;
   return loadImage(filename, filter, wrapX, wrapY, &trash);
 }
 
 item loadImage(const char* filename, bool filter, int wrapX, int wrapY) {
-  vec2 trash;
+  glm::vec2 trash;
   return loadImage(filename, filter, wrapX, wrapY, &trash);
 }
 
@@ -546,11 +545,11 @@ Image getBlueNoiseImage() {
   return blueNoiseImage;
 }
 
-vec2 getTextureDimensions(const char* filename) {
+glm::vec2 getTextureDimensions(const char* filename) {
   item ndx = textureByFile[filename];
 
   if (ndx == 0) {
-    return vec2(0,0);
+    return glm::vec2(0,0);
   }
 
   return getTexture(ndx)->dimensions;

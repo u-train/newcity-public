@@ -13,7 +13,7 @@
 const int numLotMeshes = 11 * (numZoneTypes + 1);
 static item lotMesh[numLotMeshes];
 
-void makeRibbon(Mesh* mesh, vec3 p1, vec3 p2, vec3 up, vec3 xp) {
+void makeRibbon(Mesh* mesh, glm::vec3 p1, glm::vec3 p2, glm::vec3 up, glm::vec3 xp) {
   makeQuad(mesh, p1, p2, p2+up, p1+up, xp, xp);
   makeQuad(mesh, p2, p1, p1+up, p2+up, xp, xp);
 }
@@ -27,22 +27,22 @@ item getLotMesh(item zone, item density) {
     lotMesh[meshNum] = meshNdx;
     Mesh* mesh = getMesh(meshNdx);
 
-    vec3 normal = vec3(0,1,0);
-    vec3 back = tileSize*0.5f * normal;
-    vec3 along = vec3(back.y, -back.x, 0)*0.5f;
-    vec3 start = back+along;
-    vec3 blockSize = vec3(tileSize*.5f, tileSize*.5f, 3);
-    vec3 blockCenter = back*.5f;
+    glm::vec3 normal = glm::vec3(0,1,0);
+    glm::vec3 back = tileSize*0.5f * normal;
+    glm::vec3 along = glm::vec3(back.y, -back.x, 0)*0.5f;
+    glm::vec3 start = back+along;
+    glm::vec3 blockSize = glm::vec3(tileSize*.5f, tileSize*.5f, 3);
+    glm::vec3 blockCenter = back*.5f;
     Line iconL = iconToSpritesheet(iconZoneColor[zone], 0.f);
-    vec3 cx = .5f * (iconL.start + iconL.end);
+    glm::vec3 cx = .5f * (iconL.start + iconL.end);
 
     // Algorithm to make stacked bricks
     for (int i = 0; i < density; i++) {
       int l = i / 2;
       bool last = i == density - 1;
-      vec3 bs = blockSize;
-      vec3 off = vec3(0,0,0);
-      vec3 loc = blockCenter;
+      glm::vec3 bs = blockSize;
+      glm::vec3 off = glm::vec3(0,0,0);
+      glm::vec3 loc = blockCenter;
       if (l % 2 == 0) {
         off.x = bs.x*.3f;
         bs.x *= .4f;
@@ -69,7 +69,7 @@ item getLotMesh(item zone, item density) {
   return meshNdx;
 }
 
-item renderVirtualLot(vec3 loc, vec3 normal, item zone, item density,
+item renderVirtualLot(glm::vec3 loc, glm::vec3 normal, item zone, item density,
     bool highlight) {
   item entityNdx = addEntity(LotShader);
   Entity* entity = getEntity(entityNdx);

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "serialize.hpp"
+#include <float.h>
 
 enum StatisticCategory {
   PopulationStats, EducationStats, WorkforceStats,
@@ -173,7 +174,7 @@ struct TimeSeries {
   float startDate;
   float timeStep;
   bool hasData;
-  vector<float> values;
+  std::vector<float> values;
 };
 
 enum EconType {
@@ -187,7 +188,7 @@ struct Econ {
   float multiplier;
   uint8_t type;
   item parent;
-  vec3 location;
+  glm::vec3 location;
   TimeSeries statistics[numStatistics+1];
   float presentValues[numStatistics+1];
   char* name;
@@ -200,10 +201,10 @@ const double defaultInflation = 1.0f;
 
 item ourCityEconNdx();
 item nationalEconNdx();
-item addEcon(EconType type, vec3 location, char* name, item parent);
+item addEcon(EconType type, glm::vec3 location, char* name, item parent);
 Econ* getEcon(item ndx);
 const char* getEconName(item ndx);
-item getEcon(vec3 loc);
+item getEcon(glm::vec3 loc);
 void initEcons();
 item sizeEcons();
 void rebuildStats();
@@ -221,7 +222,7 @@ float zoneDemandSoft(item zone);
 const char* timePeriodName(int tp);
 const char* statName(item ndx);
 const char* statCategoryName(item ndx);
-vector<Statistic> statsCategory(item ndx);
+std::vector<Statistic> statsCategory(item ndx);
 float convertStatistic(Statistic stat, float val);
 float getStatistic(item econ, Statistic stat);
 float getStatisticNow(item econNdx, Statistic stat);

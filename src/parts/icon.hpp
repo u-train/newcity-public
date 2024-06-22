@@ -1,10 +1,9 @@
-#ifndef PART_ICON_H
-#define PART_ICON_H
+#pragma once
 
 #include "part.hpp"
 
-Part* icon(vec2 start, vec3 icon);
-Part* icon(vec2 start, vec2 size, vec3 icon);
-Part* icon(vec2 start, float ySize, float padding, vec3 icon, char* text);
+Part* icon(glm::vec2 start, glm::vec3 icon);
+Part* icon(glm::vec2 start, glm::vec2 size, glm::vec3 icon);
+Part* icon(glm::vec2 start, float ySize, float padding, glm::vec3 icon, char* text);
 
-#endif
+

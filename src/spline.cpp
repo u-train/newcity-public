@@ -2,8 +2,8 @@
 
 #include "serialize.hpp"
 #include "util.hpp"
+#include <glm/glm.hpp>
 
-#include <stdio.h>
 
 Spline spline(Line l0, Line l1) {
   Spline s;
@@ -12,19 +12,19 @@ Spline spline(Line l0, Line l1) {
   s.end[1] = l1.start;
 
   float length = vecDistance(s.end[0], s.end[1]) * .75f;
-  s.normal[0] = normalize(l0.start - l0.end) * length;
-  s.normal[1] = normalize(l1.start - l1.end) * length;
+  s.normal[0] = glm::normalize(l0.start - l0.end) * length;
+  s.normal[1] = glm::normalize(l1.start - l1.end) * length;
 
   return s;
 }
 
-vec3 interpolateSpline(Spline s, float along) {
+glm::vec3 interpolateSpline(Spline s, float along) {
   float invAlong = 1 - along;
 
-  vec3 e0 = s.end[0];
-  vec3 e1 = s.end[1];
-  vec3 n0 = s.normal[0];
-  vec3 n1 = s.normal[1];
+  glm::vec3 e0 = s.end[0];
+  glm::vec3 e1 = s.end[1];
+  glm::vec3 n0 = s.normal[0];
+  glm::vec3 n1 = s.normal[1];
 
   float e0x = e0.x;
   float e0y = e0.y;
@@ -50,11 +50,11 @@ vec3 interpolateSpline(Spline s, float along) {
   float r0y = l0y*invAlong + l1y*along;
   float r0z = l0z*invAlong + l1z*along;
 
-  return vec3(r0x, r0y, r0z);
+  return glm::vec3(r0x, r0y, r0z);
 
   // DON'T DELETE - Keep for legacy
-  //vec3 l0 = s.end[0] + s.normal[0]*along;
-  //vec3 l1 = s.end[1] + s.normal[1]*invAlong;
+  //glm::vec3 l0 = s.end[0] + s.normal[0]*along;
+  //glm::vec3 l1 = s.end[1] + s.normal[1]*invAlong;
   //return l0*invAlong + l1*along;
 }
 

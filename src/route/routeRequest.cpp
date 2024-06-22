@@ -1,13 +1,10 @@
 #include "routeRequest.hpp"
 
 #include "../economy.hpp"
-#include "../error.hpp"
 #include "../graph/transit.hpp"
-#include "../graph/transitRouter.hpp"
 #include "../graph/stop.hpp"
 #include "../person.hpp"
 #include "../pool.hpp"
-#include "../time.hpp"
 #include "../vehicle/update.hpp"
 
 #include "location.hpp"
@@ -33,12 +30,12 @@ void clearRequest(RouteRequest* req) {
   req->source = 0;
   req->dest = 0;
   req->element = 0;
-  req->sourceLoc = req->destLoc = vec3(0,0,0);
+  req->sourceLoc = req->destLoc = glm::vec3(0,0,0);
   req->subRequests.clear();
   req->steps.clear();
-  vector<item> swap1;
+  std::vector<item> swap1;
   req->subRequests.swap(swap1);
-  vector<Location> swap2;
+  std::vector<Location> swap2;
   req->steps.swap(swap2);
 }
 

@@ -8,16 +8,16 @@
 #include <unordered_map>
 using namespace std;
 
-unordered_map<string, item> iconsMap;
+std::unordered_map<std::string, item> iconsMap;
 const float spriteSpacing = 1.0 / (spriteSheetSize * spriteResolution);
 
-const vec3 iconsTable[numIcons] = {
+const glm::vec3 iconsTable[numIcons] = {
   #define ICO(N,V) V,
   #include "iconsEnum.hpp"
   #undef ICO
 };
 
-vec3 getIcon(const char* ico) {
+glm::vec3 getIcon(const char* ico) {
   return iconsTable[iconsMap[ico]];
 }
 
@@ -32,15 +32,15 @@ void initIconsMap() {
   #undef ICO
 }
 
-Line iconToSpritesheet(vec3 icon, float wind) {
+Line iconToSpritesheet(glm::vec3 icon, float wind) {
   return line(
-    vec3(icon.x/spriteSheetSize + spriteSpacing,
+    glm::vec3(icon.x/spriteSheetSize + spriteSpacing,
       icon.y/spriteSheetSize + spriteSpacing, wind),
-    vec3((icon.x+1)/spriteSheetSize - spriteSpacing,
+    glm::vec3((icon.x+1)/spriteSheetSize - spriteSpacing,
       (icon.y+1)/spriteSheetSize - spriteSpacing, wind));
 }
 
-Line iconToSpritesheet(vec3 icon) {
+Line iconToSpritesheet(glm::vec3 icon) {
   return iconToSpritesheet(icon, 0);
 }
 

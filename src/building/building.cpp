@@ -11,7 +11,6 @@
 #include "../city.hpp"
 #include "../collisionTable.hpp"
 #include "../draw/entity.hpp"
-#include "../draw/texture.hpp"
 #include "../economy.hpp"
 #include "../game/game.hpp"
 #include "../game/task.hpp"
@@ -25,7 +24,6 @@
 #include "../person.hpp"
 #include "../plan.hpp"
 #include "../pool.hpp"
-#include "../renderLand.hpp"
 #include "../route/broker.hpp"
 #include "../selection.hpp"
 #include "../time.hpp"
@@ -34,10 +32,11 @@
 #include "../zone.hpp"
 
 #include "../parts/messageBoard.hpp"
-#include "../tools/query.hpp"
 
-#include "spdlog/spdlog.h"
 #include <algorithm>
+#include <glm/glm.hpp>
+
+using glm::clamp;
 
 const float buildingGap = 0.05*tileSize;
 
@@ -60,7 +59,7 @@ void adjustBuildingStats(item ndx, float mult);
 void repostTenancies(item bNdx);
 void nameBuilding(item ndx);
 
-vector<item> skyscrapers;
+std::vector<item> skyscrapers;
 
 bool buildingsVisible() {
   return areBuildingsVisible;
@@ -123,14 +122,14 @@ item getTallestBuilding() {
 }
 
 item addBuilding(item desgin, item edgeNdx,
-  vec3 bLoc, vec3 normal, item zone);
+  glm::vec3 bLoc, glm::vec3 normal, item zone);
 
-Box getBuildingBox(item designNdx, vec3 loc, vec3 normal) {
-  vec2 size = vec2(getDesign(designNdx)->size);
+Box getBuildingBox(item designNdx, glm::vec3 loc, glm::vec3 normal) {
+  glm::vec2 size = glm::vec2(getDesign(designNdx)->size);
   //size.x *= 2;
-  size -= vec2(buildingGap, buildingGap);
-  vec2 normnorm = normalize(vec2(normal));
-  vec2 loc2 = vec2(loc);
+  size -= glm::vec2(buildingGap, buildingGap);
+  glm::vec2 normnorm = normalize(glm::vec2(normal));
+  glm::vec2 loc2 = glm::vec2(loc);
 
   if (isDesignAquatic(designNdx)) {
     float tide = getDesign(designNdx)->highTide;
@@ -140,9 +139,9 @@ Box getBuildingBox(item designNdx, vec3 loc, vec3 normal) {
     size.x -= tide;
   }
 
-  vec2 axis0 = normnorm * size.x;
-  vec2 axis1 = vec2(normnorm.y, -normnorm.x) * size.y;
-  vec2 corner = vec2(loc2) - axis1*.5f + normnorm * buildingGap *.5f;
+  glm::vec2 axis0 = normnorm * size.x;
+  glm::vec2 axis1 = glm::vec2(normnorm.y, -normnorm.x) * size.y;
+  glm::vec2 corner = glm::vec2(loc2) - axis1*.5f + normnorm * buildingGap *.5f;
   return box(corner, axis0, axis1);
 }
 
@@ -164,7 +163,7 @@ void setMaxLandValues(item building) {
   }
   float z = round(getDesignZ(b->design) / 4);
   item xSize = round(d->size.x/tileSize);
-  xSize = clamp(xSize, 0, maxTrackedXSize);
+  xSize = glm::clamp(xSize, 0, maxTrackedXSize);
 
   for (int i = 0; i <= xSize; i++) {
     if (d->minDensity > maxDensity[b->zone][i]) {
@@ -198,7 +197,7 @@ void setMaxLandValues(item building) {
   //return numBuildings() * (board == Homes ? 0.01f : .005f) + 10;
 //}
 
-const char* placeBuildingLegal(item design, vec3 loc, vec3 unorm) {
+const char* placeBuildingLegal(item design, glm::vec3 loc, glm::vec3 unorm) {
   Design* d = getDesign(design);
   float mapSize = getMapSize();
   bool aquatic = isDesignAquatic(design);
@@ -206,15 +205,15 @@ const char* placeBuildingLegal(item design, vec3 loc, vec3 unorm) {
   for (int y = 0; y < 2; y++) {
     for (int x = 0; x < 2; x++) {
 
-      vec3 sideStep = ((y-.5f)*d->size.y) * zNormal(unorm);
-      vec3 corner = loc + (d->size.x * x) * unorm + sideStep;
+      glm::vec3 sideStep = ((y-.5f)*d->size.y) * zNormal(unorm);
+      glm::vec3 corner = loc + (d->size.x * x) * unorm + sideStep;
       if (corner.x < 0 || corner.y < 0 ||
           corner.x > mapSize || corner.y > mapSize) {
         return "Outside City Limits";
       }
 
       if (!aquatic || x == 0) {
-        vec3 cornerOnLand = pointOnLand(corner);
+        glm::vec3 cornerOnLand = pointOnLand(corner);
         float cornerLandZ = cornerOnLand.z;
         if (cornerLandZ < 1) {
           return "Below Waterline";
@@ -227,8 +226,8 @@ const char* placeBuildingLegal(item design, vec3 loc, vec3 unorm) {
 
       if (aquatic) {
         float tideDist = x == 0 ? d->highTide : d->lowTide;
-        vec3 tideCorner = loc + sideStep + (tideDist*unorm);
-        vec3 cornerOnLand = pointOnLand(tideCorner);
+        glm::vec3 tideCorner = loc + sideStep + (tideDist*unorm);
+        glm::vec3 cornerOnLand = pointOnLand(tideCorner);
         float landZ = cornerOnLand.z;
         if (x == 0 && landZ < -5) return "Too Close to Water";
         if (x == 1 && landZ > 2) return "Place Next to Water";
@@ -245,7 +244,7 @@ item maybeAddBuilding(item lotNdx) {
   if (lot->zone == 0) return 0;
   if (lot->zone == GovernmentZone) return 0;
 
-  vec3 bLoc = lot->loc;
+  glm::vec3 bLoc = lot->loc;
   item econ = getEcon(bLoc);
   //SPDLOG_INFO("maybeAddBuilding zoneDemand({}, {}) => {}",
       //econ, zoneName[lot->zone], zoneDemand(econ, lot->zone));
@@ -255,13 +254,13 @@ item maybeAddBuilding(item lotNdx) {
   item elemNdx = lot->elem; //nearestEdge(bLoc, false);
   if (elemNdx == 0) return 0;
   Line l = getLine(elemNdx);
-  vec3 intersection = nearestPointOnLine(bLoc, l);
+  glm::vec3 intersection = nearestPointOnLine(bLoc, l);
   float width = elemNdx < 0 ? elementWidth(elemNdx) : 0;
   width = std::max(width, c(CBuildDistance));
   if (vecDistance(bLoc, intersection) > tileSize*.5f+width) return 0;
-  vec3 normal = lot->normal;
+  glm::vec3 normal = lot->normal;
   normal.z = 0;
-  vec3 unorm = normalize(normal);
+  glm::vec3 unorm = normalize(normal);
   normal = unorm * width;
   bLoc = intersection + normal;
 
@@ -269,7 +268,7 @@ item maybeAddBuilding(item lotNdx) {
   econ = getEcon(bLoc);
   float density = getAdjustedDensity(lot->zone, bLoc);
   float maxDensity = getLotMaxDensity(lotNdx)*.1f+.01f;
-  density = clamp(density, 0.f, maxDensity);
+  density = glm::clamp(density, 0.f, maxDensity);
   float landValue = getAdjustedLandValue(lot->zone, bLoc);
   item design = getRandomDesign(lot->zone, econ, density, landValue);
   //SPDLOG_INFO("maybeAddBuilding design:{} {}", design, econ);
@@ -293,7 +292,7 @@ item maybeAddBuilding(item lotNdx) {
   Box bbox = getBuildingBox(design, bLoc, normal);
   if (graphIntersect(bbox, elemNdx, false)) return 0;
 
-  vector<item> collisions = collideBuilding(bbox, 0);
+  std::vector<item> collisions = collideBuilding(bbox, 0);
   money valueDestroyed = 0;
   for (int i = 0; i < collisions.size(); i++) {
     Building* other = getBuilding(collisions[i]);
@@ -319,7 +318,7 @@ item maybeAddBuilding(item lotNdx) {
   return addBuilding(design, elemNdx, bLoc, normal, lot->zone);
 }
 
-item addBuilding(int flags, vec3 bLoc, vec3 normal, item design, item zone,
+item addBuilding(int flags, glm::vec3 bLoc, glm::vec3 normal, item design, item zone,
     item econ) {
   item ndx = buildings->create();
   Building* building = getBuilding(ndx);
@@ -355,11 +354,11 @@ item addBuilding(int flags, vec3 bLoc, vec3 normal, item design, item zone,
   return ndx;
 }
 
-item addBuilding(vec3 bLoc, vec3 normal, item design, item zone) {
+item addBuilding(glm::vec3 bLoc, glm::vec3 normal, item design, item zone) {
   return addBuilding(0, bLoc, normal, design, zone, getEcon(bLoc));
 }
 
-item addCityBuilding(item cityNdx, vec3 loc, vec3 normal, item zone,
+item addCityBuilding(item cityNdx, glm::vec3 loc, glm::vec3 normal, item zone,
     float density, float landValue, bool render) {
   City* city = getCity(cityNdx);
   item econ = city->econ;
@@ -388,13 +387,13 @@ item addCityBuilding(item cityNdx, vec3 loc, vec3 normal, item zone,
 }
 
 item addGovernmentBuilding(item lot, item designNdx) {
-  vec3 loc = getLot(lot)->loc;
+  glm::vec3 loc = getLot(lot)->loc;
   item elemNdx = nearestElement(loc, false);
   if (elemNdx == 0) {
     return 0;
   }
   Line l = getLine(elemNdx);
-  vec3 intersection = nearestPointOnLine(loc, l);
+  glm::vec3 intersection = nearestPointOnLine(loc, l);
   //float width = elementWidth(elemNdx);
   //if (elemNdx < 0) {
     //width *= 2;
@@ -402,7 +401,7 @@ item addGovernmentBuilding(item lot, item designNdx) {
   if (vecDistance(loc, intersection) > tileSize*3) {
     return 0;
   }
-  vec3 normal = loc - intersection;
+  glm::vec3 normal = loc - intersection;
   normal.z = 0;
   normal = normalize(normal) * c(CBuildDistance);
   loc = pointOnLand(intersection + normal);
@@ -421,7 +420,7 @@ item addGovernmentBuilding(item lot, item designNdx) {
 }
 
 item addBuilding(item designNdx, item edgeNdx,
-  vec3 bLoc, vec3 normal, item zone) {
+  glm::vec3 bLoc, glm::vec3 normal, item zone) {
 
   item ndx = addBuilding(bLoc, normal, designNdx, zone);
 
@@ -473,7 +472,7 @@ const char* buildingLegalMessage(item ndx) {
       return "Road in the Way";
     }
 
-    vector<item> collisions = collideBuilding(bbox, ndx);
+    std::vector<item> collisions = collideBuilding(bbox, ndx);
     for (int i = 0; i < collisions.size(); i++) {
       if (!canRemoveBuilding(collisions[i])) {
         return "Another Building is in the Way";
@@ -728,14 +727,14 @@ void completeBuilding(item ndx) {
   if (building->flags & _buildingComplete) return;
   building->flags |= _buildingComplete | _buildingEnabled;
 
-  vec3 bLoc = building->location;
-  vec3 normal = building->normal;
+  glm::vec3 bLoc = building->location;
+  glm::vec3 normal = building->normal;
   Design* design = getDesign(building->design);
-  vec3 unorm = normalize(normal);
+  glm::vec3 unorm = normalize(normal);
   Box bbox = getBuildingBox(ndx);
 
   if (getGameMode() != ModeDesignOrganizer) {
-    vector<item> collisions = collideBuilding(bbox, ndx);
+    std::vector<item> collisions = collideBuilding(bbox, ndx);
     for (int i = 0; i < collisions.size(); i++) {
       removeBuilding(collisions[i]);
     }
@@ -743,7 +742,7 @@ void completeBuilding(item ndx) {
     if (building->plan != 0) {
       Plan* p = getPlan(building->plan);
       if (p->flags & _planForceDemolish) {
-        vector<item> graphCollisions = getGraphCollisions(bbox);
+        std::vector<item> graphCollisions = getGraphCollisions(bbox);
         for (int i = 0; i < graphCollisions.size(); i++) {
           item graphNdx = graphCollisions[i];
           if (graphNdx > 0) {
@@ -759,7 +758,7 @@ void completeBuilding(item ndx) {
 
   addBuildingElevator(ndx, true);
 
-  vector<item> lots = collidingLots(bbox);
+  std::vector<item> lots = collidingLots(bbox);
   occupyLots(lots, ndx);
   addSpawnPoints(ndx);
 
@@ -813,13 +812,13 @@ void removeBuilding(item ndx) {
   for (int i = building->businesses.size()-1; i >= 0; i--) {
     removeBusiness(building->businesses[i]);
   }
-  vector<item> prevFamilies(
+  std::vector<item> prevFamilies(
       building->families.begin(), building->families.end());
   for (int i = building->families.size()-1; i >= 0; i--) {
     evictFamily(building->families[i], false);
   }
 
-  vector<item> prevInside = building->peopleInside;
+  std::vector<item> prevInside = building->peopleInside;
   for (int i = 0; i < prevInside.size(); i++) {
     removePersonFromLocation(prevInside[i]);
   }
@@ -898,7 +897,7 @@ void removeBusinessFromTenancy(item buildingNdx, item businessNdx) {
 }
 
 void removeCollidingBuildings(Box b) {
-  vector<item> collisions = collideBuilding(b, 0);
+  std::vector<item> collisions = collideBuilding(b, 0);
   for (int i = 0; i < collisions.size(); i++) {
     item bNdx = collisions[i];
     Building* b = getBuilding(bNdx);
@@ -907,15 +906,15 @@ void removeCollidingBuildings(Box b) {
   }
 }
 
-vector<item> collideBuilding(item buildingNdx) {
+std::vector<item> collideBuilding(item buildingNdx) {
   return collideBuilding(getBuildingBox(buildingNdx), buildingNdx);
 }
 
-vector<item> collideBuilding(Box box0, item self) {
+std::vector<item> collideBuilding(Box box0, item self) {
   return getCollisions(BuildingCollisions, box0, self);
 
   /*
-  vector<item> result;
+  std::vector<item> result;
 
   for (int i=1; i <= buildings->size(); i++) {
     if (i == self) {
@@ -1007,8 +1006,8 @@ void updateBuilding(item ndx) {
   Design* design = getDesign(building->design);
   const float invTileSqrd = 1.0/tileSize/tileSize;
   float size = design->size.x * design->size.y * invTileSqrd;
-  vec3 loc = building->location;
-  vec3 center = getBuildingCenter(ndx);
+  glm::vec3 loc = building->location;
+  glm::vec3 center = getBuildingCenter(ndx);
   bool isDorm = isDesignEducation(building->design);
 
   if (isGame) {
@@ -1027,7 +1026,7 @@ void updateBuilding(item ndx) {
       // See if the building is too far away from road
       if (canRemoveBuilding(ndx) && !(building->flags & _buildingCity)) {
         item elem = getElement(newLoc);
-        vec3 roadLoc = getLocation(newLoc);
+        glm::vec3 roadLoc = getLocation(newLoc);
         float dist = vecDistance(loc, roadLoc) - buildDistance(elem);
         if (dist > tileSize || dist < -.5f*tileSize) {
           removeBuilding(ndx);
@@ -1197,7 +1196,7 @@ void updateBuilding(item ndx) {
     if (community != 0) {
       float angle = randFloat(0, pi_o * 2);
       float mag = randFloat(0, 1);
-      vec3 thrw = vec3(sin(angle), cos(angle), 0.f) * mag;
+      glm::vec3 thrw = glm::vec3(sin(angle), cos(angle), 0.f) * mag;
 
       heatMapAdd(CommunityHM, center + thrw*c(CCommunityThrow), community * duration);
     }
@@ -1336,17 +1335,17 @@ void updateBuildingValue(item buildingNdx) {
   adjustStat(b->econ, AggregatePropertyValue, b->value - lastValue);
 }
 
-vec3 getBuildingCenter(item ndx) {
+glm::vec3 getBuildingCenter(item ndx) {
   Building* b = getBuilding(ndx);
   Design* d = getDesign(b->design);
   return b->location + d->size.x * normalize(b->normal) * .5f;
 }
 
-vec3 getBuildingTop(item ndx) {
+glm::vec3 getBuildingTop(item ndx) {
   Building* b = getBuilding(ndx);
   Design* d = getDesign(b->design);
   float top = getDesignZ(b->design);
-  return b->location + d->size.x * normalize(b->normal) * .5f + vec3(0,0,top);
+  return b->location + d->size.x * normalize(b->normal) * .5f + glm::vec3(0,0,top);
 }
 
 item currentBuilding = 0;
@@ -1512,7 +1511,7 @@ void renderBuildings() {
   }
 }
 
-item nearestBuilding(vec3 loc) {
+item nearestBuilding(glm::vec3 loc) {
   float leastDist = FLT_MAX;
   item best=0;
   for (item i=1; i <= buildings->size(); i++) {

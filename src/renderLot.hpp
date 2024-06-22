@@ -1,6 +1,6 @@
 #include "item.hpp"
 
-item renderVirtualLot(vec3 loc, vec3 normal, item zone, item density,
+item renderVirtualLot(glm::vec3 loc, glm::vec3 normal, item zone, item density,
     bool highlight);
 void renderLotAs(item ndx, item zone, item density, bool highlight);
 void renderLot(item ndx);

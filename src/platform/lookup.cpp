@@ -6,18 +6,18 @@
 
 #include "../string_proxy.hpp"
 
-#include "spdlog/spdlog.h"
 
 #define _SILENCE_EXPERIMENTAL_FILESYSTEM_DEPRECATION_WARNING
-#include <experimental/filesystem>
-#include <set>
 #include <algorithm>
+#include <string>
+#include <vector>
+#include <set>
 
 using namespace std::experimental::filesystem;
 
-string fixFileCase(string in) {
+std::string fixFileCase(std::string in) {
   char* result = fixFileCase(strdup_s(in.c_str()));
-  string resultStr = result;
+  std::string resultStr = result;
   free(result);
   return resultStr;
 }
@@ -32,8 +32,8 @@ bool endsWith(std::string const &fullString, std::string const &ending) {
   }
 }
 
-vector<string> lookupFileCandidates(string filename, uint32_t flags) {
-  vector<string> candidates;
+std::vector<std::string> lookupFileCandidates(std::string filename, uint32_t flags) {
+  std::vector<std::string> candidates;
   bool ws = !(flags & _lookupExcludeWorkshop);
   bool anyMod = (flags & _lookupForceMod) || (
       isModsEnabled() && (
@@ -45,7 +45,7 @@ vector<string> lookupFileCandidates(string filename, uint32_t flags) {
   }
 
   if (anyMod) {
-    string modFile = modDirectoryNonNull() + filename;
+    std::string modFile = modDirectoryNonNull() + filename;
     if (!(flags & _lookupExcludeWorkshopMods)) {
       candidates.push_back("workshop/" + modFile);
     }
@@ -63,9 +63,9 @@ vector<string> lookupFileCandidates(string filename, uint32_t flags) {
   return candidates;
 }
 
-vector<string> lookupFileVersions(string filename, uint32_t flags) {
-  vector<string> results;
-  vector<string> candidates = lookupFileCandidates(filename, flags);
+std::vector<std::string> lookupFileVersions(std::string filename, uint32_t flags) {
+  std::vector<std::string> results;
+  std::vector<std::string> candidates = lookupFileCandidates(filename, flags);
 
   for (int i = 0; i < candidates.size(); i++) {
     if (fileExists(candidates[i])) {
@@ -76,23 +76,23 @@ vector<string> lookupFileVersions(string filename, uint32_t flags) {
   return results;
 }
 
-string lookupFile(string filename, uint32_t flags) {
-  vector<string> versions = lookupFileVersions(filename, flags);
+std::string lookupFile(std::string filename, uint32_t flags) {
+  std::vector<std::string> versions = lookupFileVersions(filename, flags);
   if (versions.size() == 0) return filename;
   return versions[0];
 }
 
 /*
-bool compareStrings(string a, string b) {
+bool compareStrings(std::string a, std::string b) {
   return strcmpi_s(a.c_str(), b.c_str()) < 0;
 }
 */
 
-bool compareStrings(const string& lhs,const string& rhs){
+bool compareStrings(const std::string& lhs,const std::string& rhs){
 
-   string::size_type common_length = std::min(lhs.length(),rhs.length());
+  std::string::size_type common_length = std::min(lhs.length(),rhs.length());
 
-   for(string::size_type i=0;i<common_length;++i){
+   for(std::string::size_type i=0;i<common_length;++i){
       if(toupper(lhs[i]) < toupper(rhs[i]))return true;
       if(toupper(lhs[i]) > toupper(rhs[i]))return false;
    }
@@ -103,60 +103,60 @@ bool compareStrings(const string& lhs,const string& rhs){
    return false;//equal should return false
 }
 
-struct lessString : binary_function <string, string, bool> {
-  bool operator() (string const& x, string const& y) const {
+struct lessString : std::binary_function <std::string, std::string, bool> {
+  bool operator() (std::string const& x, std::string const& y) const {
     return compareStrings(x, y);
   }
 };
 
-vector<string> lookupDirectory(string dir, string ext, uint32_t flags) {
-  vector<string> dirVersions = lookupFileVersions(dir, flags);
+std::vector<std::string> lookupDirectory(std::string dir, std::string ext, uint32_t flags) {
+  std::vector<std::string> dirVersions = lookupFileVersions(dir, flags);
   int extLength = ext.length();
   lessString helper;
 
-  set<string, lessString> resultSet;
+  std::set<std::string, lessString> resultSet;
   for (int i = 0; i < dirVersions.size(); i++) {
     std::error_code err;
     for(auto f: directory_iterator(dirVersions[i], err)) {
-      string filename = f.path().filename().string();
+      std::string filename = f.path().filename().string();
       if (endsWith(filename, ext)) {
-        string filenameWOExt =
+        std::string filenameWOExt =
           filename.substr(0, filename.length() - extLength);
         resultSet.insert(filenameWOExt);
       }
     }
   }
 
-  vector<string> result(resultSet.begin(), resultSet.end());
+  std::vector<std::string> result(resultSet.begin(), resultSet.end());
   sort(result.begin(), result.end(), helper);
   return result;
 }
 
-vector<string> lookupSubDirectories(string dir, uint32_t flags) {
-  vector<string> dirVersions = lookupFileVersions(dir, flags);
+std::vector<std::string> lookupSubDirectories(std::string dir, uint32_t flags) {
+  std::vector<std::string> dirVersions = lookupFileVersions(dir, flags);
   lessString helper;
 
-  set<string, lessString> resultSet;
+  std::set<std::string, lessString> resultSet;
   for (int i = 0; i < dirVersions.size(); i++) {
     std::error_code err;
     for(auto f: directory_iterator(dirVersions[i], err)) {
       if (is_directory(f.path().string())) {
-        string filename = f.path().filename().string();
+        std::string filename = f.path().filename().string();
         resultSet.insert(filename);
       }
     }
   }
 
-  vector<string> result(resultSet.begin(), resultSet.end());
+  std::vector<std::string> result(resultSet.begin(), resultSet.end());
   sort(result.begin(), result.end(), helper);
   return result;
 }
 
-string lookupSave(string filename) {
+std::string lookupSave(std::string filename) {
   return modDirectoryNonNull() + filename;
 }
 
-vector<string> listModpacks(uint32_t flags) {
+std::vector<std::string> listModpacks(uint32_t flags) {
   return lookupSubDirectories("modpacks",
       flags | _lookupExcludeBaseMods | _lookupExcludeWorkshopMods);
 }
@@ -165,15 +165,15 @@ vector<string> listModpacks(uint32_t flags) {
 /// sorted alphabetically, with no duplicates, case insensitive.
 /// Design packages end with '/', legacy designs do not.
 /// The filenames returned do not have the file extension.
-vector<string> lookupDesigns(uint32_t flags) {
+std::vector<std::string> lookupDesigns(uint32_t flags) {
   // legacy
-  vector<string> result = lookupDirectory("designs", ".design", flags);
+  std::vector<std::string> result = lookupDirectory("designs", ".design", flags);
 
   // packages
-  vector<string> packages = lookupSubDirectories("designs", flags);
+  std::vector<std::string> packages = lookupSubDirectories("designs", flags);
   for (int i = 0; i < packages.size(); i++) {
-    string package = packages[i];
-    string canonDesignFile = lookupFile("designs/" + package + "/design.design", flags);
+    std::string package = packages[i];
+    std::string canonDesignFile = lookupFile("designs/" + package + "/design.design", flags);
     if (!fileExists(canonDesignFile)) continue;
     package += "/";
     result.push_back(package);

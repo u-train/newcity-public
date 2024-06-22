@@ -19,4 +19,4 @@
 const int CONSOLE_VAL = 7777777;
 
 Part* console();
-Part* console(vec2 pos);
+Part* console(glm::vec2 pos);

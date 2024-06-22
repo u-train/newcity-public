@@ -1,9 +1,10 @@
 #pragma once
 
 #include "../lane.hpp"
-#include "../main.hpp"
 #include "../route/route.hpp"
 #include "../serialize.hpp"
+#include "../item.hpp"
+#include <glm/glm.hpp>
 
 const int numVehicleColors = 32;
 
@@ -14,8 +15,8 @@ struct VehicleDescription {
 struct Vehicle {
   // Physics and Render need
   int flags;
-  vec3 location;
-  vec3 velocity;
+  glm::vec3 location;
+  glm::vec3 velocity;
   float yaw;
   float pitch;
   item trailer;
@@ -24,7 +25,7 @@ struct Vehicle {
   item yieldFrom;
 
   // Physics needs
-  vec2 acceleration;
+  glm::vec2 acceleration;
   float distanceSinceMerge;
   float aggressiveness;
   float creationTime;
@@ -43,7 +44,7 @@ struct Vehicle {
   item lastNumberRendered;
 
   // Bookkeeping
-  vector<item> travelGroups;
+  std::vector<item> travelGroups;
   item numPassengers;
   item transitLine;
   item model;
@@ -73,7 +74,7 @@ item addVehicle_g(item style, item travelGroup, Route* route);
 item addTestVehicle_g(GraphLocation start, GraphLocation dest);
 item addFreightVehicle_g(item travelGroup, Route* route);
 item addTransitVehicle_g(item transitLine, Route* route);
-item addWanderer_g(item modelNdx, vec3 loc, float yaw);
+item addWanderer_g(item modelNdx, glm::vec3 loc, float yaw);
 Vehicle* getVehicle(item ndx);
 void removeVehicle(item ndx);
 void freeVehicle(item ndx);
@@ -85,7 +86,7 @@ void invalidateVehicleRoute(item ndx);
 void validateVehicles(char* msg);
 bool isVehicleActive_g(item ndx);
 void setVehicleActive_g(item ndx);
-vec3 getVehicleCenter_g(item ndx);
+glm::vec3 getVehicleCenter_g(item ndx);
 float getEffectiveTrafficRate();
 float getTransitMoneyMultiplier();
 

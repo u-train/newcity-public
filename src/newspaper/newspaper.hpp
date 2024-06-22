@@ -4,7 +4,6 @@
 #include "../serialize.hpp"
 
 #include <string>
-using namespace std;
 
 struct NewspaperIssueArticle {
   char* code;
@@ -33,12 +32,12 @@ struct NewspaperIssue {
   Cup<FinancialScore> financialScores;
 };
 
-string getNewspaperName();
-string getNewspaperNameShort();
+std::string getNewspaperName();
+std::string getNewspaperNameShort();
 NewspaperIssue* getNewspaperIssue(item ndx);
 NewspaperIssue* getLatestNewspaperIssue();
 item getNumNewspaperIssues();
-string getNewspaperAdvertisement(item issueNdx, item adNum);
+std::string getNewspaperAdvertisement(item issueNdx, item adNum);
 float getNewspaperTime();
 bool doesNewspaperExist();
 void updateNewspaper();

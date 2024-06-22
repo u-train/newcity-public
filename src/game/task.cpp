@@ -5,56 +5,42 @@
 #include "update.hpp"
 
 #include "../pool.hpp"
+#include "../cup.hpp"
 #include "../thread.hpp"
 
-//#include "../amenity.hpp"
-#include "../blueprint.hpp"
-//#include "../board.hpp"
 #include "../building/building.hpp"
-#include "../building/design.hpp"
 #include "../business.hpp"
 #include "../city.hpp"
-//#include "../collisionTable.hpp"
-//#include "../compass.hpp"
 #include "../economy.hpp"
-#include "../error.hpp"
 #include "../heatmap.hpp"
-#include "../input.hpp"
 #include "../intersection.hpp"
 #include "../graph.hpp"
 #include "../graph/transit.hpp"
-#include "../graph/stop.hpp"
-//#include "../label.hpp"
-//#include "../land.hpp"
 #include "../lot.hpp"
 #include "../money.hpp"
-//#include "../name.hpp"
-#include "../newspaper/newspaper.hpp"
-#include "../option.hpp"
 #include "../person.hpp"
-//#include "../pillar.hpp"
-#include "../plan.hpp"
-#include "../renderLand.hpp"
-//#include "../route/broker.hpp"
 #include "../route/router.hpp"
 #include "../selection.hpp"
-#include "../sound.hpp"
-#include "../string_proxy.hpp"
-//#include "../thread.hpp"
 #include "../time.hpp"
-#include "../vehicle/pedestrian.hpp"
-#include "../vehicle/travelGroup.hpp"
 #include "../vehicle/update.hpp"
 #include "../weather.hpp"
-#include "../tutorial.hpp"
-#include "../util.hpp"
+
+#include "spdlog/spdlog.h"
+
+// TODO: into another header as mentioned somewhere else lol
+#include <GL/glew.h>
+#include <glfw3.h>
 
 #include "../draw/buffer.hpp"
 #include "../draw/camera.hpp"
+#include "../input.hpp"
+#include "../plan.hpp"
+#include "../renderLand.hpp"
+#include "../tutorial.hpp"
+#include "../sound.hpp"
+#include "../blueprint.hpp"
+#include "../main.hpp"
 #include "../platform/event.hpp"
-
-#include "taskRunners.cpp"
-#include "spdlog/spdlog.h"
 
 Pool<Task> tasks_g;
 Cup<TaskTypeData> typeData_g;
@@ -68,6 +54,102 @@ double lastFrameDur = 0;
 double targetFrameDur = 0.05;
 const double meanUpdateRate = 0.02;
 const double maxTardiness = 0.01;
+
+void handleInputTask(double duration) {
+  updateInput(duration);
+  finishGraph();
+  renderGraph();
+  updatePlans();
+  updateCamera(duration);
+}
+
+void collectEntities(double duration) {
+  collectEntities_g();
+}
+
+bool testCollectEntities(double duration) {
+  return c(CCullingAlgo) > 0;
+}
+
+void finishLanes(double duration) {
+  finishLanes();
+}
+
+void finishLots(double duration) {
+  finishLots();
+}
+
+void applyBlueprintZones(double duration) {
+  applyBlueprintZones();
+}
+
+void finishTransit(double duration) {
+  finishTransit();
+}
+
+void updatePlans(double duration) {
+  updatePlans();
+}
+
+void assignHeights(double duration) {
+  assignHeights();
+}
+
+bool testAssignHeights(double duration) {
+  return numHeightsToAssign() > 0;
+}
+
+void fireEventFrame(double duration) {
+  fireEvent(EventFrame);
+}
+
+void fireEventGameUpdate(double duration) {
+  fireEvent(EventGameUpdate);
+}
+
+void renderLandStep(double duration) {
+  renderLandStep();
+}
+
+bool testRenderLandStep(double duration) {
+  //SPDLOG_INFO("numRenderChunksQueued() {}", numRenderChunksQueued());
+  return numRenderChunksQueued() > 0;
+}
+
+void renderGraph(double duration) {
+  renderGraph();
+}
+
+bool testRenderGraph(double duration) {
+  return graphElementsToRender() > 0;
+}
+
+void updateSoundEnvironment(double duration) {
+  updateSoundEnvironment();
+}
+
+void updateGraphVisuals(double duration) {
+  updateGraphVisuals(false);
+}
+
+void partialVehicleSwap(double duration) {
+  swapVehiclesCommand(false);
+}
+
+void fullVehicleSwap(double duration) {
+  swapVehiclesCommand(true);
+}
+
+void updateTutorial(double duration) {
+  TutorialState* ptr = getTutorialStatePtr();
+
+  // Not null checking here for performance, 
+  // also TutorialState is a struct -supersoup
+  // if(ptr == 0)
+    // return;
+
+  ptr->tick(duration);
+}
 
 void initType_g(item type, uint32_t flags, TaskRunner runner,
     TaskTester tester) {
@@ -201,7 +283,7 @@ void initTasks_g() {
 double getTimeEstimate(TaskTypeData* type) {
   //return type->movingArithMean;
   //return pow(10, type->movingGeoMean);
-  return mix(type->movingArithMean, type->movingSlowestTime, 0.8);
+  return glm::mix(type->movingArithMean, type->movingSlowestTime, 0.8);
 }
 
 void queueTask_g(item typeNdx, double duration) {
@@ -274,9 +356,9 @@ bool runTask_g(item ndx, bool force) {
     type->movingArithMean = timeTaken;
     type->movingGeoMean = log10(timeTakenForGeo);
   } else {
-    type->movingArithMean = mix(type->movingArithMean, timeTaken,
+    type->movingArithMean = glm::mix(type->movingArithMean, timeTaken,
         meanUpdateRate);
-    type->movingGeoMean = mix(type->movingGeoMean, log10(timeTakenForGeo),
+    type->movingGeoMean = glm::mix(type->movingGeoMean, log10(timeTakenForGeo),
         meanUpdateRate);
   }
 
@@ -471,7 +553,7 @@ void runTaskQueue_g() {
 
   lastFrameDur = endTime - lastTaskTime;
   lastTaskTime = endTime;
-  targetFrameDur = mix(targetFrameDur, lastFrameDur, meanUpdateRate);
+  targetFrameDur = glm::mix(targetFrameDur, lastFrameDur, meanUpdateRate);
   double fpsCap = getTargetFrameDuration_g();
   if (targetFrameDur < fpsCap) targetFrameDur = fpsCap;
   if (targetFrameDur*(1-meanUpdateRate) > fpsCap) {

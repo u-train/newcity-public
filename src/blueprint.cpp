@@ -2,14 +2,13 @@
 
 #include "draw/camera.hpp"
 #include "game/feature.hpp"
-#include "game/game.hpp"
 #include "land.hpp"
 #include "lot.hpp"
 #include "plan.hpp"
 #include "platform/file.hpp"
 #include "tools/blueprint.hpp"
 #include "util.hpp"
-
+#include "string_proxy.hpp"
 #include "spdlog/spdlog.h"
 
 #include <set>
@@ -25,10 +24,10 @@ const int bitMask2  =    3;
 
 static Blueprint draftBlueprint;
 static Blueprint bufferBlueprint;
-static vector<Blueprint> blueprints;
-static vector<TextBoxState> bpTBs;
+static std::vector<Blueprint> blueprints;
+static std::vector<TextBoxState> bpTBs;
 static item selectedBlueprintNdx;
-static vec3 nextZonesLoc;
+static glm::vec3 nextZonesLoc;
 static Blueprint nextZonesBP;
 static bool applyBPZones = false;
 
@@ -78,11 +77,11 @@ Line clampBPLine(Line l) {
   return l;
 }
 
-vector<item> getBPElems(Line l) {
+std::vector<item> getBPElems(Line l) {
   Box b = alignedBox(l);
-  vector<item> elems = getGraphCollisions(b);
-  set<item> result;
-  vec3 center = .5f*(l.start + l.end);
+  std::vector<item> elems = getGraphCollisions(b);
+  std::set<item> result;
+  glm::vec3 center = .5f*(l.start + l.end);
 
   // Test edges for validity, add nodes
   for (int i = 0; i < elems.size(); i++) {
@@ -113,7 +112,7 @@ vector<item> getBPElems(Line l) {
     }
   }
 
-  return vector<item>(result.begin(), result.end());
+  return std::vector<item>(result.begin(), result.end());
 }
 
 void clearBlueprint(Blueprint* bp) {
@@ -175,15 +174,15 @@ void computeCost(Blueprint* bp) {
   }
 }
 
-vector<item> setBufferBlueprint(vector<item> graphElems, vector<item> lots) {
+std::vector<item> setBufferBlueprint(std::vector<item> graphElems, std::vector<item> lots) {
   Blueprint bp;
   bp.flags = _blueprintFine | _blueprintExists;
   bp.nodes.clear();
   bp.edges.clear();
 
-  vec3 mass = vec3(0,0,0);
+  glm::vec3 mass = glm::vec3(0,0,0);
   int numNodes = 0;
-  unordered_map<item, item> elemIndexTable;
+  std::unordered_map<item, item> elemIndexTable;
 
   for (int i = 0; i < graphElems.size(); i++) {
     item ndx = graphElems[i];
@@ -199,10 +198,10 @@ vector<item> setBufferBlueprint(vector<item> graphElems, vector<item> lots) {
     }
   }
 
-  vec3 center = mass / float(numNodes);
+  glm::vec3 center = mass / float(numNodes);
   float alignmentModulo = (bp.flags & _blueprintFine) ?
     tileSize : tileSize*5;
-  vec3 alignment = vec3(
+  glm::vec3 alignment = glm::vec3(
       round(center.x/alignmentModulo)*alignmentModulo,
       round(center.y/alignmentModulo)*alignmentModulo,
       0);
@@ -239,7 +238,7 @@ vector<item> setBufferBlueprint(vector<item> graphElems, vector<item> lots) {
     }
   }
 
-  vector<item> resultLots;
+  std::vector<item> resultLots;
   for (int i = 0; i < lots.size(); i++) {
     item lotNdx = lots[i];
     Lot* lot = getLot(lotNdx);
@@ -277,8 +276,8 @@ void setDraftBlueprintToBuffer() {
 void rotateDraftBlueprint() {
   for (int i = 0; i < draftBlueprint.nodes.size(); i++) {
     BlueprintNode* n = &draftBlueprint.nodes[i];
-    vec3 loc = n->loc;
-    loc = vec3(-loc.y, loc.x, loc.z);
+    glm::vec3 loc = n->loc;
+    loc = glm::vec3(-loc.y, loc.x, loc.z);
     n->loc = loc;
   }
 }
@@ -291,8 +290,8 @@ void flipDraftBlueprint() {
 
   for (int i = 0; i < draftBlueprint.nodes.size(); i++) {
     BlueprintNode* n = &draftBlueprint.nodes[i];
-    vec3 loc = n->loc;
-    loc = vec3(x*loc.x, y*loc.y, loc.z);
+    glm::vec3 loc = n->loc;
+    loc = glm::vec3(x*loc.x, y*loc.y, loc.z);
     n->loc = loc;
   }
 
@@ -304,12 +303,12 @@ void flipDraftBlueprint() {
   }
 }
 
-void applyDraftBlueprint(vec3 loc) {
+void applyDraftBlueprint(glm::vec3 loc) {
   if (!(draftBlueprint.flags & _blueprintExists)) return;
-  unordered_map<item, item> nodeIndexTable;
+  std::unordered_map<item, item> nodeIndexTable;
   for (int i = 0; i < draftBlueprint.nodes.size(); i++) {
     BlueprintNode n = draftBlueprint.nodes[i];
-    vec3 nLoc = loc + n.loc;
+    glm::vec3 nLoc = loc + n.loc;
     nLoc = pointOnLandNatural(nLoc);
     nLoc.z += n.loc.z + loc.z;
     nodeIndexTable[i] = getOrCreateNodeAt(nLoc, n.config);
@@ -327,7 +326,7 @@ void applyDraftBlueprint(vec3 loc) {
   }
 }
 
-Box blueprintBound(Blueprint* bp, vec3 loc) {
+Box blueprintBound(Blueprint* bp, glm::vec3 loc) {
   float ms = getMapSize();
   float minX = ms;
   float maxX = 0;
@@ -335,7 +334,7 @@ Box blueprintBound(Blueprint* bp, vec3 loc) {
   float maxY = 0;
 
   for (int i = 0; i < bp->nodes.size(); i++) {
-    vec3 center = bp->nodes[i].loc;
+    glm::vec3 center = bp->nodes[i].loc;
     if (center.x < minX) minX = center.x;
     if (center.x > maxX) maxX = center.x;
     if (center.y < minY) minY = center.y;
@@ -347,13 +346,13 @@ Box blueprintBound(Blueprint* bp, vec3 loc) {
   maxX += tileSize*2;
   maxY += tileSize*2;
 
-  return alignedBox(line(vec3(minX,minY,0)+loc, vec3(maxX,maxY,0)+loc));
+  return alignedBox(line(glm::vec3(minX,minY,0)+loc, glm::vec3(maxX,maxY,0)+loc));
 }
 
-void applyBlueprintZones(Blueprint bp, vec3 loc) {
-  vector<Line> edgeLines;
-  vector<vec3> nodeLocs;
-  vector<item> lots = collidingLots(blueprintBound(&bp, loc));
+void applyBlueprintZones(Blueprint bp, glm::vec3 loc) {
+  std::vector<Line> edgeLines;
+  std::vector<glm::vec3> nodeLocs;
+  std::vector<item> lots = collidingLots(blueprintBound(&bp, loc));
   SPDLOG_INFO("applyBlueprintZones {}", lots.size());
   if (lots.size() == 0) return;
 
@@ -397,8 +396,8 @@ void applyBlueprintZones(Blueprint bp, vec3 loc) {
     } else if (best > 0) {
       item eNdx = best-1;
       Line l = edgeLines[eNdx];
-      vec3 start = l.start;
-      vec3 along = l.end - start;
+      glm::vec3 start = l.start;
+      glm::vec3 along = l.end - start;
       bool side = cross(lot->loc - start, along).z > 0;
       zone = bp.edges[eNdx].zone[side];
     }
@@ -409,7 +408,7 @@ void applyBlueprintZones(Blueprint bp, vec3 loc) {
   }
 }
 
-void queueBlueprintZones(Blueprint* bp, vec3 loc) {
+void queueBlueprintZones(Blueprint* bp, glm::vec3 loc) {
   nextZonesLoc = loc;
   nextZonesBP = *bp;
   applyBPZones = true;
@@ -580,7 +579,7 @@ Blueprint readBlueprint(FileBuffer* buffer) {
     }
 
     BlueprintNode n;
-    n.loc = vec3(x*tileSize, y*tileSize, (z-7)*c(CZTileSize));
+    n.loc = glm::vec3(x*tileSize, y*tileSize, (z-7)*c(CZTileSize));
     n.flags = p ? _blueprintNodePillar : 0;
     n.config = configTable[f];
     result.nodes.push_back(n);

@@ -4,7 +4,6 @@
 #include "building/design.hpp"
 #include "economy.hpp"
 #include "game/game.hpp"
-#include "land.hpp"
 #include "name.hpp"
 #include "person.hpp"
 #include "pool.hpp"
@@ -16,8 +15,12 @@
 #include "zone.hpp"
 
 #include "parts/messageBoard.hpp"
+#include "spdlog/spdlog.h"
+#include "error.hpp"
+#include <glm/glm.hpp>
+#include "game/constants.hpp"
 
-#include <set>
+using glm::clamp;
 
 Pool<Business>* businesses = Pool<Business>::newPool(2000);
 //set<item> openRetail;
@@ -162,8 +165,8 @@ void rebuildPositions(item ndx) {
   Building* building = getBuilding(b->building);
 
   // Collect all current employees
-  vector<item> employeesAgg;
-  vector<item> employees[numEducationLevels];
+  std::vector<item> employeesAgg;
+  std::vector<item> employees[numEducationLevels];
   for (int i = 0; i < b->positions.size(); i++) {
     Position p = b->positions[i];
     if (p.employee != 0) {
@@ -378,7 +381,7 @@ void removeBusiness(item businessNdx) {
   removeMessageByObject(BusinessMessage, businessNdx);
   //boardClean(JobsNoEdu, businessNdx);
   //boardClean(JobsHSEdu, businessNdx);
-  vector<Position> swap;
+  std::vector<Position> swap;
   business->positions.swap(swap);
   business->flags = 0;
   free(business->name);
@@ -483,7 +486,7 @@ char* getBusinessDescriptor(item ndx) {
   return sprintf_o("%s%s", b->name, comment);
 }
 
-void updateBusiness(item ndx, float duration, vec3 loc) {
+void updateBusiness(item ndx, float duration, glm::vec3 loc) {
   Business* b = getBusiness(ndx);
   if (!(b->flags & _businessExists)) return;
 
@@ -502,7 +505,7 @@ void updateBusiness(item ndx, float duration, vec3 loc) {
     supplyTableSuggest_g(building->graphLoc.lane, SuppliesFreightNeed, ndx);
   }
 
-  vector<item> onTheJob;
+  std::vector<item> onTheJob;
   for (int i = 0; i < b->positions.size(); i++) {
     Position pos = b->positions[i];
     item pNdx = pos.employee;
@@ -663,7 +666,7 @@ void updateBusinessTypeDemand(item econ) {
         float incomePerBiz = retailEconomy / numRetailBiz;
         float incomeTarget = c(CRetailEconomyPerBiz) * getInflation();
         float economyEffect = incomePerBiz / incomeTarget;
-        economyEffect = clamp(economyEffect, 0.1f, 2.f);
+        economyEffect = glm::clamp(economyEffect, 0.1f, 2.f);
         result *= economyEffect;
 
         if (logBizGrowthData) {
@@ -686,12 +689,12 @@ void updateBusinessTypeDemand(item econ) {
 
       float maxOpen = c(CMaxOpenJobs);
       maxOpen += getEffectValue(BusinessEffect) * c(CBizPerBizPoint) * getStatistic(econ, (Statistic)(COfficeNoEduPositions+j));
-      float jobsEffect = 1 - clamp(openPercent / maxOpen, 0.f, 1.f);
+      float jobsEffect = 1 - glm::clamp(openPercent / maxOpen, 0.f, 1.f);
       if (totalOpen < 1000) {
-        jobsEffect = clamp(jobsEffect, 1-totalOpen/1000.f, 1.f);
+        jobsEffect = glm::clamp(jobsEffect, 1-totalOpen/1000.f, 1.f);
       }
       result *= jobsEffect;
-      result = clamp(result, 0.f, 1.f);
+      result = glm::clamp(result, 0.f, 1.f);
       if (logBizGrowthData) {
         SPDLOG_INFO("econ:{} {}:{} edu:{} openJobs:{:.2f}% effect:{:.2f}%",
           econ, i, businessTypeName[i], j, openPercent*100, jobsEffect*100);
@@ -735,7 +738,7 @@ void updateBusinessTypeDemand(item econ) {
     }
 
     float target = 2+emptyTarget*tenancies*2;
-    result *= clamp((target - empties)/nonZero(target), 0.f, 1.f);
+    result *= glm::clamp((target - empties)/nonZero(target), 0.f, 1.f);
     if (logBizGrowthData) {
       SPDLOG_INFO("{}: {} empties {} {} {} {}", businessTypeName[i], result,
           emptyTarget, tenancies, target, empties);
@@ -803,7 +806,7 @@ void updateBusinessTypeDemand_legacy(item econ) {
         float incomePerBiz = retailEconomy / numRetailBiz;
         float incomeTarget = c(CRetailEconomyPerBiz) * getInflation();
         float economyEffect = incomePerBiz / incomeTarget;
-        economyEffect = clamp(economyEffect, 0.f, 2.f);
+        economyEffect = glm::clamp(economyEffect, 0.f, 2.f);
         result *= economyEffect;
 
         if (logBizGrowthData) {
@@ -820,8 +823,8 @@ void updateBusinessTypeDemand_legacy(item econ) {
     int numBiz = getStatistic(econ, NumBusinesses);
     float retailRatio = numBiz == 0 ? 0.5 : getStatistic(econ, NumRetailBiz) /
       nonZero(getStatistic(econ, NumBusinesses));
-    float popFactor = clamp(getStatistic(econ, Population)/200000.f, 0.f, 1.f);
-    float targetRatio = mix(c(CRetailRatio0), c(CRetailRatio200), popFactor);
+    float popFactor = glm::clamp(getStatistic(econ, Population)/200000.f, 0.f, 1.f);
+    float targetRatio = glm::mix(c(CRetailRatio0), c(CRetailRatio200), popFactor);
 
     if (logBizGrowthData) {
       SPDLOG_INFO("econ:{} {}:{} retailRatio:{} => {}",
@@ -836,9 +839,9 @@ void updateBusinessTypeDemand_legacy(item econ) {
       targetRatio = 1-targetRatio;
     }
 
-    float ratioEffect = clamp(1.5f - retailRatio/targetRatio, 0.0f, 1.5f);
+    float ratioEffect = glm::clamp(1.5f - retailRatio/targetRatio, 0.0f, 1.5f);
     if (numPeople(econ) < 1480 && i != Retail) {
-      ratioEffect = clamp(ratioEffect, 0.2f, 1.5f);
+      ratioEffect = glm::clamp(ratioEffect, 0.2f, 1.5f);
     }
     result *= ratioEffect;
     if (logBizGrowthData) {
@@ -855,12 +858,12 @@ void updateBusinessTypeDemand_legacy(item econ) {
       jobs += getStatistic(econ, (Statistic)(NumNoEduPositions+j));
     }
     float openPercent = openings/nonZero(jobs);
-    float jobsEffect = 1 - clamp(openPercent / c(CMaxOpenJobs), 0.f, 1.f);
+    float jobsEffect = 1 - glm::clamp(openPercent / c(CMaxOpenJobs), 0.f, 1.f);
     //if (numPeople(econ) < 980 && i == Farm) {
-      //jobsEffect = mix(1.f, jobsEffect, numPeople(econ)/980.f);
+      //jobsEffect = glm::mix(1.f, jobsEffect, numPeople(econ)/980.f);
     //}
     result *= jobsEffect;
-    result = clamp(result, 0.f, 1.f);
+    result = glm::clamp(result, 0.f, 1.f);
 
     //if ((i == Factory || i == Office) && numPeople(econ) < 1000) {
       //result = 0;
@@ -899,7 +902,7 @@ void updateBusinessTypeDemand_legacy(item econ) {
     }
 
     float target = 2+emptyTarget*tenancies*2;
-    result *= clamp((target - empties)/nonZero(target), 0.f, 1.f);
+    result *= glm::clamp((target - empties)/nonZero(target), 0.f, 1.f);
     if (logBizGrowthData) {
       SPDLOG_INFO("{}: {} empties {} {} {} {}", businessTypeName[i], result,
           emptyTarget, tenancies, target, empties);
@@ -1030,7 +1033,7 @@ void resetBusinesses() {
   for (int i = 1; i <= businesses->size(); i++) {
     Business* b = getBusiness(i);
     if (b->name) free(b->name);
-    vector<Position> swap;
+    std::vector<Position> swap;
     b->positions.swap(swap);
   }
 
@@ -1120,7 +1123,7 @@ void readBusiness(FileBuffer* file, int version, item businessNdx) {
   }
 
   if (version < 47) {
-    vector<item> employees;
+    std::vector<item> employees;
     fread_item_vector(file, &employees, version);
     for (int i = 0; i < employees.size(); i++) {
       item personNdx = employees[i];
@@ -1192,7 +1195,7 @@ void readBusinesses(FileBuffer* file, int version) {
   }
 
   if (version < 47) {
-    vector<item> trash; // List of retail businesses
+    std::vector<item> trash; // List of retail businesses
     fread_item_vector(file, &trash, version);
   }
 }

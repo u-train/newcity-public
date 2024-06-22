@@ -1,8 +1,8 @@
 #pragma once
 
-#include "../main.hpp"
 #include "../item.hpp"
 #include "image.hpp"
+#include <glm/glm.hpp>
 
 enum {
   noTexture = 0,
@@ -47,7 +47,7 @@ struct Texture {
   unsigned int flagsTextureID;
   char* filename;
   char* illumFilename;
-  vec2 dimensions;
+  glm::vec2 dimensions;
   Image albedoImage;
 };
 
@@ -62,7 +62,7 @@ item makeTexture(item texID, item illumTexID, const char* filename, const char* 
 const char* getTextureFilename(item texNdx);
 const char* getTextureIllumFilename(item texNdx);
 item getTexture(const char* filename);
-vec2 getTextureDimensions(const char* filename);
+glm::vec2 getTextureDimensions(const char* filename);
 void invalidateTexture(const char* filename);
 Image getPaletteImage();
 Image getBlueNoiseImage();

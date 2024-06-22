@@ -1,4 +1,5 @@
 #include "designOrganizer.hpp"
+#include "../main.hpp"
 
 #include "building.hpp"
 #include "buildingTexture.hpp"
@@ -24,15 +25,17 @@
 #include "../parts/designConfigPanel.hpp"
 #include "../platform/lua.hpp"
 
+#include "spdlog/spdlog.h"
+
 item organizerZone = ResidentialZone;
 
-vec3 getOrganizerLocation(item dNdx) {
+glm::vec3 getOrganizerLocation(item dNdx) {
   Design* d = getDesign(dNdx);
   item seed = dNdx*1001;
   float positionConstant = tileSize*5 + getChunkSize()*tileSize*5;
   float positionFactor = getChunkSize() * tileSize * 10;
   float randomness = positionFactor/10-tileSize*10;
-  vec3 result;
+  glm::vec3 result;
 
   for (int i = 0; i < 100; i++) {
     float x = d->minLandValue * positionFactor + positionConstant +
@@ -40,10 +43,10 @@ vec3 getOrganizerLocation(item dNdx) {
     float y = d->minDensity * positionFactor + positionConstant +
       randFloat(&seed, 0, randomness) - d->size.y*0.5f;
     float z = c(CSuperflatHeight);
-    result = vec3(x,y,z);
+    result = glm::vec3(x,y,z);
 
-    Box bbox = getBuildingBox(dNdx, result, vec3(0,1,0));
-    vector<item> collisions = collideBuilding(bbox, 0);
+    Box bbox = getBuildingBox(dNdx, result, glm::vec3(0,1,0));
+    std::vector<item> collisions = collideBuilding(bbox, 0);
 
     bool anyMatches = false;
     for (int k = 0; k < collisions.size(); k++) {
@@ -92,8 +95,8 @@ void initOrganizerBuildings() {
 
   for (int i = 1; i <= sizeDesigns(); i++) {
     Design* d = getDesign(i);
-    vec3 loc = getOrganizerLocation(i);
-    item bNdx = addBuilding(loc, vec3(0,1,0), i, d->zone);
+    glm::vec3 loc = getOrganizerLocation(i);
+    item bNdx = addBuilding(loc, glm::vec3(0,1,0), i, d->zone);
     if (bNdx != i) SPDLOG_WARN("Building {} was assigned different index from design {}", bNdx, i);
     Building* b = getBuilding(bNdx);
     b->location.z = loc.z;
@@ -154,24 +157,24 @@ void startDesignOrganizer() {
   int chunkSize = getChunkSize();
   float r = tileSize*(chunkSize*landSize)/2;
   int z = c(CSuperflatHeight)+1;
-  item in0 = addNode(vec3(tileSize*5, 0, z), config);
-  item in1 = addNode(vec3(tileSize*5, r*2, z), config);
+  item in0 = addNode(glm::vec3(tileSize*5, 0, z), config);
+  item in1 = addNode(glm::vec3(tileSize*5, r*2, z), config);
   item edge = addEdge(in0, in1, config);
   complete(edge, config);
 
-  vec3 bLoc = pointOnLand(vec3(tileSize*6, r+tileSize*.5f, 0));
+  glm::vec3 bLoc = pointOnLand(glm::vec3(tileSize*6, r+tileSize*.5f, 0));
   Line l = getLine(edge);
-  vec3 intersection = nearestPointOnLine(bLoc, l);
-  vec3 normal = bLoc - intersection;
+  glm::vec3 intersection = nearestPointOnLine(bLoc, l);
+  glm::vec3 normal = bLoc - intersection;
   normal.z = 0;
-  vec3 unorm = normalize(normal);
+  glm::vec3 unorm = normalize(normal);
   normal = unorm * c(CBuildDistance);
   bLoc = intersection + normal;
 
   Design* d = getDesign(1);
-  vec3 prevSize = d->size;
-  d->size = vec3(tileSize*24*2, tileSize*24*2, 0);
-  completeBuilding(addBuilding(bLoc, vec3(1, 0, 0), 1, d->zone));
+  glm::vec3 prevSize = d->size;
+  d->size = glm::vec3(tileSize*24*2, tileSize*24*2, 0);
+  completeBuilding(addBuilding(bLoc, glm::vec3(1, 0, 0), 1, d->zone));
   d->size = prevSize;
   setSpawnProbGlobal(0.1f);
   */

@@ -6,9 +6,11 @@
 #include "../draw/texture.hpp"
 #include "../platform/lookup.hpp"
 #include "../pool.hpp"
+#include <spdlog/spdlog.h>
+#include "../game/game.hpp"
 
 Pool<MeshImport> imports;
-vector<item> meshImportsToLoad;
+std::vector<item> meshImportsToLoad;
 
 void resetMeshImports() {
   SPDLOG_INFO("resetMeshImports");
@@ -108,7 +110,7 @@ void assignMeshImport(item entityNdx, item meshImportNdx) {
 
 char* convertFilenameInMod(char* in) {
   if (in == 0) return 0;
-  string result = lookupFile(in, 0);
+  std::string result = lookupFile(in, 0);
   free(in);
   return strdup_s(result.c_str());
 }

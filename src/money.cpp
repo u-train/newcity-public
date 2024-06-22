@@ -6,12 +6,11 @@
 #include "error.hpp"
 #include "icons.hpp"
 #include "game/game.hpp"
-#include "person.hpp"
 #include "platform/event.hpp"
 #include "string_proxy.hpp"
 #include "time.hpp"
-#include "util.hpp"
 #include "zone.hpp"
+#include "game/constants.hpp"
 
 #include "spdlog/spdlog.h"
 #include <math.h>
@@ -20,7 +19,7 @@ static float taxRate[5] = {0.00, 0.01, 0.00, 0.00, 0.00};
 static bool taxEnabled[5] = {false, true, true, false, true};
 static bool taxLocked[5] = {false, false, false, false, false};
 static double loanRepaymentTime = 1.0;
-vector<Budget> budgetHistory;
+std::vector<Budget> budgetHistory;
 Budget estimateBudget;
 Budget estimateBudgetNext;
 
@@ -131,7 +130,7 @@ const char* getBudgetLineCode(BudgetLine l) {
   return lineCode[l];
 }
 
-const vec3 lineIcon[] = {
+const glm::vec3 lineIcon[] = {
   iconNull,
   iconZoneMono[ResidentialZone],
   iconZoneMono[RetailZone],
@@ -192,7 +191,7 @@ void enableTax(item tax) {
   taxEnabled[tax] = true;
 }
 
-vec3 getBudgetLineIcon(BudgetLine l) {
+glm::vec3 getBudgetLineIcon(BudgetLine l) {
   return lineIcon[l];
 }
 

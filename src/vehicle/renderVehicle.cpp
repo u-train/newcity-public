@@ -9,6 +9,9 @@
 #include "../graph/transit.hpp"
 #include "../renderUtils.hpp"
 #include "../string.hpp"
+#include "../string_proxy.hpp"
+#include "../game/constants.hpp"
+#include "../error.hpp"
 
 #include "spdlog/spdlog.h"
 
@@ -20,9 +23,9 @@ void initVehicleMeshes() {
 
 void renderVehicleStyles() {
   Mesh* lightMesh = getMesh(vehicleLightMesh);
-  makeLightCone(lightMesh, vec3( 1,2.5,1), vec3(0,c(CHeadlightSizeY),0),
+  makeLightCone(lightMesh, glm::vec3( 1,2.5,1), glm::vec3(0,c(CHeadlightSizeY),0),
       c(CHeadlightSizeZ));
-  makeLightCone(lightMesh, vec3(-1,2.5,1), vec3(0,c(CHeadlightSizeY),0),
+  makeLightCone(lightMesh, glm::vec3(-1,2.5,1), glm::vec3(0,c(CHeadlightSizeY),0),
       c(CHeadlightSizeZ));
   bufferMesh(vehicleLightMesh);
 }
@@ -170,19 +173,19 @@ void renderVehicleNumber(item vNdx) {
   float strLng = nStrLng + rStrLng;
   float right = strLng*.5f;
   float left = -right;
-  vec3 start = vec3(left,-fontSize,0);
-  vec3 tr = start;
-  vec3 tl = tr + vec3(strLng,0,0);
-  vec3 br = tr + vec3(0,fontSize,0);
-  vec3 bl = tl + vec3(0,fontSize,0);
-  vec3 nStart = vec3(left+fontSize*.125f, -fontSize, 0);
-  vec3 cStart = vec3(left+nStrLng, -fontSize*.625f, 0);
-  vec3 lStart = vec3(right-lStrLng, -fontSize*.875f, 0);
+  glm::vec3 start = glm::vec3(left,-fontSize,0);
+  glm::vec3 tr = start;
+  glm::vec3 tl = tr + glm::vec3(strLng,0,0);
+  glm::vec3 br = tr + glm::vec3(0,fontSize,0);
+  glm::vec3 bl = tl + glm::vec3(0,fontSize,0);
+  glm::vec3 nStart = glm::vec3(left+fontSize*.125f, -fontSize, 0);
+  glm::vec3 cStart = glm::vec3(left+nStrLng, -fontSize*.625f, 0);
+  glm::vec3 lStart = glm::vec3(right-lStrLng, -fontSize*.875f, 0);
 
   renderString(m, nStr, nStart, fontSize);
   renderString(m, cStr, cStart, fontSize*.5f);
   renderString(m, lStr, lStart, fontSize*.25f);
-  vec3 color = getTransitLineColorInPalette(v->transitLine);
+  glm::vec3 color = getTransitLineColorInPalette(v->transitLine);
   makeQuad(ms, tr, tl, br, bl, color, color);
   bufferMeshForEntity(v->numberEntity);
   bufferMeshForEntity(v->numberShadowEntity);

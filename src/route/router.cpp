@@ -5,14 +5,13 @@
 #include "router.hpp"
 
 #include "../economy.hpp"
-#include "../error.hpp"
-#include "../graph/transit.hpp"
+#include "../string_proxy.hpp"
 #include "../graph/transitRouter.hpp"
-#include "../graph/stop.hpp"
 #include "../game/task.hpp"
 #include "../lane.hpp"
 #include "../pool.hpp"
 #include "../thread.hpp"
+#include "../game/constants.hpp"
 
 #include "broker.hpp"
 #include "cache.hpp"
@@ -22,7 +21,6 @@
 #include <deque>
 #include "spdlog/spdlog.h"
 #include <boost/dynamic_bitset.hpp>
-
 /*
 #include <boost/multi_index_container.hpp>
 #include <boost/multi_index/sequenced_index.hpp>
@@ -34,8 +32,8 @@ using namespace boost::multi_index;
 using namespace boost::lockfree;
 */
 
-vector<Location> aStarLaneBlocks_r(RouteRequest req, int num);
-vector<Location> aStarTransit_r(RouteRequest req);
+std::vector<Location> aStarLaneBlocks_r(RouteRequest req, int num);
+std::vector<Location> aStarTransit_r(RouteRequest req);
 void readRouter(FileBuffer* file, int version);
 void writeRouter(FileBuffer* file);
 RouteRequest readRoute(FileBuffer* file, int version);
@@ -50,14 +48,14 @@ enum BatchState {
 
 //vector<std::atomic<BatchState>> batchState;
 std::deque<std::atomic<BatchState>> batchState;
-vector<vector<RouteRequest>> batches;
+std::vector<std::vector<RouteRequest>> batches;
 static std::atomic<int> threadsAlive(0);
 static std::atomic<int> threadsActive(0);
 
 static bool shouldRoutingContinue = true;
 std::atomic<bool> clearRoutesIn(false);
 std::atomic<bool> routingDone(false);
-static vector<item> toEnqueue;
+static std::vector<item> toEnqueue;
 static Pool<RouteRequest> toFinish_g;
 boost::dynamic_bitset<> toFinishActive_g;
 item numToFinishTask = 0;
@@ -191,9 +189,9 @@ void pushReqToFinish(RouteRequest req) {
   item ndx = toFinish_g.create();
 
   RouteRequest* reqInFinish = toFinish_g.get(ndx);
-  vector<item> swap1;
+  std::vector<item> swap1;
   reqInFinish->subRequests.swap(swap1);
-  vector<Location> swap2;
+  std::vector<Location> swap2;
   reqInFinish->steps.swap(swap2);
   *reqInFinish = req;
 
@@ -202,7 +200,7 @@ void pushReqToFinish(RouteRequest req) {
   numToFinishTask ++;
 }
 
-vector<Location> routeInstant(Location source, Location dest, bool transit) {
+std::vector<Location> routeInstant(Location source, Location dest, bool transit) {
   adjustStat(ourCityEconNdx(), RouteRequests, 1);
 
   RouteRequest route;
@@ -235,7 +233,7 @@ vector<Location> routeInstant(Location source, Location dest, bool transit) {
   return transit ? aStarTransit_r(route) : aStarLaneBlocks_r(route, 0);
 }
 
-vector<Location> routeInstant(Location source, Location dest) {
+std::vector<Location> routeInstant(Location source, Location dest) {
   return routeInstant(source, dest, false);
 }
 
@@ -354,20 +352,20 @@ int routeCacheSize() {
   return routeCache.size();
 }
 
-vector<Location> constructRoute(Location* last,
+std::vector<Location> constructRoute(Location* last,
   Location u, Location start) {
 
-  vector<Location> result;
+  std::vector<Location> result;
   while (u != start) {
 
     if (u <= 0 || u >= getNumLaneBlocks_r()) {
       SPDLOG_WARN("Route contained bad element {}", format(u));
-      return vector<Location>();
+      return std::vector<Location>();
     }
 
     if (result.size() > 100000) {
       SPDLOG_WARN("Route contained a cycle or very long route {}", format(u));
-      return vector<Location>();
+      return std::vector<Location>();
     }
 
     result.push_back(decodeLane_r(u));
@@ -379,8 +377,8 @@ vector<Location> constructRoute(Location* last,
   return result;
 }
 
-vector<Location> aStarLaneBlocks_r(RouteRequest req, int heapNum) {
-  if (openHeaps.size() <= heapNum) return vector<Location>();
+std::vector<Location> aStarLaneBlocks_r(RouteRequest req, int heapNum) {
+  if (openHeaps.size() <= heapNum) return std::vector<Location>();
   Location source = req.source;
   Location dest = req.dest;
   int numVerts = getNumLaneBlocks_r();
@@ -408,7 +406,7 @@ vector<Location> aStarLaneBlocks_r(RouteRequest req, int heapNum) {
 
     if (end == u) {
       //freeHeap(openHeap);
-      vector<Location> result = constructRoute(last, u, start);
+      std::vector<Location> result = constructRoute(last, u, start);
       free(last);
       return result;
     }
@@ -436,10 +434,10 @@ vector<Location> aStarLaneBlocks_r(RouteRequest req, int heapNum) {
   //SPDLOG_WARN("aStarLaneBlocks_r failed iter:{}", iter);
   //freeHeap(&openHeap);
   free(last);
-  return vector<Location>();
+  return std::vector<Location>();
 }
 
-bool isIn(item u, vector<item> source) {
+bool isIn(item u, std::vector<item> source) {
   item sourceSize = source.size();
   for (int i = 0; i < sourceSize; i++) {
     if (u == source[i]) return true;
@@ -447,20 +445,20 @@ bool isIn(item u, vector<item> source) {
   return false;
 }
 
-vector<Location> constructTransitRoute(item* last,
-  item u, vector<item> source,
+std::vector<Location> constructTransitRoute(item* last,
+  item u, std::vector<item> source,
   Location* lastEntry, Location* lastExit) {
 
-  vector<Location> result;
+  std::vector<Location> result;
 
   while (!isIn(u, source)) {
     if (u <= 0 || u > getNumStops_r()) {
       SPDLOG_WARN("Route contained bad element");
-      return vector<Location>();
+      return std::vector<Location>();
     }
     if (result.size() > 10000) {
       SPDLOG_WARN("Route contained a cycle or very long route\n");
-      return vector<Location>();
+      return std::vector<Location>();
     }
 
     result.push_back(transitStopLocation(u));
@@ -490,9 +488,9 @@ vector<Location> constructTransitRoute(item* last,
   return result;
 }
 
-vector<Location> aStarTransit_r(RouteRequest request) {
-  vector<item> source = getNearbyStops_r(request.sourceLoc);
-  vector<item> dest = getNearbyStops_r(request.destLoc);
+std::vector<Location> aStarTransit_r(RouteRequest request) {
+  std::vector<item> source = getNearbyStops_r(request.sourceLoc);
+  std::vector<item> dest = getNearbyStops_r(request.destLoc);
   int numVerts = getNumStops_r();
   item* last = (item*) calloc(numVerts+1, sizeof(item));
   Location* lastEntry = (Location*) calloc(numVerts+1, sizeof(Location));
@@ -528,7 +526,7 @@ vector<Location> aStarTransit_r(RouteRequest request) {
     for (int i = 0; i < destSize; i++) {
       if (dest[i] == u) {
         freeHeap(&open);
-        vector<Location> result = constructTransitRoute(last, u, source,
+        std::vector<Location> result = constructTransitRoute(last, u, source,
             lastEntry, lastExit);
         free(last);
         free(lastEntry);
@@ -540,7 +538,7 @@ vector<Location> aStarTransit_r(RouteRequest request) {
     float prevCost = open.priority[u];
 
     if (lastExit[u] > 0) {
-      vector<item> stops = getNearbyStops_r(u);
+      std::vector<item> stops = getNearbyStops_r(u);
       for (int s = 0; s < stops.size(); s++) {
         item stopNdx = stops[s];
         float cost = walkingCostStops_r(u, stopNdx);
@@ -557,7 +555,7 @@ vector<Location> aStarTransit_r(RouteRequest request) {
       }
     }
 
-    vector<Location> entries = getLegsForStop_r(u);
+    std::vector<Location> entries = getLegsForStop_r(u);
     for (int s = 0; s < entries.size(); s++) {
       Location entryNdx = entries[s];
       float* cost = getLineLegCostTable_r(entryNdx);
@@ -588,7 +586,7 @@ vector<Location> aStarTransit_r(RouteRequest request) {
   free(last);
   free(lastEntry);
   free(lastExit);
-  return vector<Location>();
+  return std::vector<Location>();
 }
 
 uint64_t routeKey(RouteRequest route) {

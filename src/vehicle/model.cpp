@@ -10,7 +10,7 @@
 RenumTable modelTypes;
 RenumTable modelsRenum;
 Pool<VehicleModel> models;
-vector<vector<item>> modelsByType;
+std::vector<std::vector<item>> modelsByType;
 Cup<float> modelLength;
 Cup<item> modelPassengers;
 bool vehicleModelsDirty = true;

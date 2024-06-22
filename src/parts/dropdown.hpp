@@ -25,5 +25,5 @@ struct DropdownElement {
 };
 
 
-Part* dropdown(vec2 pos, vec2 size, bool isOpen, uint32_t activeEleIndex, 
+Part* dropdown(glm::vec2 pos, glm::vec2 size, bool isOpen, uint32_t activeEleIndex, 
   std::vector<DropdownElement> eleVector, InputCallback dropClickCallback);

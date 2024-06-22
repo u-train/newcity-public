@@ -93,7 +93,7 @@ const char* designParameterNames[] = {
   "Maintenance/yr",
 };
 
-vec3 designParameterIcon[] = {
+glm::vec3 designParameterIcon[] = {
   iconLeftRight, iconUpDown, iconDensity,
   iconLeftRight, iconUpDown, iconDensity,
   iconMergeRight, iconTurnRight,
@@ -111,7 +111,7 @@ const char* universityTypeNames[5] = {
   "Bunks", "Storefronts", "Colleges", "Students", "Professors"
 };
 
-vec3 universityIcons[5] = {
+glm::vec3 universityIcons[5] = {
   iconZoneMonoMixedUse, iconZoneMonoRetail,
   iconZoneMonoGovernment, iconPersonMan, iconEducation
 };
@@ -426,7 +426,7 @@ bool setDesignParameterValue(item param, float val) {
     val = val - 360.f * floor(val/360.f);
     val *= degToRad;
   //} else if (param == DPRoofSlope) {
-    //val = clamp(val, 0.f, 2.f);
+    //val = glm::clamp(val, 0.f, 2.f);
   } else if (param > DPLocationZ && param < DPConstructionCost) {
     if (val < 0) val = 0;
   }
@@ -658,7 +658,7 @@ static bool changeDecoType(Part* part, InputEvent event) {
 }
 */
 
-void designParameterTextBox(Part* result, vec2 loc, vec2 size, item param) {
+void designParameterTextBox(Part* result, glm::vec2 loc, glm::vec2 size, item param) {
   const char* designParameterName = designParameterNames[param];
   bool isEdu = isDesignEducation(getSelectedDesignNdx());
   bool isHotel = getSelectedDesign()->flags & _designIsHotel;
@@ -692,7 +692,7 @@ void designParameterTextBox(Part* result, vec2 loc, vec2 size, item param) {
   }
 
   designParamTextBox[param].text = &designParameterStr[param];
-  Part* tb = r(result, textBoxLabel(loc + vec2(0,0.7), size - vec2(0,.7),
+  Part* tb = r(result, textBoxLabel(loc + glm::vec2(0,0.7), size - glm::vec2(0,.7),
         &designParamTextBox[param]));
   tb->itemData = param;
 }
@@ -720,17 +720,17 @@ Part* designConfigPanel() {
     wasEditing = false;
   }
 
-  Part* result = panel(vec2(0,0),
-      vec2(dcpWidth+dcpPadding*2, (dcpHeight+dcpPadding*2)));
+  Part* result = panel(glm::vec2(0,0),
+      glm::vec2(dcpWidth+dcpPadding*2, (dcpHeight+dcpPadding*2)));
   result->padding = dcpPadding;
 
-  r(result, labelCenter(vec2(0,0), vec2(dcpWidth,1),
+  r(result, labelCenter(glm::vec2(0,0), glm::vec2(dcpWidth,1),
         strdup_s("Building Designer")));
 
   #ifdef INCLUDE_STEAM
     // Even if Steam's included, only show buttons if it has an active connection
     if (steam_isActive()) {
-      Part* steamButt = button(vec2(dcpWidth-1, 0.f), iconSteam, openDesignInWorkshop, getSelectedDesignNdx());
+      Part* steamButt = button(glm::vec2(dcpWidth-1, 0.f), iconSteam, openDesignInWorkshop, getSelectedDesignNdx());
       setPartTooltipValues(steamButt, TooltipType::DesignerOpenInWorkshop);
       r(result, steamButt);
     }
@@ -739,10 +739,10 @@ Part* designConfigPanel() {
   float y = 1;
 
   if (textureSelectionState != TSSClosed) {
-    r(result, textureSelectPanel(vec2(dcpWidth+dcpPadding*2, 1.25), vec2(17.4f, dcpHeight-1.25f+dcpPadding*1), textureSelectionState));
+    r(result, textureSelectPanel(glm::vec2(dcpWidth+dcpPadding*2, 1.25), glm::vec2(17.4f, dcpHeight-1.25f+dcpPadding*1), textureSelectionState));
   }
 
-  Part* tabPanel = panel(vec2(-dcpPadding,y), vec2(dcpWidth+dcpPadding*2,1));
+  Part* tabPanel = panel(glm::vec2(-dcpPadding,y), glm::vec2(dcpWidth+dcpPadding*2,1));
   tabPanel->flags |= _partLowered;
   r(result, tabPanel);
   y += 1.25f;
@@ -751,7 +751,7 @@ Part* designConfigPanel() {
   float tabx = (dcpWidth+dcpPadding*2 - numDCPTabsAvailable)*.5f;
 
   if (hasSelection) {
-    Part* selectButt = button(vec2(tabx, 0.f), iconPointer,
+    Part* selectButt = button(glm::vec2(tabx, 0.f), iconPointer,
         setDCPTab, selectionTab);
     setPartTooltipValues(selectButt,
       TooltipType::DesignerConfigSelect);
@@ -762,7 +762,7 @@ Part* designConfigPanel() {
     tabx++;
   }
 
-  Part* paintButt = button(vec2(tabx, 0.f), iconPaint,
+  Part* paintButt = button(glm::vec2(tabx, 0.f), iconPaint,
       setDCPTab, paintTab);
   setPartTooltipValues(paintButt,
     TooltipType::DesignerConfigVisual);
@@ -772,7 +772,7 @@ Part* designConfigPanel() {
   r(tabPanel, paintButt);
   tabx++;
 
-  Part* mainButt = button(vec2(tabx, 0.f), iconHouse,
+  Part* mainButt = button(glm::vec2(tabx, 0.f), iconHouse,
       setDCPTab, mainTab);
   setPartTooltipValues(mainButt,
     TooltipType::DesignerConfigGame);
@@ -783,7 +783,7 @@ Part* designConfigPanel() {
   tabx++;
 
   if (d->zone == GovernmentZone) {
-    Part* detailsButt = button(vec2(tabx, 0.f), iconWrench,
+    Part* detailsButt = button(glm::vec2(tabx, 0.f), iconWrench,
         setDCPTab, detailsTab);
     if (currentDCPTab == detailsTab) {
       detailsButt->flags |= _partHighlight;
@@ -791,7 +791,7 @@ Part* designConfigPanel() {
     r(tabPanel, detailsButt);
     tabx++;
 
-    Part* effectsButt = button(vec2(tabx, 0.f), iconBusiness,
+    Part* effectsButt = button(glm::vec2(tabx, 0.f), iconBusiness,
         setDCPTab, effectsTab);
     if (currentDCPTab == effectsTab) {
       effectsButt->flags |= _partHighlight;
@@ -829,29 +829,29 @@ Part* designConfigPanel() {
       }
     }
 
-    r(result, labelCenter(vec2(0,y), vec2(dcpWidth, 1), name));
+    r(result, labelCenter(glm::vec2(0,y), glm::vec2(dcpWidth, 1), name));
     y += 1 + dcpPadding;
 
     float buttScale = 0.6f;
-    r(result, button(vec2(0,y), iconCopy, vec2(dcpWidth*.5f,buttScale), strdup_s(isDeco ? "Duplicate Decoration" : "Duplicate Structure"), duplicate, 0));
-    Part* keyButt = r(result, button(vec2(0,y), iconNull, vec2(buttScale, buttScale), duplicate, 0));
+    r(result, button(glm::vec2(0,y), iconCopy, glm::vec2(dcpWidth*.5f,buttScale), strdup_s(isDeco ? "Duplicate Decoration" : "Duplicate Structure"), duplicate, 0));
+    Part* keyButt = r(result, button(glm::vec2(0,y), iconNull, glm::vec2(buttScale, buttScale), duplicate, 0));
     keyButt->inputAction = ActDesignDuplicate;
 
-    r(result, button(vec2(dcpWidth*.55f,y), iconTrash, vec2(dcpWidth*.5f,buttScale), strdup_s(isDeco ? "Delete Decoration" : "Delete Structure"), deleteSelected, 0));
+    r(result, button(glm::vec2(dcpWidth*.55f,y), iconTrash, glm::vec2(dcpWidth*.5f,buttScale), strdup_s(isDeco ? "Delete Decoration" : "Delete Structure"), deleteSelected, 0));
     y += dcpScale + dcpPadding;
 
     /*
     if (isDeco) {
-      r(result, button(vec2(0,y), iconLeft, vec2(dcpScale,dcpScale),
+      r(result, button(glm::vec2(0,y), iconLeft, glm::vec2(dcpScale,dcpScale),
           changeDecoType, -1));
       const char* lblStr = "Change Decoration Type";
       float lblSize = stringWidth(lblStr) * (dcpScale-.25f);
-      r(result, label(vec2(dcpScale,y), dcpScale, strdup_s(lblStr)));
-      r(result, button(vec2(lblSize+dcpScale+.2f,y), iconRight,
-            vec2(dcpScale,dcpScale), changeDecoType, 1));
+      r(result, label(glm::vec2(dcpScale,y), dcpScale, strdup_s(lblStr)));
+      r(result, button(glm::vec2(lblSize+dcpScale+.2f,y), iconRight,
+            glm::vec2(dcpScale,dcpScale), changeDecoType, 1));
 
     } else {
-      r(result, button(vec2(0,y), iconRoof, vec2(dcpWidth,dcpScale),
+      r(result, button(glm::vec2(0,y), iconRoof, glm::vec2(dcpWidth,dcpScale),
         strdup_s("Change Roof Type"), changeRoofType, 0));
     }
     y += dcpScale + dcpPadding;
@@ -871,23 +871,23 @@ Part* designConfigPanel() {
       }
 
       if (param > 0) {
-        r(result, hr(vec2(.25f,y-.05f), dcpWidth-.5f));
+        r(result, hr(glm::vec2(.25f,y-.05f), dcpWidth-.5f));
       }
       y += dcpPadding;
 
       float paramLabelX = 0.3f;
 
-      r(result, label(vec2(paramLabelX,y-.1f), 0.6f, strdup_s(
+      r(result, label(glm::vec2(paramLabelX,y-.1f), 0.6f, strdup_s(
               param == DPRoofSlope ? "1.00"  :
               param == DPYaw ?       "10deg" :
               param == DPScale ?     "10.0x"   :
                                      "10.0m")));
-      r(result, label(vec2(paramLabelX,y+.4f), 0.6f, strdup_s(
+      r(result, label(glm::vec2(paramLabelX,y+.4f), 0.6f, strdup_s(
               param == DPRoofSlope ? "0.1"  :
               param == DPYaw ?       " 1deg" :
               param == DPScale ?     " 1.0x"   :
                                      " 1.0m")));
-      r(result, label(vec2(paramLabelX,y+.9f), 0.6f, strdup_s(
+      r(result, label(glm::vec2(paramLabelX,y+.9f), 0.6f, strdup_s(
               param == DPRoofSlope ? "0.01"  :
               param == DPYaw ?       ".1deg" :
               param == DPScale ?     " 0.1x"   :
@@ -899,63 +899,63 @@ Part* designConfigPanel() {
         if (u%2 == 1) df *= -1;
         float xOff = u % 2 == 0 ? 1.6f : 0;
         float yOff = (u/2) * .5f - .1f;
-        Part* dfButt = r(result, button(vec2(xOff,y+yOff),
-              vec2(0.6f, 0.6f), strdup_s(u%2==0 ? "+" : "-"),
+        Part* dfButt = r(result, button(glm::vec2(xOff,y+yOff),
+              glm::vec2(0.6f, 0.6f), strdup_s(u%2==0 ? "+" : "-"),
               designParameterStep));
         dfButt->itemData = param;
         dfButt->vecData.x = df;
       }
 
-      designParameterTextBox(result, vec2(2,y),
-          vec2(dcpWidth-2,dcpScale+0.7), param);
+      designParameterTextBox(result, glm::vec2(2,y),
+          glm::vec2(dcpWidth-2,dcpScale+0.7), param);
       y += dcpScale + dcpPadding + 0.7;
     }
 
   } else if (currentDCPTab == paintTab) {
-    r(result, icon(vec2(0,y), vec2(dcpScale, dcpScale), iconPaint));
+    r(result, icon(glm::vec2(0,y), glm::vec2(dcpScale, dcpScale), iconPaint));
     item numTex = numMatchingTexturesForBuilding(getSelectedDesignNdx());
     float colorSliderLoc = numTex <= 1 ? 0.f : b->color*1.0f/(numTex-1);
     float sliderWidth = (dcpWidth*.72f)-dcpScale-dcpPadding;
-    colorSliderLoc = clamp(colorSliderLoc, 0.f, 1.f);
+    colorSliderLoc = glm::clamp(colorSliderLoc, 0.f, 1.f);
     b->color = colorSliderLoc*(numTex-1);
-    r(result, slider(vec2(dcpScale,y), vec2(sliderWidth,dcpScale), colorSliderLoc, setColor));
-    Part* tspAlbedoBtn = r(result, button(vec2(dcpWidth*.72f,y), iconMenu, vec2(dcpWidth*.28f, dcpScale), strdup_s("Select"), openTextureSelect, TSSAlbedo));
+    r(result, slider(glm::vec2(dcpScale,y), glm::vec2(sliderWidth,dcpScale), colorSliderLoc, setColor));
+    Part* tspAlbedoBtn = r(result, button(glm::vec2(dcpWidth*.72f,y), iconMenu, glm::vec2(dcpWidth*.28f, dcpScale), strdup_s("Select"), openTextureSelect, TSSAlbedo));
     if (textureSelectionState == TSSAlbedo) tspAlbedoBtn->flags |= _partHighlight;
     y += dcpScale;
 
-    r(result, label(vec2(0,y), dcpScale, sprintf_o("Texture - %d/%d", b->color+1, numTex)));
-    r(result, button(vec2(dcpWidth*.72f,y), iconTrash, vec2(dcpWidth*.28f, dcpScale), strdup_s("Delete"), deleteTexture, 0));
+    r(result, label(glm::vec2(0,y), dcpScale, sprintf_o("Texture - %d/%d", b->color+1, numTex)));
+    r(result, button(glm::vec2(dcpWidth*.72f,y), iconTrash, glm::vec2(dcpWidth*.28f, dcpScale), strdup_s("Delete"), deleteTexture, 0));
     if (!designHasPackageTextures(getSelectedDesignNdx())) {
-      r(result, button(vec2(dcpWidth*.72f-dcpScale-dcpPadding,y), iconPlus, vec2(dcpScale, dcpScale), selectCurrentTexture, 0));
+      r(result, button(glm::vec2(dcpWidth*.72f-dcpScale-dcpPadding,y), iconPlus, glm::vec2(dcpScale, dcpScale), selectCurrentTexture, 0));
     }
     y += dcpScale * 1.f;
 
     if (b->entity != 0) {
       item texNdx = getEntity(b->entity)->texture;
-      r(result, label(vec2(0, y), vec2(dcpWidth*.72f, 0.6), sprintf_o("%s", getTextureFilename(texNdx))));
+      r(result, label(glm::vec2(0, y), glm::vec2(dcpWidth*.72f, 0.6), sprintf_o("%s", getTextureFilename(texNdx))));
 
       y += 0.6*2;
     }
 
     float l = getBuildingTextureLightLevel();
-    r(result, icon(vec2(0,y), vec2(dcpScale, dcpScale), iconPaint));
-    r(result, slider(vec2(dcpScale,y), vec2(sliderWidth,dcpScale),
+    r(result, icon(glm::vec2(0,y), glm::vec2(dcpScale, dcpScale), iconPaint));
+    r(result, slider(glm::vec2(dcpScale,y), glm::vec2(sliderWidth,dcpScale),
           l/10.f, setLightLevel));
-    Part* tspIllumBtn = r(result, button(vec2(dcpWidth*.72f,y), iconMenu, vec2(dcpWidth*.28f, dcpScale), strdup_s("Select"), openTextureSelect, TSSIllumination));
+    Part* tspIllumBtn = r(result, button(glm::vec2(dcpWidth*.72f,y), iconMenu, glm::vec2(dcpWidth*.28f, dcpScale), strdup_s("Select"), openTextureSelect, TSSIllumination));
     if (textureSelectionState == TSSIllumination) tspIllumBtn->flags |= _partHighlight;
     y += dcpScale;
 
-    r(result, label(vec2(0,y), dcpScale,
+    r(result, label(glm::vec2(0,y), dcpScale,
           sprintf_o("Illumination - %d", int(l))));
-    r(result, button(vec2(dcpWidth*.72f,y), iconTrash, vec2(dcpWidth*.28f, dcpScale), strdup_s("Delete"), deleteTexture, 1));
+    r(result, button(glm::vec2(dcpWidth*.72f,y), iconTrash, glm::vec2(dcpWidth*.28f, dcpScale), strdup_s("Delete"), deleteTexture, 1));
     if (!designHasPackageTextures(getSelectedDesignNdx())) {
-      r(result, button(vec2(dcpWidth*.72f-dcpScale-dcpPadding,y), iconPlus, vec2(dcpScale, dcpScale), selectCurrentTexture, 1));
+      r(result, button(glm::vec2(dcpWidth*.72f-dcpScale-dcpPadding,y), iconPlus, glm::vec2(dcpScale, dcpScale), selectCurrentTexture, 1));
     }
     y += dcpScale;
 
     if (b->entity != 0) {
       item texNdx = getEntity(b->entity)->texture;
-      r(result, label(vec2(0, y), vec2(dcpWidth*.72f, 0.6), sprintf_o("%s", getTextureIllumFilename(texNdx))));
+      r(result, label(glm::vec2(0, y), glm::vec2(dcpWidth*.72f, 0.6), sprintf_o("%s", getTextureIllumFilename(texNdx))));
 
       y += 0.6*2;
     }
@@ -965,24 +965,24 @@ Part* designConfigPanel() {
     // Aquatic Buildings
     bool isAquatic = isDesignAquatic(getSelectedDesignNdx()) ||
       wasEditingParam[DPLowTide];
-    r(result, icon(vec2(0,y), vec2(dcpScale, dcpScale), iconTide));
-    r(result, button(vec2(1,y), isAquatic ? iconCheck : iconNull,
-          vec2(dcpWidth-1, dcpScale), strdup_s("Aquatic Building"),
+    r(result, icon(glm::vec2(0,y), glm::vec2(dcpScale, dcpScale), iconTide));
+    r(result, button(glm::vec2(1,y), isAquatic ? iconCheck : iconNull,
+          glm::vec2(dcpWidth-1, dcpScale), strdup_s("Aquatic Building"),
           toggleAquatic, 0));
     y += dcpScale;
 
-    vec2 dpSize = vec2(dcpWidth*.5f-1,dcpScale + 0.7);
+    glm::vec2 dpSize = glm::vec2(dcpWidth*.5f-1,dcpScale + 0.7);
     if (isAquatic) {
       for (int param = DPLowTide; param <= DPHighTide; param++) {
         float x = (param == DPHighTide) * (dpSize.x+1);
-        designParameterTextBox(result, vec2(x+1,y), dpSize, param);
+        designParameterTextBox(result, glm::vec2(x+1,y), dpSize, param);
 
         for (int u = 0; u < 2; u ++) {
           float df = 10;
           if (u%2 == 1) df*=-1;
           float yOff = u % 2 == 0 ? 0.6f : 0.f;
-          Part* dfButt = r(result, button(vec2(x+0.4,y+yOff),
-                vec2(0.6f, 0.6f), strdup_s(u%2==0 ? "+" : "-"),
+          Part* dfButt = r(result, button(glm::vec2(x+0.4,y+yOff),
+                glm::vec2(0.6f, 0.6f), strdup_s(u%2==0 ? "+" : "-"),
                 designParameterStep));
           dfButt->itemData = param;
           dfButt->vecData.x = df;
@@ -990,7 +990,7 @@ Part* designConfigPanel() {
       }
 
       y += dpSize.y + dcpPadding;
-      r(result, span(vec2(0,y), 0, vec2(dcpWidth,0.6),
+      r(result, span(glm::vec2(0,y), 0, glm::vec2(dcpWidth,0.6),
         strdup_s("When the building is placed, everything before High Tide"
           " will be land. Everything after Low Tide will be water. Anything" 
           " between High Tide and Low Tide can be either land or water."
@@ -1000,12 +1000,12 @@ Part* designConfigPanel() {
     y += dcpScale;
 
     // Move Design
-    r(result, label(vec2(0,y), dcpScale, strdup_s("Move Design")));
+    r(result, label(glm::vec2(0,y), dcpScale, strdup_s("Move Design")));
     y += dcpScale;
     for (int param = DPLocationX; param <= DPLocationZ; param++) {
-      r(result, label(vec2(1.3f,y-.1f), 0.6f, strdup_s("10.0")));
-      r(result, label(vec2(1.3f,y+.4f), 0.6f, strdup_s(" 1.0")));
-      r(result, label(vec2(1.3f,y+.9f), 0.6f, strdup_s(" 0.1")));
+      r(result, label(glm::vec2(1.3f,y-.1f), 0.6f, strdup_s("10.0")));
+      r(result, label(glm::vec2(1.3f,y+.4f), 0.6f, strdup_s(" 1.0")));
+      r(result, label(glm::vec2(1.3f,y+.9f), 0.6f, strdup_s(" 0.1")));
 
       for (int u = 0; u < 6; u ++) {
         float df = u/2 == 0 ? 10 : u/2 == 1 ? 1 : 0.1;
@@ -1013,28 +1013,28 @@ Part* designConfigPanel() {
         if (u%2 == 1) df *= -1;
         float xOff = u % 2 == 1 ? 1 : 2.3f;
         float yOff = (u/2) * .5f - .1f;
-        Part* dfButt = r(result, button(vec2(xOff,y+yOff),
-              vec2(0.6f, 0.6f), strdup_s(u%2==0 ? "+" : "-"),
+        Part* dfButt = r(result, button(glm::vec2(xOff,y+yOff),
+              glm::vec2(0.6f, 0.6f), strdup_s(u%2==0 ? "+" : "-"),
               designParameterBulkStep));
         dfButt->itemData = param;
         dfButt->vecData.x = df;
       }
-      r(result, label(vec2(3,y+0.55f), dcpScale,
+      r(result, label(glm::vec2(3,y+0.55f), dcpScale,
             strdup_s(designParameterNames[param])));
       y += 1.5;
     }
 
   } else if (currentDCPTab == mainTab) {
-    vec2 dpSize = vec2(dcpWidth*.5f-2,dcpScale + 0.7);
-    vec2 zbSize = vec2(dcpWidth*.5f,dcpScale);
+    glm::vec2 dpSize = glm::vec2(dcpWidth*.5f-2,dcpScale + 0.7);
+    glm::vec2 zbSize = glm::vec2(dcpWidth*.5f,dcpScale);
 
-    r(result, label(vec2(0,y), dcpScale, strdup_s("Zone")));
+    r(result, label(glm::vec2(0,y), dcpScale, strdup_s("Zone")));
     y += dcpScale;
-    Part* zones = panel(vec2(0,y),
-        vec2(dcpWidth, dcpScale*(numZoneTypes-1)*.5f));
+    Part* zones = panel(glm::vec2(0,y),
+        glm::vec2(dcpWidth, dcpScale*(numZoneTypes-1)*.5f));
     y += zbSize.y*(numZoneTypes/2) + 0.7;
     for (int i=1; i < numZoneTypes; i++) {
-      Part* butt = button(vec2(((i-1)%2)*dcpWidth*.5f,((i-1)/2)*dcpScale), 
+      Part* butt = button(glm::vec2(((i-1)%2)*dcpWidth*.5f,((i-1)/2)*dcpScale), 
           zbSize, strdup_s(zoneName[i]), setZone);
       butt->itemData = i;
       if (i == d->zone) {
@@ -1048,44 +1048,44 @@ Part* designConfigPanel() {
       bool odd = ((param-DPMinYear) % 2);
       float x = odd * (dpSize.x+2);
 
-      vec3 ico = designParameterIcon[param];
+      glm::vec3 ico = designParameterIcon[param];
       if (isEdu&& param >= DPHomes) ico = universityIcons[param-DPHomes];
       if (isHotel && param == DPHomes) ico = iconHotelRoom;
-      r(result, icon(vec2(x,y), vec2(dcpScale, dcpScale), ico));
+      r(result, icon(glm::vec2(x,y), glm::vec2(dcpScale, dcpScale), ico));
       for (int u = 0; u < 2; u ++) {
         float df = 1;
         if (u%2 == 1) df*=-1;
         float xOff = u % 2 == 0 ? 0.6f : 0.f;
-        Part* dfButt = r(result, button(vec2(x+xOff,y+dcpScale+0.1),
-              vec2(0.6f, 0.6f), strdup_s(u%2==0 ? "+" : "-"),
+        Part* dfButt = r(result, button(glm::vec2(x+xOff,y+dcpScale+0.1),
+              glm::vec2(0.6f, 0.6f), strdup_s(u%2==0 ? "+" : "-"),
               designParameterStep));
         dfButt->itemData = param;
         dfButt->vecData.x = df;
       }
 
-      designParameterTextBox(result, vec2(x+1,y), dpSize, param);
+      designParameterTextBox(result, glm::vec2(x+1,y), dpSize, param);
       if (odd || param == DPBiz3) y += dpSize.y + dcpPadding;
     }
 
-    r(result, icon(vec2(0,y), vec2(dcpScale, dcpScale), iconHeatmap[1]));
+    r(result, icon(glm::vec2(0,y), glm::vec2(dcpScale, dcpScale), iconHeatmap[1]));
     Line valueLine = getHeatmapGradient(Value);
-    Part* valSlide = r(result, slider(vec2(dcpScale,y),
-          vec2(dcpWidth-dcpScale,dcpScale),
+    Part* valSlide = r(result, slider(glm::vec2(dcpScale,y),
+          glm::vec2(dcpWidth-dcpScale,dcpScale),
           d->minLandValue, setMinLandValue, valueLine));
     valSlide->renderMode = RenderGradientRotated;
     y += dcpScale;
-    r(result, label(vec2(0,y), dcpScale, sprintf_o("Minimum Land Value - %d",
+    r(result, label(glm::vec2(0,y), dcpScale, sprintf_o("Minimum Land Value - %d",
             (int)round(d->minLandValue*10))));
     y += dcpScale * 1.5f;
 
-    r(result, icon(vec2(0,y), vec2(dcpScale, dcpScale), iconHeatmap[2]));
+    r(result, icon(glm::vec2(0,y), glm::vec2(dcpScale, dcpScale), iconHeatmap[2]));
     Line densLine = getHeatmapGradient(Density);
-    Part* densSlide = r(result, slider(vec2(dcpScale,y),
-          vec2(dcpWidth-dcpScale,dcpScale),
+    Part* densSlide = r(result, slider(glm::vec2(dcpScale,y),
+          glm::vec2(dcpWidth-dcpScale,dcpScale),
           d->minDensity, setMinDensity, densLine));
     densSlide->renderMode = RenderGradientRotated;
     y += dcpScale;
-    r(result, label(vec2(0,y), dcpScale,
+    r(result, label(glm::vec2(0,y), dcpScale,
           sprintf_o("Minimum Density - %d", (int)round(d->minDensity*10))));
     y += dcpScale * 1.5f;
 
@@ -1093,41 +1093,41 @@ Part* designConfigPanel() {
       float value = getDesignValue(1,
           ourCityEconNdx(), d->minLandValue, d->minDensity);
       char* valueStr = printMoneyString(value);
-      r(result, label(vec2(0,y), dcpScale,
+      r(result, label(glm::vec2(0,y), dcpScale,
             sprintf_o("%s Value (1950)", valueStr)));
       free(valueStr);
       y += dcpScale * 1.5f;
     }
 
-    r(result, button(vec2(0,y),
+    r(result, button(glm::vec2(0,y),
           d->flags & _designIsHotel ? iconCheck : iconNull,
-          vec2(dcpWidth, dcpScale), strdup_s("Is a Hotel"),
+          glm::vec2(dcpWidth, dcpScale), strdup_s("Is a Hotel"),
           toggleDesignFlag, _designIsHotel));
     y += dcpScale;
 
-    r(result, button(vec2(0,y),
+    r(result, button(glm::vec2(0,y),
           !(d->flags & _designDisableSpawning) ? iconCheck : iconNull,
-          vec2(dcpWidth, dcpScale), strdup_s("Spawnable"),
+          glm::vec2(dcpWidth, dcpScale), strdup_s("Spawnable"),
           toggleDesignFlag, _designDisableSpawning));
     y += dcpScale;
 
   } else if (currentDCPTab == detailsTab && isGov) {
-    r(result, label(vec2(0,y), dcpScale, strdup_s("Name")));
+    r(result, label(glm::vec2(0,y), dcpScale, strdup_s("Name")));
     y += 1;
 
     if (d->displayName == 0) d->displayName = strdup_s("");
     designTextBox.text = &d->displayName;
-    Part* tb = r(result, textBoxLabel(vec2(0,y),
-          vec2(dcpWidth,1), &designTextBox));
+    Part* tb = r(result, textBoxLabel(glm::vec2(0,y),
+          glm::vec2(dcpWidth,1), &designTextBox));
     y += 1;
 
-    r(result, label(vec2(0,y), dcpScale,
+    r(result, label(glm::vec2(0,y), dcpScale,
         sprintf_o("Category: %s", getBuildingCategoryString(d->category))));
     y += dcpScale;
 
     for (int i=0; i < numBuildingCategories; i++) {
-      Part* butt = button(vec2(i*dcpScale,y), iconBuildingCategory[i],
-          vec2(dcpScale,dcpScale), setDesignCategory, i);
+      Part* butt = button(glm::vec2(i*dcpScale,y), iconBuildingCategory[i],
+          glm::vec2(dcpScale,dcpScale), setDesignCategory, i);
       if (i == d->category) {
         butt->flags |= _partHighlight;
       }
@@ -1140,16 +1140,16 @@ Part* designConfigPanel() {
       totalEffects += d->effect[i];
     }
 
-    r(result, label(vec2(0,y), dcpScale, strdup_s("Costs (1950 Dollars)")));
+    r(result, label(glm::vec2(0,y), dcpScale, strdup_s("Costs (1950 Dollars)")));
     y += 1;
 
-    vec2 dpSize = vec2(dcpWidth*.5f - 1, dcpScale + 0.7);
+    glm::vec2 dpSize = glm::vec2(dcpWidth*.5f - 1, dcpScale + 0.7);
     float dy = y;
     for (int param = DPConstructionCost; param <= DPMaintenanceCost; param++) {
       dy = y;
       bool isMaint = param == DPMaintenanceCost;
       float dx = isMaint * dcpWidth*.5f;
-      r(result, icon(vec2(dx, dy), vec2(dcpScale, dcpScale), isMaint ? iconWrench : iconHeatmap[2]));
+      r(result, icon(glm::vec2(dx, dy), glm::vec2(dcpScale, dcpScale), isMaint ? iconWrench : iconHeatmap[2]));
 
       float costStep = 1;
       float costEffectStep = isMaint ? c(CRecommendedAmenityMaint)*c(CAmenityMaintMult) :
@@ -1164,21 +1164,21 @@ Part* designConfigPanel() {
         float df = costStep;
         if (u % 2 == 1) df *= -1;
         float xOff = u % 2 == 0 ? 0.4f : 0;
-        Part* dfButt = r(result, button(vec2(dx+xOff, dy + dcpScale+0.05f),
-          vec2(0.6f, 0.6f), strdup_s(u % 2 == 0 ? "+" : "-"),
+        Part* dfButt = r(result, button(glm::vec2(dx+xOff, dy + dcpScale+0.05f),
+          glm::vec2(0.6f, 0.6f), strdup_s(u % 2 == 0 ? "+" : "-"),
           designParameterStep));
         dfButt->itemData = param;
         dfButt->vecData.x = df;
       }
 
-      designParameterTextBox(result, vec2(dx+dcpScale, dy), dpSize, param);
+      designParameterTextBox(result, glm::vec2(dx+dcpScale, dy), dpSize, param);
       dy += dpSize.y;
 
       float recCost = totalEffects * costEffectStep;
       char* recCostStr = printMoneyString(recCost);
-      Part* recPart = r(result, button(vec2(dx+dcpScale, dy), vec2(dpSize.x, 1.5f), strdup_s(""),
+      Part* recPart = r(result, button(glm::vec2(dx+dcpScale, dy), glm::vec2(dpSize.x, 1.5f), strdup_s(""),
         designParameterQuickset));
-      r(result, label(vec2(dx+dcpScale, dy), 0.7f, sprintf_o("Recommended:\n%s", recCostStr)));
+      r(result, label(glm::vec2(dx+dcpScale, dy), 0.7f, sprintf_o("Recommended:\n%s", recCostStr)));
       recPart->itemData = param;
       recPart->vecData.x = recCost;
       free(recCostStr);
@@ -1186,60 +1186,60 @@ Part* designConfigPanel() {
     }
     y = dy;
 
-    r(result, button(vec2(0,y),
+    r(result, button(glm::vec2(0,y),
           d->flags & _designSingleton ? iconCheck : iconNull,
-          vec2(dcpWidth, dcpScale), strdup_s("Limit One Per City"),
+          glm::vec2(dcpWidth, dcpScale), strdup_s("Limit One Per City"),
           toggleDesignFlag, _designSingleton));
     y += dcpScale;
 
-    r(result, button(vec2(0,y),
+    r(result, button(glm::vec2(0,y),
           d->flags & _designAlwaysAvailable ? iconCheck : iconNull,
-          vec2(dcpWidth, dcpScale), strdup_s("Always Available"),
+          glm::vec2(dcpWidth, dcpScale), strdup_s("Always Available"),
           toggleDesignFlag, _designAlwaysAvailable));
     y += dcpScale;
 
-    r(result, button(vec2(0,y),
+    r(result, button(glm::vec2(0,y),
           d->numBusinesses[Institution] > 0 ? iconCheck : iconNull,
-          vec2(dcpWidth, dcpScale), strdup_s("Is an Institution"),
+          glm::vec2(dcpWidth, dcpScale), strdup_s("Is an Institution"),
           toggleInstitution, 0));
     y += dcpScale;
 
-    r(result, button(vec2(0,y),
+    r(result, button(glm::vec2(0,y),
           d->flags & _designNoEminentDomain ? iconCheck : iconNull,
-          vec2(dcpWidth, dcpScale), strdup_s("No Eminent Domain Costs"),
+          glm::vec2(dcpWidth, dcpScale), strdup_s("No Eminent Domain Costs"),
           toggleDesignFlag, _designNoEminentDomain));
     y += dcpScale;
 
     y += dcpScale;
 
-    r(result, button(vec2(0,y),
+    r(result, button(glm::vec2(0,y),
           d->flags & _designProvidesHSDiploma ? iconCheck : iconNull,
-          vec2(dcpWidth, dcpScale), strdup_s("Grants High School Diplomas"),
+          glm::vec2(dcpWidth, dcpScale), strdup_s("Grants High School Diplomas"),
           toggleDesignFlag, _designProvidesHSDiploma));
     y += dcpScale;
 
-    r(result, button(vec2(0,y),
+    r(result, button(glm::vec2(0,y),
           d->flags & _designProvidesBclDegree ? iconCheck : iconNull,
-          vec2(dcpWidth, dcpScale), strdup_s("Grants Bachelor's Degrees"),
+          glm::vec2(dcpWidth, dcpScale), strdup_s("Grants Bachelor's Degrees"),
           toggleDesignFlag, _designProvidesBclDegree));
     y += dcpScale;
 
-    r(result, button(vec2(0,y),
+    r(result, button(glm::vec2(0,y),
           d->flags & _designProvidesPhd ? iconCheck : iconNull,
-          vec2(dcpWidth, dcpScale), strdup_s("Grants Doctorates"),
+          glm::vec2(dcpWidth, dcpScale), strdup_s("Grants Doctorates"),
           toggleDesignFlag, _designProvidesPhd));
     y += dcpScale;
 
-    r(result, button(vec2(0,y),
+    r(result, button(glm::vec2(0,y),
           d->flags & _designProvidesHealthCare ? iconCheck : iconNull,
-          vec2(dcpWidth, dcpScale), strdup_s("Provides Health Care"),
+          glm::vec2(dcpWidth, dcpScale), strdup_s("Provides Health Care"),
           toggleDesignFlag, _designProvidesHealthCare));
     y += dcpScale;
 
   } else if (isGov && currentDCPTab == effectsTab) {
     //Second column
-    //Part* effectsPanel = panel(vec2(dcpWidth+dcpPadding*2,-dcpPadding),
-        //vec2(dcpWidth+dcpPadding*2, dcpHeight+dcpPadding*2));
+    //Part* effectsPanel = panel(glm::vec2(dcpWidth+dcpPadding*2,-dcpPadding),
+        //glm::vec2(dcpWidth+dcpPadding*2, dcpHeight+dcpPadding*2));
     //effectsPanel->padding = dcpPadding;
 
     float totalEffects = 0;
@@ -1250,16 +1250,16 @@ Part* designConfigPanel() {
         numEffectsSelected ++;
       }
     }
-    r(result, label(vec2(0,y), dcpScale, sprintf_o("Effects (%s%d/%d)",
+    r(result, label(glm::vec2(0,y), dcpScale, sprintf_o("Effects (%s%d/%d)",
             totalEffects < 0 ? "" : "+",
             int(totalEffects),
             numEffectsSelected)));
     y += dcpScale;
-    r(result, hr(vec2(0,y), dcpWidth));
+    r(result, hr(glm::vec2(0,y), dcpWidth));
     y += 0.25f;
 
     /*
-    Part* maxLbl = label(vec2(0,y), 0.75,
+    Part* maxLbl = label(glm::vec2(0,y), 0.75,
         strdup_s("Recommended: 4 Effects Max"));
     if (numEffectsSelected > 4) {
       maxLbl->foregroundColor = PickerPalette::RedLight;
@@ -1274,23 +1274,23 @@ Part* designConfigPanel() {
       bool negative = val < 0;
       float sliderX = val / c(CMaxEffect) * .5f + .5f;
 
-      r(result, icon(vec2(0, y), vec2(dcpScale, dcpScale),
+      r(result, icon(glm::vec2(0, y), glm::vec2(dcpScale, dcpScale),
             getEffectIcon(i)));
 
-      Part* slide = slider(vec2(dcpScale,y),
-          vec2(dcpWidth*.5f-dcpScale,dcpScale),
+      Part* slide = slider(glm::vec2(dcpScale,y),
+          glm::vec2(dcpWidth*.5f-dcpScale,dcpScale),
             sliderX, setBuildingEffect);
       slide->itemData = i;
       r(result, slide);
 
-      r(result, label(vec2(dcpWidth*.5f, y), dcpScale,
+      r(result, label(glm::vec2(dcpWidth*.5f, y), dcpScale,
         sprintf_o("%s%d %s", negative ? "-" : "+",
           number, getEffectString(i))));
       y += dcpScale * 1.1f;
 
       if (number != 0) {
         char* desc = getEffectDescriptor(i, val, d->flags);
-        r(result, label(vec2(dcpScale, y), 0.75, desc));
+        r(result, label(glm::vec2(dcpScale, y), 0.75, desc));
         y += 1;
       }
     }

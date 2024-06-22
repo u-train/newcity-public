@@ -1,11 +1,11 @@
-#ifndef LOT_H
-#define LOT_H
+#pragma once
 
 #include "box.hpp"
 #include "item.hpp"
 #include "line.hpp"
 #include "serialize.hpp"
 #include "util.hpp"
+#include "land.hpp"
 
 const int _lotExists = 1 << 0;
 const int _lotMaxDensityShift = 12;
@@ -21,8 +21,8 @@ struct Lot {
   char zone;
   item occupant;
   item entity;
-  vec3 loc;
-  vec3 normal;
+  glm::vec3 loc;
+  glm::vec3 normal;
 };
 
 void addLots(item elem, Line line);
@@ -41,16 +41,16 @@ item getEmptyLot(item zone);
 item numEmptyLots(item zone);
 item nearestLot(Line mouseLine);
 item nearestLot(Line ml, bool includeInvisible);
-vector<item> getLotsByElem(item elem, bool side);
-vector<item> getLotsByRad(vec3 searchOrigin, float radius);
+std::vector<item> getLotsByElem(item elem, bool side);
+std::vector<item> getLotsByRad(glm::vec3 searchOrigin, float radius);
 int getLotMaxDensity(item lotNdx);
 void setLotMaxDensity(item lotNdx, int max);
-void zoneLots(vector<item> toZone, item zoneType, int densityValue);
-void changeDensityLots(vector<item> toChange, int val);
+void zoneLots(std::vector<item> toZone, item zoneType, int densityValue);
+void changeDensityLots(std::vector<item> toChange, int val);
 void makeLots(Line line, float dist, item element);
-void makeNodeLots(vec3 loc, vec3 normal, item element);
-void occupyLots(vector<item> lots, item building);
-vector<item> collidingLots(Box box);
+void makeNodeLots(glm::vec3 loc, glm::vec3 normal, item element);
+void occupyLots(std::vector<item> lots, item building);
+std::vector<item> collidingLots(Box box);
 void removeLots(Box box);
 void orphanLots(item elem);
 item numLots();
@@ -65,4 +65,4 @@ bool isLotDensityVisible();
 void writeLots(FileBuffer* file);
 void readLots(FileBuffer* file, int version);
 
-#endif
+

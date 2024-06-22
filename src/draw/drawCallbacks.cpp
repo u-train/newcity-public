@@ -1,5 +1,5 @@
 #include "drawCallbacks.hpp"
-
+#include "../main.hpp"
 #include "camera.hpp"
 
 #include "../platform/lua.hpp"
@@ -8,7 +8,7 @@ int setCameraTarget(lua_State* L) {
   int numArgs = lua_gettop(L);
   if (numArgs <= 0) return 0;
 
-  vec3 target;
+  glm::vec3 target;
   target.x = luaFieldNumber(L, "x");
   target.y = luaFieldNumber(L, "y");
   target.z = luaFieldNumber(L, "z");
@@ -18,7 +18,7 @@ int setCameraTarget(lua_State* L) {
 }
 
 int getCameraTarget(lua_State* L) {
-  vec3 target = getCameraTarget();
+  glm::vec3 target = getCameraTarget();
 
   lua_newtable(L);
   luaSetTableNumber(L, "x", target.x);

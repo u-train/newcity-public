@@ -2,7 +2,7 @@
 
 #include "../compass.hpp"
 #include "../console/conDisplay.hpp"
-#include "../draw/camera.hpp"
+#include "../main.hpp"
 #include "../game/feature.hpp"
 #include "../game/game.hpp"
 #include "../graph/transit.hpp"
@@ -17,6 +17,7 @@
 #include "../tools/road.hpp"
 #include "../tutorial.hpp"
 #include "../util.hpp"
+#include "../error.hpp"
 
 #include "aboutPanel.hpp"
 #include "blank.hpp"
@@ -217,8 +218,8 @@ Part* root(float aspectRatio) {
     return errorPanel(aspectRatio, errorMessage);
   }
 
-  Part* container = panel(line(vec3(0, 0, 0),
-    vec3(uiX, uiGridSizeY, 0)));
+  Part* container = panel(line(glm::vec3(0, 0, 0),
+    glm::vec3(uiX, uiGridSizeY, 0)));
   item mode = getGameMode();
   container->onKeyDown = rootKeyPressed;
 
@@ -240,7 +241,7 @@ Part* root(float aspectRatio) {
   if(consoleIsOpen()) {
     float conSizeX = uiX / 2.0f;
     float conSizeY = uiGridSizeY / 2.0f;
-    vec2 conSizeNow = consoleSize();
+    glm::vec2 conSizeNow = consoleSize();
 
     if(conSizeNow.x != conSizeX && conSizeX >= conMinSizeX) {
       consoleSetSize(conSizeX, conSizeY);
@@ -312,15 +313,15 @@ Part* root(float aspectRatio) {
       float wsTxtLen = stringWidth(wsTxt.c_str());
 
       // Container for buttons
-      Part* steamWSContainer = panel(vec2(xPos, uiGridSizeY-2.0f), vec2(1.0f+wsTxtLen, 1.0f));
+      Part* steamWSContainer = panel(glm::vec2(xPos, uiGridSizeY-2.0f), glm::vec2(1.0f+wsTxtLen, 1.0f));
 
       // Steam button
-      Part* steam = button(vec2(0.0f, 0.0f), iconSteam,
+      Part* steam = button(glm::vec2(0.0f, 0.0f), iconSteam,
           steam_button_callback);
       r(steamWSContainer, steam);
 
       // Steam workshop button
-      Part* steamWS = button(vec2(1.0f+(steamXPad*2.0f), 0.0f), vec2(wsTxtLen-1.0f, 1.0f), strdup_s(wsTxt.c_str()), openSteamWorkshop);
+      Part* steamWS = button(glm::vec2(1.0f+(steamXPad*2.0f), 0.0f), glm::vec2(wsTxtLen-1.0f, 1.0f), strdup_s(wsTxt.c_str()), openSteamWorkshop);
 
       r(steamWSContainer, steamWS);
       r(container, steamWSContainer);

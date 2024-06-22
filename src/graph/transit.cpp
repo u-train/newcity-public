@@ -30,6 +30,8 @@
 #include "../vehicle/transitPhysics.hpp"
 #include "../vehicle/vehicle.hpp"
 #include "../util.hpp"
+#include "../string_proxy.hpp"
+#include "../game/constants.hpp"
 
 #include "../parts/messageBoard.hpp"
 
@@ -38,7 +40,7 @@
 Pool<TransitLine>* transitLines = Pool<TransitLine>::newPool(10);
 Pool<TransitSystem>* transitSystems = Pool<TransitSystem>::newPool(10);
 
-typedef set<item> itemset;
+typedef std::set<item> itemset;
 typedef itemset::iterator itemsetIter;
 
 static itemset toRender;
@@ -155,7 +157,7 @@ item getTransitLineColor(item lineNdx) {
   return color;
 }
 
-vec3 getTransitLineColorInPalette(item lineNdx) {
+glm::vec3 getTransitLineColorInPalette(item lineNdx) {
   return getColorInPalette(getTransitLineColor(lineNdx));
 }
 
@@ -435,13 +437,13 @@ void removeVehicleFromTransitLine_g(item vNdx) {
   tl->vehicles.removeByValue(vNdx);
 }
 
-vector<Location> getSubrouteInner(item l, item s) {
+std::vector<Location> getSubrouteInner(item l, item s) {
   TransitLine* tl = getTransitLine(l);
   item s0Ndx = tl->legs[s].stop;
   item s1Ndx = tl->legs[s+1].stop;
   Location s0Loc = transitStopLocation(s0Ndx);
   Location s1Loc = transitStopLocation(s1Ndx);
-  vector<Location> result;
+  std::vector<Location> result;
   Route tRoute = transitRoutes_g[l];
   int stepS = tRoute.steps.size();
   item start = 0;
@@ -463,21 +465,21 @@ vector<Location> getSubrouteInner(item l, item s) {
   return result;
 }
 
-vector<Location> getSubroute(item l, item s) {
+std::vector<Location> getSubroute(item l, item s) {
   TransitLine* tl = getTransitLine(l);
   if (s >= tl->legs.size() - 1) {
-    return vector<Location>();
+    return std::vector<Location>();
 
   } else if (transitRoutes_g.size() <= l) {
     routeTransitLineInstant_g(l);
     if (transitRoutes_g.size() <= l) {
-      return vector<Location>();
+      return std::vector<Location>();
     } else {
       return getSubrouteInner(l, s);
     }
 
   } else {
-    vector<Location> result = getSubrouteInner(l, s);
+    std::vector<Location> result = getSubrouteInner(l, s);
     if (result.size() == 0) {
       routeTransitLineInstant_g(l);
       result = getSubrouteInner(l, s);
@@ -489,7 +491,7 @@ vector<Location> getSubroute(item l, item s) {
 void updateLegTimeEstimate(item l, item s) {
   TransitLine* tl = getTransitLine(l);
   if (tl->legs.size() <= s+1) return;
-  vector<Location> route = getSubroute(l, s);
+  std::vector<Location> route = getSubroute(l, s);
   Cup<Location> routeCup;
   routeCup.fromVector(route);
   float time = computeRouteInfo_g(&routeCup, false, false).travelTime;
@@ -538,7 +540,7 @@ void removeStopFromLine(item l, item s) {
   Stop* stop = getStop(s);
   removeFromVector(&stop->lines, l);
 
-  vector<item> toUpdate;
+  std::vector<item> toUpdate;
   int offset = 0;
   int numLegs = tl->legs.size();
   bool lastWasRemoved = false;
@@ -600,26 +602,26 @@ void removeLastStopFromLine(item l) {
   }
 }
 
-void renderArrow(Mesh* m, GraphLocation loc, float dapOff, vec3 offset) {
+void renderArrow(Mesh* m, GraphLocation loc, float dapOff, glm::vec3 offset) {
   loc.dap += dapOff;
 
-  vec3 tip = getLocation(loc);
+  glm::vec3 tip = getLocation(loc);
   loc.dap -= 2;
-  vec3 ualong = normalize(getLocation(loc) - tip) * trafficHandedness();
-  vec3 along = ualong * c(CTransitLineWidth) *.5f;
-  vec3 right = zNormal(along);
+  glm::vec3 ualong = normalize(getLocation(loc) - tip) * trafficHandedness();
+  glm::vec3 along = ualong * c(CTransitLineWidth) *.5f;
+  glm::vec3 right = zNormal(along);
   tip += right*2.5f;
   tip -= offset;
   tip.z += 2;
-  vec3 base = tip + along*1.5f;
+  glm::vec3 base = tip + along*1.5f;
   makeTriangle(m, tip, base + right, base - right, colorWhite);
 }
 
-void renderTransitLeg(item meshNdx, item lineNdx, item leg, vec3 offset) {
+void renderTransitLeg(item meshNdx, item lineNdx, item leg, glm::vec3 offset) {
   TransitLine* tl = getTransitLine(lineNdx);
   Mesh* m = getMesh(meshNdx);
   offset.z -= 9;
-  vec3 color = getTransitLineColorInPalette(lineNdx);
+  glm::vec3 color = getTransitLineColorInPalette(lineNdx);
 
   if (leg < tl->legs.size()-1) {
     updateLegTimeEstimate(lineNdx, leg);
@@ -627,10 +629,10 @@ void renderTransitLeg(item meshNdx, item lineNdx, item leg, vec3 offset) {
     const float stopGap = c(CTransitLineWidth)*1.25;
     Stop* s0 = getStop(tl->legs[leg].stop);
     Stop* s1 = getStop(tl->legs[leg+1].stop);
-    vector<Location> route = getSubroute(lineNdx, leg);
+    std::vector<Location> route = getSubroute(lineNdx, leg);
 
     renderArrow(m, s0->graphLoc, stopGap*1.5f+c(CTransitLineWidth),
-        offset - vec3(0,0,8));
+        offset - glm::vec3(0,0,8));
     //renderArrow(m, s1->graphLoc, -stopGap*1.5f, offset);
 
     for (int j = 0; j < route.size(); j++) {
@@ -675,13 +677,13 @@ void renderTransitLine(item ndx, int flags) {
     createMeshForEntity(eNdx);
     Mesh* m = getMeshForEntity(eNdx);
     Stop* s0 = getStop(tl->legs[i].stop);
-    vec3 offset = s0->location;
+    glm::vec3 offset = s0->location;
     offset.z = 0;
 
     if (i < tl->legs.size()-1) {
       Stop* s1 = getStop(tl->legs[i+1].stop);
-      vector<Location> route = getSubroute(ndx, i);
-      vector<vec3> points;
+      std::vector<Location> route = getSubroute(ndx, i);
+      std::vector<glm::vec3> points;
       points.push_back(s0->location);
       points.push_back(s1->location);
 
@@ -696,7 +698,7 @@ void renderTransitLine(item ndx, int flags) {
         }
       }
 
-      offset = vec3(0,0,0);
+      offset = glm::vec3(0,0,0);
       for (int j = 0; j < points.size(); j++) {
         offset += points[j];
       }
@@ -774,9 +776,9 @@ void renderTransitNumberForStop(item stopNdx) {
   GraphLocation gl = stop->graphLoc;
   gl.lane = getLaneIndex(gl.lane, 0);
   Lane* lane = getLane(gl);
-  vec3 loc = getLocation(gl);
+  glm::vec3 loc = getLocation(gl);
   gl.dap += 0.1;
-  vec3 norm = uzNormal(getLocation(gl)-loc);
+  glm::vec3 norm = uzNormal(getLocation(gl)-loc);
   loc += norm * (c(CTransitLineWidth)*-1.25f) * trafficHandedness();
   loc.z += 24;
   placeEntity(eNdx, loc, 0, 0);
@@ -798,7 +800,7 @@ void renderTransitNumberForStop(item stopNdx) {
     num >= 10 ? 45 : 50;
   char* nStr = sprintf_o("%d", num);
   norm.z = 0;
-  vec3 along = zNormal(norm);
+  glm::vec3 along = zNormal(norm);
   norm *= -fontSize*.5f;
   norm += along * (-.5f * fontSize * (.1f + stringWidth(nStr)));
   norm.z ++;
@@ -910,10 +912,10 @@ item getSystemGraphType(item systemNdx) {
   */
 }
 
-vector<item> suggestStationColors(item ndx) {
-  if (ndx <= 0) return vector<item>(); // unimplemented
+std::vector<item> suggestStationColors(item ndx) {
+  if (ndx <= 0) return std::vector<item>(); // unimplemented
   Edge* edge = getEdge(ndx);
-  set<item> linesSet;
+  std::set<item> linesSet;
   for (int i = 1; i <= sizeStops(); i++) {
     Stop* stop = getStop(i);
     if (!(stop->flags & _stopExists)) continue;
@@ -924,8 +926,8 @@ vector<item> suggestStationColors(item ndx) {
     linesSet.insert(stop->lines.begin(), stop->lines.end());
   }
 
-  vector<item> lines(linesSet.begin(), linesSet.end());
-  set<int> colorSet;
+  std::vector<item> lines(linesSet.begin(), linesSet.end());
+  std::set<int> colorSet;
   for (int i = 0; i < lines.size(); i++) {
     TransitLine* line = getTransitLine(lines[i]);
     int color = line->color;
@@ -936,7 +938,7 @@ vector<item> suggestStationColors(item ndx) {
     colorSet.insert(color);
   }
 
-  vector<int> colors(colorSet.begin(), colorSet.end());
+  std::vector<int> colors(colorSet.begin(), colorSet.end());
   if (colors.size() == 0) {
     colors.push_back(7);
   }
@@ -971,7 +973,7 @@ void positionTransitNumbers() {
     if (eNdx == 0) continue;
     Vehicle* v = getVehicle(i);
     if (!(v->flags & _vehicleExists)) continue;
-    vec3 loc = v->location;
+    glm::vec3 loc = v->location;
     loc.z += 40;
     placeEntity(eNdx, loc, 0, 0);
     placeEntity(vehicleNumShadow[i], loc, 0, 0);

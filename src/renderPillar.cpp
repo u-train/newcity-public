@@ -36,9 +36,9 @@ void renderPillar(item ndx) {
   Mesh* mesh = getMeshForEntity(pillar->entity);
 
   bool suspension = pillar->flags & _pillarSuspension;
-  vec3 pillarXs = suspension ? colorRed : colorGray;
-  vec3 ploc = pillar->location;
-  vec3 loc = vec3(0, 0, pointOnLand(ploc).z - 20 - ploc.z);
+  glm::vec3 pillarXs = suspension ? colorRed : colorGray;
+  glm::vec3 ploc = pillar->location;
+  glm::vec3 loc = glm::vec3(0, 0, pointOnLand(ploc).z - 20 - ploc.z);
   float widest = suspension ? 20 : pillarSizeX;
   float py = suspension ? 20 : pillarSizeY;
   float px = pillarSizeX*2.f;
@@ -47,13 +47,13 @@ void renderPillar(item ndx) {
     float longest = 0;
     Node* node = getNode(pillar->node);
     int numEdges = node->edges.size();
-    vec3 dir[2];
+    glm::vec3 dir[2];
 
     for (int i = 0; i < 2 && i < numEdges; i ++) {
       Edge* e = getEdge(node->edges[i]);
 
       Line l = getLine(node->edges[i]);
-      vec3 trans = l.end-l.start;
+      glm::vec3 trans = l.end-l.start;
       float len = length(trans);
       trans.z = 0;
       dir[i] = normalize(trans);
@@ -76,16 +76,16 @@ void renderPillar(item ndx) {
         float x = i*2-1;
         x *= widest*.75f - pillarSizeX*.5f;
         makeCube(mesh,
-            vec3(x,0,-c(CRoadRise)),
-            vec3(pillarSizeX*2.f, py, suspensionZ+c(CRoadRise)),
+            glm::vec3(x,0,-c(CRoadRise)),
+            glm::vec3(pillarSizeX*2.f, py, suspensionZ+c(CRoadRise)),
             pillarXs, true, false);
       }
 
       for (int i = 0; i < 4; i++) {
         float z = (i+1) * suspensionZ * .25f;
         float cby = i == 3 ? py : py*.5f;
-        makeCube(mesh, vec3(0,0, z - crossbarZ),
-            vec3(px, cby, crossbarZ),
+        makeCube(mesh, glm::vec3(0,0, z - crossbarZ),
+            glm::vec3(px, cby, crossbarZ),
             pillarXs, true, false);
       }
 
@@ -94,7 +94,7 @@ void renderPillar(item ndx) {
     }
 
     if (dot(dir[0], dir[1]) < 0) dir[1] = -dir[1];
-    vec3 combDir = dir[0] + dir[1];
+    glm::vec3 combDir = dir[0] + dir[1];
     float angle = atan2(combDir.x, combDir.y);
     placeEntity(pillar->entity, pillar->location, -angle, 0);
 
@@ -104,10 +104,10 @@ void renderPillar(item ndx) {
 
   setCull(pillar->entity, 400, 100000);
   makeCube(mesh, loc,
-    vec3(px, py, - loc.z - c(CRoadRise)),
+    glm::vec3(px, py, - loc.z - c(CRoadRise)),
     pillarXs, true, false);
   makeCube(mesh, loc,
-    vec3(px-2, py+4, - loc.z - c(CRoadRise)),
+    glm::vec3(px-2, py+4, - loc.z - c(CRoadRise)),
     pillarXs, true, false);
 
   bufferMesh(entity->mesh);

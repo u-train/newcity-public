@@ -36,7 +36,7 @@ enum EconomyPanelTab {
   numEconomyTabs
 };
 
-const vec3 economyTabIcon[numEconomyTabs] = {
+const glm::vec3 economyTabIcon[numEconomyTabs] = {
   iconChart, iconCheck, iconBuildingCategory[2]
 };
 
@@ -116,7 +116,7 @@ bool setChart(Part* part, InputEvent event) {
 
   // Set the correct category
   for (int cat = 0; cat < numStatisticCategories; cat++) {
-    vector<Statistic> category = statsCategory(cat);
+    std::vector<Statistic> category = statsCategory(cat);
     for (int j = 0; j < category.size(); j++) {
       if (category[j] == charts[chartNum]) {
         chartCategories[chartNum] = (StatisticCategory)cat;
@@ -178,7 +178,7 @@ void setEPChart(item stat, item tp) {
 
   // Set the correct category
   for (int cat = 0; cat < numStatisticCategories; cat++) {
-    vector<Statistic> category = statsCategory(cat);
+    std::vector<Statistic> category = statsCategory(cat);
     for (int j = 0; j < category.size(); j++) {
       if (category[j] == charts[chartNum]) {
         chartCategories[chartNum] = (StatisticCategory)cat;
@@ -220,21 +220,21 @@ Part* economyPanel() {
   float epWidth = -epPadding + (chartWidth + epPadding)
     * (economyTab == CityStatsTab && epExpanded ? 3 : 1);
 
-  vec2 econPanelLoc = vec2(0.1, 1.5);
-  vec2 econPanelSize = vec2(epWidth+epPadding*2, epHeight+epPadding*2);
+  glm::vec2 econPanelLoc = glm::vec2(0.1, 1.5);
+  glm::vec2 econPanelSize = glm::vec2(epWidth+epPadding*2, epHeight+epPadding*2);
   Part* result = panel(econPanelLoc, econPanelSize);
   result->padding = epPadding;
   if (economyTab == AchievementsTab) {
-    r(result, label(vec2(0,0), 1, strdup_s("Achievements")));
+    r(result, label(glm::vec2(0,0), 1, strdup_s("Achievements")));
   } else if (economyTab == EffectsTab) {
-    r(result, label(vec2(0,0), 1, strdup_s("Amenities Effects")));
+    r(result, label(glm::vec2(0,0), 1, strdup_s("Amenities Effects")));
   }
-  //r(result, hr(vec2(0,1.2), epWidth));
-  r(result, button(vec2(epWidth-1,0), iconX, toggleEconomyPanel));
+  //r(result, hr(glm::vec2(0,1.2), epWidth));
+  r(result, button(glm::vec2(epWidth-1,0), iconX, toggleEconomyPanel));
 
   for (int i = 0; i < numEconomyTabs; i++) {
     Part* butt = button(
-        vec2(chartWidth + i-numEconomyTabs-1, 0),
+        glm::vec2(chartWidth + i-numEconomyTabs-1, 0),
         economyTabIcon[i], setEconomyTab, i);
     setPartTooltipValues(butt,
       TooltipType::GraphCityStats+i);
@@ -246,7 +246,7 @@ Part* economyPanel() {
 
   if (economyTab == CityStatsTab) {
     Part* expandButt = button(
-        vec2(chartWidth-numEconomyTabs-2, 0),
+        glm::vec2(chartWidth-numEconomyTabs-2, 0),
         iconPlus, toggleEPExpanded, 0);
     setPartTooltipValues(expandButt,
       TooltipType::GraphExpand);
@@ -257,7 +257,7 @@ Part* economyPanel() {
 
     for (int i = 0; i < numTimePeriods; i++) {
       float x = i*(1.3f);
-      Part* butt = button(vec2(x,0.1f), vec2(1.3f,.8f),
+      Part* butt = button(glm::vec2(x,0.1f), glm::vec2(1.3f,.8f),
           strdup_s(timePeriodName(i)), setTimePeriod);
       setPartTooltipValues(butt,
         TooltipType::GraphPeriodAll+i);
@@ -281,32 +281,32 @@ Part* economyPanel() {
 
       if (searchChart == i) {
         // Search
-        Part* butt = r(result, button(vec2(x,y), iconMenu, vec2(.8, .8),
+        Part* butt = r(result, button(glm::vec2(x,y), iconMenu, glm::vec2(.8, .8),
             stopChartSearch, i));
 
         searchChartTBState.text = &searchChartText;
-        Part* searchTB = r(result, textBox(vec2(x+scale,y),
-              vec2(chartWidth-scale, scale), &searchChartTBState));
+        Part* searchTB = r(result, textBox(glm::vec2(x+scale,y),
+              glm::vec2(chartWidth-scale, scale), &searchChartTBState));
         searchTB->onClick = focusChartSearchBox;
         searchTB->onCustom = unfocusChartSearch;
-        string searchStr = searchChartText;
+        auto searchStr = searchChartText;
         y += scale + epPadding;
 
         float scrollSize = chartSize-scale-epPadding;
-        Part* scroll = scrollbox(vec2(0,0),
-            vec2(chartWidth, scrollSize));
+        Part* scroll = scrollbox(glm::vec2(0,0),
+            glm::vec2(chartWidth, scrollSize));
         float y1 = 0;
 
         for (int stat = 0; stat < numStatistics; stat++) {
           if (!timeSeriesHasData(ourCityEconNdx(), (Statistic)stat)) continue;
 
-          string name = statName(stat);
-          string code = getStatisticCode(stat);
+          auto name = statName(stat);
+          auto code = getStatisticCode(stat);
           bool found = stringContainsCaseInsensitive(name, searchStr) ||
             stringContainsCaseInsensitive(code, searchStr);
           if (!found) continue;
 
-          Part* butt = button(vec2(0,y1), vec2(chartWidth - 1, scale),
+          Part* butt = button(glm::vec2(0,y1), glm::vec2(chartWidth - 1, scale),
             strdup_s(statName(stat)), setChart);
           butt->itemData = stat;
           butt->vecData.x = i;
@@ -314,22 +314,22 @@ Part* economyPanel() {
           y1 += scale;
         }
 
-        r(result, scrollboxFrame(vec2(x,y), vec2(chartWidth, scrollSize),
+        r(result, scrollboxFrame(glm::vec2(x,y), glm::vec2(chartWidth, scrollSize),
               &chartScroll[i], scroll));
 
       } else if (econ <= 0) {
         float scrollSize = chartSize;
-        Part* scroll = scrollbox(vec2(0,0), vec2(chartWidth, scrollSize));
+        Part* scroll = scrollbox(glm::vec2(0,0), glm::vec2(chartWidth, scrollSize));
         float y1 = 0;
         for (int j = 1; j <= sizeEcons(); j++) {
-          Part* butt = button(vec2(0,y1), vec2(chartWidth - 1, scale),
+          Part* butt = button(glm::vec2(0,y1), glm::vec2(chartWidth - 1, scale),
             strdup_s(getEconName(j)), setChartEcon);
           butt->itemData = j;
           butt->vecData.x = i;
           r(scroll, butt);
           y1 += scale;
         }
-        r(result, scrollboxFrame(vec2(x,y), vec2(chartWidth, scrollSize),
+        r(result, scrollboxFrame(glm::vec2(x,y), glm::vec2(chartWidth, scrollSize),
               &chartScroll[i], scroll));
 
       } else if (stat < 0) {
@@ -340,7 +340,7 @@ Part* economyPanel() {
         }
 
         if (cat < 0) {
-          Part* butt = button(vec2(x,y), iconLeft, vec2(chartWidth-scale, .8f),
+          Part* butt = button(glm::vec2(x,y), iconLeft, glm::vec2(chartWidth-scale, .8f),
               strdup_s(getEconName(econ)), setChartEcon, -1);
           setPartTooltipValues(butt,
             TooltipType::GraphChooseStat);
@@ -348,36 +348,36 @@ Part* economyPanel() {
           r(result, butt);
 
           if (searchChart != i) {
-            r(result, button(vec2(x+chartWidth-scale,y), iconQuery, vec2(scale, scale), startChartSearch, i));
+            r(result, button(glm::vec2(x+chartWidth-scale,y), iconQuery, glm::vec2(scale, scale), startChartSearch, i));
           }
 
           float scrollSize = chartSize-scale-epPadding;
-          Part* scroll = scrollbox(vec2(0,0), vec2(chartWidth, scrollSize));
+          Part* scroll = scrollbox(glm::vec2(0,0), glm::vec2(chartWidth, scrollSize));
           float y1 = 0;
           for (int j = 0; j < numStatisticCategories; j++) {
-            Part* butt = button(vec2(0,y1), vec2(chartWidth - 1, scale),
+            Part* butt = button(glm::vec2(0,y1), glm::vec2(chartWidth - 1, scale),
               strdup_s(statCategoryName(j)), setChartCategory);
             butt->itemData = j;
             butt->vecData.x = i;
             r(scroll, butt);
             y1 += scale;
           }
-          r(result, scrollboxFrame(vec2(x,y+scale+epPadding),
-                vec2(chartWidth, scrollSize), &chartScroll[i], scroll));
+          r(result, scrollboxFrame(glm::vec2(x,y+scale+epPadding),
+                glm::vec2(chartWidth, scrollSize), &chartScroll[i], scroll));
 
         } else {
-          Part* butt = button(vec2(x,y), iconLeft, vec2((chartWidth-scale)*.5f, .8f), strdup_s(statCategoryName(cat)), setChartCategory, -1);
+          Part* butt = button(glm::vec2(x,y), iconLeft, glm::vec2((chartWidth-scale)*.5f, .8f), strdup_s(statCategoryName(cat)), setChartCategory, -1);
           setPartTooltipValues(butt,
             TooltipType::GraphChooseStat);
           butt->vecData.x = i;
           r(result, butt);
 
           if (searchChart != i) {
-            r(result, button(vec2(x+(chartWidth-scale)*.5f,y), iconQuery, vec2(scale, scale), startChartSearch, i));
+            r(result, button(glm::vec2(x+(chartWidth-scale)*.5f,y), iconQuery, glm::vec2(scale, scale), startChartSearch, i));
           }
 
-          butt = button(vec2(x+(chartWidth+scale)*.5f,y),
-              vec2((chartWidth-scale)*.5f, .8f),
+          butt = button(glm::vec2(x+(chartWidth+scale)*.5f,y),
+              glm::vec2((chartWidth-scale)*.5f, .8f),
               strdup_s(getEconName(econ)), setChartEcon);
           butt->flags |= _partAlignRight;
           butt->itemData = -1;
@@ -385,39 +385,39 @@ Part* economyPanel() {
           r(result, butt);
 
           float scrollSize = chartSize-scale-epPadding;
-          Part* scroll = scrollbox(vec2(0,0),
-              vec2(chartWidth, scrollSize));
-          vector<Statistic> category = statsCategory(cat);
+          Part* scroll = scrollbox(glm::vec2(0,0),
+              glm::vec2(chartWidth, scrollSize));
+          std::vector<Statistic> category = statsCategory(cat);
           float y1 = 0;
           for (int j = 0; j < category.size(); j++) {
             stat = category[j];
             if (stat < 0) break;
             if (!timeSeriesHasData(econ, stat)) continue;
-            Part* butt = button(vec2(0,y1), vec2(chartWidth - 1, scale),
+            Part* butt = button(glm::vec2(0,y1), glm::vec2(chartWidth - 1, scale),
               strdup_s(statName(stat)), setChart);
             butt->itemData = stat;
             butt->vecData.x = i;
             r(scroll, butt);
             y1 += scale;
           }
-          r(result, scrollboxFrame(vec2(x,y+scale+epPadding),
-                vec2(chartWidth, scrollSize), &chartScroll[i], scroll));
+          r(result, scrollboxFrame(glm::vec2(x,y+scale+epPadding),
+                glm::vec2(chartWidth, scrollSize), &chartScroll[i], scroll));
         }
 
       } else {
-        Part* chrt = chart(vec2(x,y), vec2(chartWidth, chartSize),
+        Part* chrt = chart(glm::vec2(x,y), glm::vec2(chartWidth, chartSize),
             econ, stat, timePeriod);
         r(result, chrt);
 
-        Part* econLbl = r(chrt, labelCenter(vec2(chartWidth*.25f, .95f),
-              vec2(chartWidth*.5f, 0.7), strdup_s(getEconName(econ))));
+        Part* econLbl = r(chrt, labelCenter(glm::vec2(chartWidth*.25f, .95f),
+              glm::vec2(chartWidth*.5f, 0.7), strdup_s(getEconName(econ))));
         econLbl->flags |= _partHover;
         econLbl->onClick = setChartEcon;
         econLbl->itemData = -1;
         econLbl->vecData.x = i;
         econLbl->dim.start.z = 5;
 
-        Part* butt = button(vec2(.1f,.1f), wasSearch[i] ? iconQuery : iconLeft, vec2(chartWidth-1.2f, .8f), strdup_s(statName(stat)), wasSearch[i] ? selectChartSearch : setChart, -1);
+        Part* butt = button(glm::vec2(.1f,.1f), wasSearch[i] ? iconQuery : iconLeft, glm::vec2(chartWidth-1.2f, .8f), strdup_s(statName(stat)), wasSearch[i] ? selectChartSearch : setChart, -1);
         setPartTooltipValues(butt,
           TooltipType::GraphChooseStat);
         butt->vecData.x = i;
@@ -425,8 +425,8 @@ Part* economyPanel() {
 
         if (isFeatureEnabled(FNoteChart)) {
           item statItem = charts[i]*10 + timePeriod;
-          Part* cNoteButt = button(vec2(chartWidth - .9f, .1f), iconPin,
-              vec2(.8f, .8f), toggleChartMessage, statItem);
+          Part* cNoteButt = button(glm::vec2(chartWidth - .9f, .1f), iconPin,
+              glm::vec2(.8f, .8f), toggleChartMessage, statItem);
           cNoteButt->vecData.x = chartEcon[i];
           setPartTooltipValues(cNoteButt,
             TooltipType::GraphPinMessage);
@@ -443,7 +443,7 @@ Part* economyPanel() {
     }
 
   } else if (economyTab == AchievementsTab) {
-    Part* scroll = scrollbox(vec2(0,0), vec2(epWidth,epHeight-1.5f));
+    Part* scroll = scrollbox(glm::vec2(0,0), glm::vec2(epWidth,epHeight-1.5f));
     scroll->flags |= _partTextShadow;
     float sy = 0;
 
@@ -452,19 +452,19 @@ Part* economyPanel() {
         if (isAchievementAcquired(i) != k) {
 
           Achievement ach = getAchievement(i);
-          r(scroll, icon(vec2(0, sy), vec2(scale, scale),
+          r(scroll, icon(glm::vec2(0, sy), glm::vec2(scale, scale),
                k == 0 ? iconCheck : iconNull));
-          r(scroll, label(vec2(scale, sy), scale, strdup_s(ach.name)));
+          r(scroll, label(glm::vec2(scale, sy), scale, strdup_s(ach.name)));
           sy += scale;
 
           if (k == 0) {
             float ySize = 0;
-            r(scroll, multiline(vec2(scale, sy), vec2(epWidth-2,.7f),
+            r(scroll, multiline(glm::vec2(scale, sy), glm::vec2(epWidth-2,.7f),
                 strdup_s(ach.text), &ySize));
             sy += ySize + epPadding;
             const char* effectText = ach.effectText;
             if (effectText != 0) {
-              r(scroll, multiline(vec2(scale, sy), vec2(epWidth-2,.7f),
+              r(scroll, multiline(glm::vec2(scale, sy), glm::vec2(epWidth-2,.7f),
                   strdup_s(effectText), &ySize));
               sy += ySize + epPadding;
             }
@@ -473,11 +473,11 @@ Part* economyPanel() {
       }
     }
 
-    Part* achLbl = r(result, label(vec2(0,1.25), 0.85, sprintf_o("%d/%d Achievements Unlocked", numAchievementsUnlocked(), getNumAchievements())));
+    Part* achLbl = r(result, label(glm::vec2(0,1.25), 0.85, sprintf_o("%d/%d Achievements Unlocked", numAchievementsUnlocked(), getNumAchievements())));
     achLbl->foregroundColor = PickerPalette::OrangeMedL;
     achLbl->flags |= _partTextShadow;
 
-    Part* frame = r(result, scrollboxFrame(vec2(0,2.25f), vec2(epWidth, epHeight-2.25f), &achievementsScroll, scroll));
+    Part* frame = r(result, scrollboxFrame(glm::vec2(0,2.25f), glm::vec2(epWidth, epHeight-2.25f), &achievementsScroll, scroll));
     frame->renderMode = RenderPanelGradient;
     frame->texture = line(colorGoldGrad1, colorGoldGrad0);
     frame->flags &= ~_partLowered;
@@ -489,31 +489,31 @@ Part* economyPanel() {
     }
 
   } else if (economyTab == EffectsTab) {
-    Part* scroll = scrollbox(vec2(0,0), vec2(epWidth,epHeight-1.5f));
+    Part* scroll = scrollbox(glm::vec2(0,0), glm::vec2(epWidth,epHeight-1.5f));
     scroll->flags |= _partTextShadow;
     float y = 0;
 
     for (int i = 0; i < numEffects; i++) {
       int val = getEffectValue(i);
 
-      r(scroll, icon(vec2(0, y), vec2(1, 1), getEffectIcon(i)));
-      r(scroll, labelRight(vec2(1, y), vec2(2,1),
+      r(scroll, icon(glm::vec2(0, y), glm::vec2(1, 1), getEffectIcon(i)));
+      r(scroll, labelRight(glm::vec2(1, y), glm::vec2(2,1),
           sprintf_o("%s%d", val > 0 ? "+":"", val)));
-      r(scroll, label(vec2(3, y), 1, strdup_s(getEffectString(i))));
+      r(scroll, label(glm::vec2(3, y), 1, strdup_s(getEffectString(i))));
 
-      Part* p = r(scroll, button(vec2(epWidth-2, y), iconPin, vec2(1,1),
+      Part* p = r(scroll, button(glm::vec2(epWidth-2, y), iconPin, glm::vec2(1,1),
             toggleAmenityEffectMessage, i));
-      Part* citi = r(scroll, button(vec2(epWidth-3, y), iconCitipedia, vec2(1,1), openCitipediaEffectPage, i));
+      Part* citi = r(scroll, button(glm::vec2(epWidth-3, y), iconCitipedia, glm::vec2(1,1), openCitipediaEffectPage, i));
 
       y += scale + epPadding;
 
       float ySize;
-      r(scroll, multiline(vec2(1, y), vec2(epWidth-3, scale),
+      r(scroll, multiline(glm::vec2(1, y), glm::vec2(epWidth-3, scale),
             getMacroEffectDescriptor(i), &ySize));
       y += ySize + epPadding*2;
     }
 
-    Part* frame = r(result, scrollboxFrame(vec2(0,1.25f), vec2(epWidth, epHeight-1.25f), &effectsScroll, scroll));
+    Part* frame = r(result, scrollboxFrame(glm::vec2(0,1.25f), glm::vec2(epWidth, epHeight-1.25f), &effectsScroll, scroll));
     frame->renderMode = RenderPanelGradient;
     frame->texture = line(colorGoldGrad1, colorGoldGrad0);
     frame->flags &= ~_partLowered;

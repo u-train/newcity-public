@@ -1,5 +1,18 @@
 #include "main.hpp"
 
+// Include GLEW
+#include <GL/glew.h>
+
+// Include GLFW
+#include <glfw3.h>
+
+// Include GLM
+#include <glm/glm.hpp>
+#include <glm/gtx/transform.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+
+#include "game/constants.hpp"
+
 #include "building/buildingTexture.hpp"
 #include "building/renderBuilding.hpp"
 #include "draw/buffer.hpp"
@@ -19,12 +32,9 @@
 #include "option.hpp"
 #include "platform/lua.hpp"
 #include "platform/mod.hpp"
-#include "serialize.hpp"
 #include "sound.hpp"
 #include "string.hpp"
-#include "string_proxy.hpp"
 #include "route/router.hpp"
-#include "test.hpp"
 #include "thread.hpp"
 #include "vehicle/update.hpp"
 #include "weather.hpp"
@@ -62,10 +72,10 @@ static double targetDuration = 0; //1./frameRateCap;
 static double frameDurationAccum = 0;
 
 static bool multithreading = true;
-static mutex syncMutex;
-static mutex drawMutex;
-static condition_variable syncCondition;
-static condition_variable drawCondition;
+static std::mutex syncMutex;
+static std::mutex drawMutex;
+static std::condition_variable syncCondition;
+static std::condition_variable drawCondition;
 static bool gameUpdateReady = false;
 static bool gameUpdateDone = false;
 static std::atomic<bool> isDrawing(false);
@@ -161,11 +171,11 @@ void updateDuration() {
   */
 
   double fpsRaw = 1./duration;
-  fps = mix(fps, fpsRaw, 0.1);
+  fps = glm::mix(fps, fpsRaw, 0.1);
 }
 
 void updateGameSync() {
-  unique_lock<mutex> syncLock(syncMutex);
+  std::unique_lock<std::mutex> syncLock(syncMutex);
   syncCondition.wait(syncLock, []{
     return gameUpdateReady && shouldContinue;
   });
@@ -208,14 +218,14 @@ void gameLoop() {
 
 void startGameUpdate() {
   {
-    lock_guard<mutex> syncLock(syncMutex);
+    std::lock_guard<std::mutex> syncLock(syncMutex);
     gameUpdateReady = true;
   }
   syncCondition.notify_one();
 }
 
 void waitForGameUpdate() {
-  unique_lock<mutex> syncLock(syncMutex);
+  std::unique_lock<std::mutex> syncLock(syncMutex);
   syncCondition.wait(syncLock, []{
     return gameUpdateDone;
   });
@@ -223,7 +233,7 @@ void waitForGameUpdate() {
 }
 
 void drawSync() {
-  unique_lock<mutex> drawLock(drawMutex);
+  std::unique_lock<std::mutex> drawLock(drawMutex);
   drawCondition.wait(drawLock, []{
     return !isDrawing;
   });

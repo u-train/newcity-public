@@ -1,5 +1,4 @@
-#ifndef PART_SCROLLBOX_H
-#define PART_SCROLLBOX_H
+#pragma once
 
 #include "part.hpp"
 
@@ -12,14 +11,14 @@ struct ScrollState {
 };
 
 void resetScrollState(ScrollState* state);
-Part* scrollbox(vec2 start, vec2 size);
-Part* scrollboxFrame(vec2 start, vec2 size, float innerSpace,
+Part* scrollbox(glm::vec2 start, glm::vec2 size);
+Part* scrollboxFrame(glm::vec2 start, glm::vec2 size, float innerSpace,
   ScrollState* state, Part* scrollbox);
-Part* scrollboxFrame(vec2 start, vec2 size, ScrollState* state,
+Part* scrollboxFrame(glm::vec2 start, glm::vec2 size, ScrollState* state,
   Part* scrollbox);
-Part* scrollboxFrame(vec2 start, vec2 size, ScrollState* state,
+Part* scrollboxFrame(glm::vec2 start, glm::vec2 size, ScrollState* state,
   Part* scrollbox, bool inverted);
-Part* scrollboxFrame(vec2 start, vec2 size, ScrollState* state,
+Part* scrollboxFrame(glm::vec2 start, glm::vec2 size, ScrollState* state,
   Part* scrollbox, bool inverted, Line scrollbarColor);
 
-#endif
+

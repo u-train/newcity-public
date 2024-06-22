@@ -9,11 +9,13 @@
 #include "economy.hpp"
 #include "game/feature.hpp"
 #include "game/game.hpp"
+#include "game/constants.hpp"
 #include "heatmap.hpp"
 #include "parts/leftPanel.hpp"
 #include "parts/tutorialPanel.hpp"
 #include "option.hpp"
 #include "string_proxy.hpp"
+#include "main.hpp"
 
 static const char* tutorialCodes[TutorialCategory::Num_Categories] = {
   #define TUT(N) "Tutorial::" #N,

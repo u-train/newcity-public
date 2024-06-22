@@ -1,6 +1,5 @@
 #pragma once
 
-#include "main.hpp"
 #include "item.hpp"
 #include "serialize.hpp"
 
@@ -13,11 +12,11 @@ const uint32_t _labelSizeMask = 15 << _labelSizeShift;
 struct Label {
   uint32_t flags;
   char* text;
-  vec3 location;
+  glm::vec3 location;
   item entity;
 };
 
-item addLabel(vec3 loc, uint32_t flags);
+item addLabel(glm::vec3 loc, uint32_t flags);
 void removeLabel(item ndx);
 Label* getLabel(item ndx);
 void setLabelHighlight(item ndx, bool highlight);

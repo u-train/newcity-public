@@ -17,8 +17,8 @@ int test_int = 42;
 void test_call_once(int, char const *);
 
 int cond = 0;
-std::mutex m;
-std::shared_mutex sm;
+std::std::mutex m;
+std::shared_std::mutex sm;
 std::condition_variable cv;
 std::condition_variable_any cv_any;
 
@@ -324,7 +324,7 @@ int main()
             auto move2nd = std::move(a); //test move to final destination
             this_thread::sleep_for(std::chrono::milliseconds(1000));
             {
-                lock_guard<mutex> lock(m);
+                lock_guard<std::mutex> lock(m);
                 cond = 1;
                 log("Notifying condvar");
                 cv.notify_all();
@@ -358,19 +358,19 @@ int main()
     {
       log("Main thread: Locking mutex, waiting on condvar...");
       {
-          std::unique_lock<decltype(m)> lk(m);
+          std::std::unique_lock<decltype(m)> lk(m);
           cv.wait(lk, []{ return cond >= 1;} );
           log("condvar notified, cond = %d", cond);
           assert(lk.owns_lock());
       }
       log("Main thread: Locking shared_mutex, waiting on condvar...");
       {
-          std::unique_lock<decltype(sm)> lk(sm);
+          std::std::unique_lock<decltype(sm)> lk(sm);
           cv_any.wait(lk, []{ return cond >= 2;} );
           log("condvar notified, cond = %d", cond);
           assert(lk.owns_lock());
       }
-      log("Main thread: Locking shared_mutex in shared mode, waiting on condvar...");
+      log("Main thread: Locking shared_std::mutex in shared mode, waiting on condvar...");
       {
           std::shared_lock<decltype(sm)> lk(sm);
           cv_any.wait(lk, []{ return cond >= 3;} );

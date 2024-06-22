@@ -1,8 +1,7 @@
-#ifndef PART_HR_H
-#define PART_HR_H
+#pragma once
 
 #include "part.hpp"
 
-Part* hr(vec2 loc, float length);
+Part* hr(glm::vec2 loc, float length);
 
-#endif
+

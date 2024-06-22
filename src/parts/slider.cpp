@@ -44,11 +44,11 @@ bool sliderCallback(Part* part, InputEvent event) {
   }
 }
 
-Part* slider(vec2 start, vec2 size, float value,
+Part* slider(glm::vec2 start, glm::vec2 size, float value,
   bool vertical, InputCallback callback
 ) {
   Part* result = part(start);
-  result->dim.end = vec3(size, 0);
+  result->dim.end = glm::vec3(size, 0);
   result->onClick = sliderCallback;
   result->onHover = sliderCallback;
   result->flags |= _partHover;
@@ -75,26 +75,26 @@ Part* slider(vec2 start, vec2 size, float value,
     sliderY = sliderPadding;
   }
 
-  //r(result, darkBlock(vec2(0, 0), vec2(size.x, size.y)));
-  r(result, block(vec2(sliderX, sliderY), vec2(sliderSize, sliderSize)));
+  //r(result, darkBlock(glm::vec2(0, 0), glm::vec2(size.x, size.y)));
+  r(result, block(glm::vec2(sliderX, sliderY), glm::vec2(sliderSize, sliderSize)));
 
   return result;
 }
 
-Part* slider(vec2 start, vec2 size, float value, InputCallback callback) {
+Part* slider(glm::vec2 start, glm::vec2 size, float value, InputCallback callback) {
   return slider(start, size, value, false, callback);
 }
 
-Part* slider(vec2 start, vec2 size, float value, InputCallback callback,
+Part* slider(glm::vec2 start, glm::vec2 size, float value, InputCallback callback,
     Line tex) {
   Part* result = slider(start, size, value, false, callback);
-  //textureStart = (textureStart + vec3(0.5,0.5,0))/palleteSize;
-  //textureEnd = (textureEnd + vec3(0.5,0.5,0))/palleteSize;
+  //textureStart = (textureStart + glm::vec3(0.5,0.5,0))/palleteSize;
+  //textureEnd = (textureEnd + glm::vec3(0.5,0.5,0))/palleteSize;
   result->texture = tex;
   result->renderMode = RenderGradient;
   return result;
 }
 
-Part* vslider(vec2 start, vec2 size, float value, InputCallback callback) {
+Part* vslider(glm::vec2 start, glm::vec2 size, float value, InputCallback callback) {
   return slider(start, size, value, true, callback);
 }

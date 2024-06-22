@@ -7,13 +7,14 @@
 #include "../icons.hpp"
 #include "../input.hpp"
 #include "../lot.hpp"
-#include "../main.hpp"
 #include "../option.hpp"
 #include "../renderLand.hpp"
 #include "../sound.hpp"
 #include "../string_proxy.hpp"
 #include "../time.hpp"
 #include "../weather.hpp"
+#include "../error.hpp"
+#include "../main.hpp"
 
 #include "spdlog/spdlog.h"
 
@@ -384,13 +385,13 @@ Part* optionsPanel(float aspectRatio) {
   float optionsPad = 0.25;
   float oWidth = 22;
   float oHeight = 22;
-  vec2 optionsPanelSizeInner =
-    vec2(oWidth+optionsPad*2, oHeight+optionsPad*2);
-  vec2 optionsPanelSizePadded = optionsPanelSizeInner +
-    vec2(optionsPad*2, optionsPad*2);
+  glm::vec2 optionsPanelSizeInner =
+    glm::vec2(oWidth+optionsPad*2, oHeight+optionsPad*2);
+  glm::vec2 optionsPanelSizePadded = optionsPanelSizeInner +
+    glm::vec2(optionsPad*2, optionsPad*2);
   float uiX = uiGridSizeX * aspectRatio;
   Part* result = panel(
-      vec2(uiX,uiGridSizeY)*0.5f - optionsPanelSizePadded*0.5f,
+      glm::vec2(uiX,uiGridSizeY)*0.5f - optionsPanelSizePadded*0.5f,
       optionsPanelSizePadded);
   result->padding = optionsPad;
   result->flags |= _partLowered;
@@ -399,18 +400,18 @@ Part* optionsPanel(float aspectRatio) {
   float scale = 1;
   float subScale = 0.85;
 
-  r(result, label(vec2(0,0), 1.25f, strdup_s("Options")));
-  r(result, button(vec2(oWidth-.75f,0), iconX, vec2(1.25f, 1.25f),
+  r(result, label(glm::vec2(0,0), 1.25f, strdup_s("Options")));
+  r(result, button(glm::vec2(oWidth-.75f,0), iconX, glm::vec2(1.25f, 1.25f),
         openMainMenu, 0));
   y += 1.25f;
-  //r(result, hr(vec2(0,y), oWidth));
+  //r(result, hr(glm::vec2(0,y), oWidth));
   y += 0.25;
 
   // Tab buttons
   float tabX = 0.0f;
   float tabYS = 1 + optionsPad;
   float tabSizeX = optionsPanelSizeInner.x / (int)OptionsTabEnum::NumTabs;
-  Part* genTab = button(vec2(tabX, y), vec2(tabSizeX, tabYS),
+  Part* genTab = button(glm::vec2(tabX, y), glm::vec2(tabSizeX, tabYS),
       strdup_s(optionsTabGenTxt), setOptionsTab);
   genTab->itemData = OptionsTabEnum::General;
   genTab->flags |= _partAlignCenter;
@@ -418,7 +419,7 @@ Part* optionsPanel(float aspectRatio) {
   tabX += tabSizeX;
   r(result, genTab);
 
-  Part* visTab = button(vec2(tabX, y), vec2(tabSizeX, tabYS),
+  Part* visTab = button(glm::vec2(tabX, y), glm::vec2(tabSizeX, tabYS),
     strdup_s(optionsTabVisTxt), setOptionsTab);
   visTab->itemData = OptionsTabEnum::Visual;
   visTab->flags |= _partAlignCenter;
@@ -426,7 +427,7 @@ Part* optionsPanel(float aspectRatio) {
   tabX += tabSizeX;
   r(result, visTab);
 
-  Part* vidTab = button(vec2(tabX, y), vec2(tabSizeX, tabYS),
+  Part* vidTab = button(glm::vec2(tabX, y), glm::vec2(tabSizeX, tabYS),
       strdup_s(optionsTabVidTxt), setOptionsTab);
   vidTab->itemData = OptionsTabEnum::Video;
   vidTab->flags |= _partAlignCenter;
@@ -434,7 +435,7 @@ Part* optionsPanel(float aspectRatio) {
   tabX += tabSizeX;
   r(result, vidTab);
 
-  Part* audTab = button(vec2(tabX, y), vec2(tabSizeX, tabYS),
+  Part* audTab = button(glm::vec2(tabX, y), glm::vec2(tabSizeX, tabYS),
       strdup_s(optionsTabAudTxt), setOptionsTab);
   audTab->itemData = OptionsTabEnum::Audio;
   audTab->flags |= _partAlignCenter;
@@ -442,7 +443,7 @@ Part* optionsPanel(float aspectRatio) {
   tabX += tabSizeX;
   r(result, audTab);
 
-  Part* keyTab = button(vec2(tabX, y), vec2(tabSizeX, tabYS),
+  Part* keyTab = button(glm::vec2(tabX, y), glm::vec2(tabSizeX, tabYS),
       strdup_s(optionsTabKeyTxt), setOptionsTab);
   keyTab->itemData = OptionsTabEnum::KeyMap;
   keyTab->flags |= _partAlignCenter;
@@ -452,127 +453,127 @@ Part* optionsPanel(float aspectRatio) {
   y += tabYS;
 
   optionsPanelSizeInner.y -= y;
-  Part* tabPanel = r(result, panel(vec2(0, y), optionsPanelSizeInner));
+  Part* tabPanel = r(result, panel(glm::vec2(0, y), optionsPanelSizeInner));
   tabPanel->padding = optionsPad;
   y = 0;
 
   if(optionsTab == OptionsTabEnum::General) {
     y += (scale + optionsPad) * 0.5;
 
-    r(tabPanel, button(vec2(0, y),
+    r(tabPanel, button(glm::vec2(0, y),
       hasEnabledLogUpload() ? iconCheck : iconNull,
-      vec2(oWidth, scale), strdup_s("Enable Log Upload"),
+      glm::vec2(oWidth, scale), strdup_s("Enable Log Upload"),
       toggleLogUpload, 0));
     y += scale + optionsPad;
 
-    r(tabPanel, button(vec2(0, y),
+    r(tabPanel, button(glm::vec2(0, y),
       useMetric() ? iconCheck : iconNull,
-      vec2(oWidth, scale), strdup_s("Use Metric"),
+      glm::vec2(oWidth, scale), strdup_s("Use Metric"),
       toggleUseMetric, 0));
     y += scale + optionsPad;
 
     #ifdef LP_DEBUG
-      r(tabPanel, button(vec2(0, y),
+      r(tabPanel, button(glm::vec2(0, y),
         debugMode() ? iconCheck : iconNull,
-        vec2(oWidth, scale), strdup_s("Debug Mode"),
+        glm::vec2(oWidth, scale), strdup_s("Debug Mode"),
         toggleDebugMode, 0));
       y += scale + optionsPad;
     #endif
     // y += 1.0f;
 
-    r(tabPanel, button(vec2(0, y),
+    r(tabPanel, button(glm::vec2(0, y),
       isShowNewspaperMessage() ? iconCheck : iconNull,
-      vec2(oWidth, scale), strdup_s("Show Newspaper in Sidebar"),
+      glm::vec2(oWidth, scale), strdup_s("Show Newspaper in Sidebar"),
       toggleShowNewsaperMessage, 0));
     y += scale + optionsPad;
 
-    r(tabPanel, button(vec2(0, y),
+    r(tabPanel, button(glm::vec2(0, y),
       getOptionsClassicRMB() ? iconCheck : iconNull,
-      vec2(oWidth, scale), strdup_s("Classic RMB Camera"),
+      glm::vec2(oWidth, scale), strdup_s("Classic RMB Camera"),
       toggleClassicRMB, 0));
     y += scale + optionsPad;
 
-    r(tabPanel, button(vec2(0, y),
+    r(tabPanel, button(glm::vec2(0, y),
       getOptionsEdgeScrolling() ? iconCheck : iconNull,
-      vec2(oWidth, scale), strdup_s("Camera Edge Scrolling"),
+      glm::vec2(oWidth, scale), strdup_s("Camera Edge Scrolling"),
       toggleEdgeScrolling, 0));
     y += scale + optionsPad;
 
-    r(tabPanel, button(vec2(0, y),
+    r(tabPanel, button(glm::vec2(0, y),
       getOptionsLockMouse() ? iconCheck : iconNull,
-      vec2(oWidth, scale), strdup_s("Lock Mouse to Window"),
+      glm::vec2(oWidth, scale), strdup_s("Lock Mouse to Window"),
       toggleLockMouse, 0));
     y += scale + optionsPad;
 
-    r(tabPanel, button(vec2(0, y),
+    r(tabPanel, button(glm::vec2(0, y),
       getOptionsStartPaused() ? iconCheck : iconNull,
-      vec2(oWidth, scale), strdup_s("Start Paused"),
+      glm::vec2(oWidth, scale), strdup_s("Start Paused"),
       toggleStartPaused, 0));
     y += scale + optionsPad;
 
     // Autosave slider
     float interval = getAutosaveInterval();
     char* durStr = printDurationString(interval/24/60/60);
-    r(tabPanel, label(vec2(0, y), scale,
+    r(tabPanel, label(glm::vec2(0, y), scale,
       interval == 0 ? strdup_s("Autosave Disabled") :
       sprintf_o("Autosave Every %s", durStr)));
     free(durStr);
 
     float slideVal = (interval-intervalSteps)/c(CMaxAutosaveInterval);
     if (interval == 0) slideVal = 1;
-    slideVal = clamp(slideVal, 0.f, 1.f);
-    r(tabPanel, slider(vec2(halfWidth+optionsPad, y), vec2(halfWidth, scale),
+    slideVal = glm::clamp(slideVal, 0.f, 1.f);
+    r(tabPanel, slider(glm::vec2(halfWidth+optionsPad, y), glm::vec2(halfWidth, scale),
       slideVal, setAutosaveInterval));
     y += scale + optionsPad;
 
   } else if(optionsTab == OptionsTabEnum::Visual) {
     y += (scale + optionsPad) * 0.5;
 
-    r(tabPanel, button(vec2(0, y),
+    r(tabPanel, button(glm::vec2(0, y),
       isShowWeather() ? iconCheck : iconNull,
-      vec2(oWidth, scale), strdup_s("Show Rain and Snow"),
+      glm::vec2(oWidth, scale), strdup_s("Show Rain and Snow"),
       toggleShowWeather, 0));
     y += scale + optionsPad;
 
-    r(tabPanel, button(vec2(0, y),
+    r(tabPanel, button(glm::vec2(0, y),
       (getOptionsFlags() & _optionHideLots) ? iconNull : iconCheck,
-      vec2(oWidth, scale), strdup_s("Show Zoned Lots"),
+      glm::vec2(oWidth, scale), strdup_s("Show Zoned Lots"),
       toggleOptionsFlag, _optionHideLots));
     y += scale + optionsPad;
 
-    r(tabPanel, button(vec2(0, y),
+    r(tabPanel, button(glm::vec2(0, y),
       isShowPollution() ? iconCheck : iconNull,
-      vec2(oWidth, scale), strdup_s("Show Pollution"),
+      glm::vec2(oWidth, scale), strdup_s("Show Pollution"),
       toggleShowPollution, 0));
     y += scale + optionsPad;
 
-    r(tabPanel, button(vec2(0, y),
+    r(tabPanel, button(glm::vec2(0, y),
       getTreesVisible() ? iconCheck : iconNull,
-      vec2(oWidth, scale), strdup_s("Show Trees"),
+      glm::vec2(oWidth, scale), strdup_s("Show Trees"),
       toggleTreesVisible, 0));
     y += scale + optionsPad;
 
-    r(tabPanel, button(vec2(0, y),
+    r(tabPanel, button(glm::vec2(0, y),
       getContourLinesVisible() ? iconCheck : iconNull,
-      vec2(oWidth, scale), strdup_s("Show Contour Lines"),
+      glm::vec2(oWidth, scale), strdup_s("Show Contour Lines"),
       toggleContourLinesVisible, 0));
     y += scale + optionsPad;
 
-    r(tabPanel, button(vec2(0, y),
+    r(tabPanel, button(glm::vec2(0, y),
       !(getOptionsFlags() & _optionHideGridlines) ? iconCheck : iconNull,
-      vec2(oWidth, scale), strdup_s("Show Grid Lines"),
+      glm::vec2(oWidth, scale), strdup_s("Show Grid Lines"),
       toggleOptionsFlag, _optionHideGridlines));
     y += scale + optionsPad;
 
-    r(tabPanel, button(vec2(0, y),
+    r(tabPanel, button(glm::vec2(0, y),
       alwaysShowIssuesIcons() ? iconCheck : iconNull,
-      vec2(oWidth, scale), strdup_s("Always Show Issues Icons"),
+      glm::vec2(oWidth, scale), strdup_s("Always Show Issues Icons"),
       toggleIssuesIcons, 0));
     y += scale + optionsPad;
 
     float winy = 0;
-    Part* daylightPanel = panel(vec2(0, optionsPanelSizeInner.y-7-optionsPad*8),
-      vec2(oWidth, 4+optionsPad*3));
+    Part* daylightPanel = panel(glm::vec2(0, optionsPanelSizeInner.y-7-optionsPad*8),
+      glm::vec2(oWidth, 4+optionsPad*3));
     daylightPanel->padding = optionsPad;
     daylightPanel->flags |= _partLowered | _partClip;
     r(tabPanel, daylightPanel);
@@ -580,9 +581,9 @@ Part* optionsPanel(float aspectRatio) {
 
     for(int k = 0; k < numDaylightModes; k++) {
       item i = daylightModeOrder[k];
-      Part* butt = button(vec2(0, winy),
+      Part* butt = button(glm::vec2(0, winy),
         i == getDaylightMode() ? iconCheck : iconNull,
-        vec2(oWidth-optionsPad*2, scale),
+        glm::vec2(oWidth-optionsPad*2, scale),
         strdup_s(daylightModeNames[i]), setDaylightMode, i);
       r(daylightPanel, butt);
       winy += scale;
@@ -590,20 +591,20 @@ Part* optionsPanel(float aspectRatio) {
 
   } else if(optionsTab == OptionsTabEnum::Audio) {
     y += scale + optionsPad;
-    r(tabPanel, label(vec2(0.0f, y), scale, strdup_s("Current Song:")));
-    r(tabPanel, label(vec2(6.0f, y), scale,
+    r(tabPanel, label(glm::vec2(0.0f, y), scale, strdup_s("Current Song:")));
+    r(tabPanel, label(glm::vec2(6.0f, y), scale,
           strdup_s(optionsSongName.c_str())));
 
     y += (scale + optionsPad)*4.f;
     for(int i = 0; i < numVolumes; i++) {
       bool muted = getMuted((VolumeControl)i);
       float volume = getVolume((VolumeControl)i);
-      r(tabPanel, button(vec2(0, y),
+      r(tabPanel, button(glm::vec2(0, y),
         muted ? iconNull : iconCheck,
-        vec2(halfWidth, scale), strdup_s(getVolumeName((VolumeControl)i)),
+        glm::vec2(halfWidth, scale), strdup_s(getVolumeName((VolumeControl)i)),
         toggleMuted, i));
-      Part* volSlide = slider(vec2(halfWidth+optionsPad, y),
-          vec2(halfWidth, scale), volume, setVolume);
+      Part* volSlide = slider(glm::vec2(halfWidth+optionsPad, y),
+          glm::vec2(halfWidth, scale), volume, setVolume);
       volSlide->itemData = i;
       r(tabPanel, volSlide);
       y += scale + optionsPad*2;
@@ -611,8 +612,8 @@ Part* optionsPanel(float aspectRatio) {
 
   } else if(optionsTab == OptionsTabEnum::Video) {
 
-    Part* fpsLbl = r(tabPanel, labelRight(vec2(0, y),
-          vec2(oWidth-optionsPad, scale),
+    Part* fpsLbl = r(tabPanel, labelRight(glm::vec2(0, y),
+          glm::vec2(oWidth-optionsPad, scale),
           sprintf_o("You're getting %d FPS", int(getFPS()))));
     if (getFPS() < 20) {
       fpsLbl->foregroundColor = RedMedL;
@@ -620,20 +621,20 @@ Part* optionsPanel(float aspectRatio) {
     //y += (scale + optionsPad)*2.0f; // Give some extra room
 
     // FOV slider label
-    r(tabPanel, label(vec2(0, y), scale,
+    r(tabPanel, label(glm::vec2(0, y), scale,
       strdup_s("Camera Perspective")));
     y += scale + optionsPad;
 
     // FOV slider
     float fov = getFOV();
-    r(tabPanel, label(vec2(0, y), scale,
+    r(tabPanel, label(glm::vec2(0, y), scale,
       fov == 0 ? strdup_s("Orthographic Perspective") :
       sprintf_o("Field of View %ddeg", int(fov*180))));
-    r(tabPanel, slider(vec2(halfWidth+optionsPad, y), vec2(halfWidth, scale),
+    r(tabPanel, slider(glm::vec2(halfWidth+optionsPad, y), glm::vec2(halfWidth, scale),
       fov*2.f, setFOV));
     y += scale + optionsPad;
 
-    //r(tabPanel, label(vec2(0, y), subScale,
+    //r(tabPanel, label(glm::vec2(0, y), subScale,
       //strdup_s("Move slider left for Ortho, right to increase FOV")));
     //y += (scale + optionsPad)*1.0f; // Give some extra room
 
@@ -642,9 +643,9 @@ Part* optionsPanel(float aspectRatio) {
       cap = cap < 0 ? 135 : cap;
       char* fpsLabel = cap > 120 ? strdup_s("FPS Cap: None") :
         sprintf_o("FPS Cap: %d", cap);
-      r(tabPanel, label(vec2(0, y), scale, fpsLabel));
-      Part* fpsSlide = slider(vec2(halfWidth+optionsPad, y),
-          vec2(halfWidth, scale), (cap-15)/120.f, setFPSCap);
+      r(tabPanel, label(glm::vec2(0, y), scale, fpsLabel));
+      Part* fpsSlide = slider(glm::vec2(halfWidth+optionsPad, y),
+          glm::vec2(halfWidth, scale), (cap-15)/120.f, setFPSCap);
       r(tabPanel, fpsSlide);
       y += scale + optionsPad;
     }
@@ -663,15 +664,15 @@ Part* optionsPanel(float aspectRatio) {
       quality += .5f;
     }
 
-    r(tabPanel, label(vec2(0, y), scale, strdup_s("Level of Detail")));
-    r(tabPanel, slider(vec2(halfWidth+optionsPad, y),
-      vec2(halfWidth, scale), quality, setMeshQuality));
+    r(tabPanel, label(glm::vec2(0, y), scale, strdup_s("Level of Detail")));
+    r(tabPanel, slider(glm::vec2(halfWidth+optionsPad, y),
+      glm::vec2(halfWidth, scale), quality, setMeshQuality));
     //y += (scale + optionsPad)*1.0f;
-    Part* perfLbl = r(tabPanel, label(vec2(halfWidth+optionsPad, y),
+    Part* perfLbl = r(tabPanel, label(glm::vec2(halfWidth+optionsPad, y),
           subScale, strdup_s("Performance")));
     perfLbl->foregroundColor = PickerPalette::GrayLight;
-    Part* qualLbl = r(tabPanel, labelRight(vec2(halfWidth+optionsPad, y),
-      vec2(halfWidth, subScale), strdup_s("Quality")));
+    Part* qualLbl = r(tabPanel, labelRight(glm::vec2(halfWidth+optionsPad, y),
+      glm::vec2(halfWidth, subScale), strdup_s("Quality")));
     qualLbl->foregroundColor = PickerPalette::GrayLight;
     y += (scale + optionsPad)*1.0f;
 
@@ -685,27 +686,27 @@ Part* optionsPanel(float aspectRatio) {
 
     char* aaLabel = aa == 1 ? strdup_s("Anti Aliasing: None") :
       sprintf_o("Anti Aliasing: %dx", aa);
-    r(tabPanel, label(vec2(0, y), scale, aaLabel));
-    r(tabPanel, slider(vec2(halfWidth+optionsPad, y), vec2(halfWidth, scale),
+    r(tabPanel, label(glm::vec2(0, y), scale, aaLabel));
+    r(tabPanel, slider(glm::vec2(halfWidth+optionsPad, y), glm::vec2(halfWidth, scale),
       aaSlider, setMsaaSamples));
     y += scale;
-    r(tabPanel, label(vec2(scale, y), subScale,
+    r(tabPanel, label(glm::vec2(scale, y), subScale,
           strdup_s("(Requires Restart)")));
     y += (subScale + optionsPad)*1.0f;
 
     float brightness = getBrightness();
-    r(tabPanel, label(vec2(0, y), scale, strdup_s("Brightness")));
-    r(tabPanel, slider(vec2(halfWidth+optionsPad, y), vec2(halfWidth, scale),
+    r(tabPanel, label(glm::vec2(0, y), scale, strdup_s("Brightness")));
+    r(tabPanel, slider(glm::vec2(halfWidth+optionsPad, y), glm::vec2(halfWidth, scale),
       brightness, setBrightness));
-    r(tabPanel, icon(vec2(halfWidth+optionsPad, y),
-          vec2(scale, scale), iconWeatherMoon));
-    r(tabPanel, icon(vec2(halfWidth*2+optionsPad-scale, y),
-          vec2(scale, scale), iconWeatherSun));
+    r(tabPanel, icon(glm::vec2(halfWidth+optionsPad, y),
+          glm::vec2(scale, scale), iconWeatherMoon));
+    r(tabPanel, icon(glm::vec2(halfWidth*2+optionsPad-scale, y),
+          glm::vec2(scale, scale), iconWeatherSun));
     y += (scale + optionsPad)*1.0f;
 
     float winy = 0;
-    Part* videoPanel = panel(vec2(0, optionsPanelSizeInner.y-3-optionsPad*4),
-      vec2(oWidth, 3+optionsPad*2));
+    Part* videoPanel = panel(glm::vec2(0, optionsPanelSizeInner.y-3-optionsPad*4),
+      glm::vec2(oWidth, 3+optionsPad*2));
     videoPanel->padding = optionsPad;
     videoPanel->flags |= _partLowered | _partClip;
     r(tabPanel, videoPanel);
@@ -713,9 +714,9 @@ Part* optionsPanel(float aspectRatio) {
 
     winy = 0;
     for(int i = 0; i < numWindowModes; i++) {
-      Part* butt = button(vec2(0, winy),
+      Part* butt = button(glm::vec2(0, winy),
         i == getWindowMode() ? iconCheck : iconNull,
-        vec2(oWidth-optionsPad*2, scale),
+        glm::vec2(oWidth-optionsPad*2, scale),
         strdup_s(windowModeNames[i]), setWindowMode, i);
       r(videoPanel, butt);
       winy += scale;
@@ -731,40 +732,40 @@ Part* optionsPanel(float aspectRatio) {
     float internalY = optionsPad;
 
     // Restore Defaults button
-    r(result, button(vec2(optionsPad, y), vec2(7.0f-optionsPad, scale), strdup_s(optionsBtnRestore), keymapRestoreDefaults));
+    r(result, button(glm::vec2(optionsPad, y), glm::vec2(7.0f-optionsPad, scale), strdup_s(optionsBtnRestore), keymapRestoreDefaults));
     
     // Allow Collisions toggle
-    r(result, button(vec2(7.0f+optionsPad, y),
+    r(result, button(glm::vec2(7.0f+optionsPad, y),
       getAllowCollisions() ? iconCheck : iconNull,
-      vec2(7.0f+(optionsPad*2.0f), scale), strdup_s(optionsBtnCollisions),
+      glm::vec2(7.0f+(optionsPad*2.0f), scale), strdup_s(optionsBtnCollisions),
       toggleAllowCollisions, 0));
 
     // Explanation of red collision text
-    Part* collisionLabel = labelRight(vec2(optionsPad, y), vec2(keymapWidth-optionsPad, scale), strdup_s("Red Key: Collision"));
+    Part* collisionLabel = labelRight(glm::vec2(optionsPad, y), glm::vec2(keymapWidth-optionsPad, scale), strdup_s("Red Key: Collision"));
     collisionLabel->foregroundColor = PickerPalette::RedLight;
     r(result, collisionLabel);
     y += scale+optionsPad;
 
-    r(result, label(vec2(optionsPad*2, y), scale, strdup_s("Action")));
-    r(result, labelRight(vec2(optionsPad*2, y), vec2(bindWidth, scale), strdup_s("Key")));
+    r(result, label(glm::vec2(optionsPad*2, y), scale, strdup_s("Action")));
+    r(result, labelRight(glm::vec2(optionsPad*2, y), glm::vec2(bindWidth, scale), strdup_s("Key")));
 
     searchTB.text = &searchText;
     float searchBoxX = bindWidth*.25f;
-    r(result, icon(vec2(searchBoxX-scale, y),
-          vec2(scale, scale), iconQuery));
-    Part* tb = r(result, textBox(vec2(searchBoxX,y),
-          vec2(bindWidth*.5f, scale), &searchTB));
+    r(result, icon(glm::vec2(searchBoxX-scale, y),
+          glm::vec2(scale, scale), iconQuery));
+    Part* tb = r(result, textBox(glm::vec2(searchBoxX,y),
+          glm::vec2(bindWidth*.5f, scale), &searchTB));
     tb->onClick = focusSearchBox;
     tb->onCustom = unfocusSearchBox;
     if (searchText == 0 || strlength(searchText) == 0) {
-      Part* search = r(result, label(vec2(searchBoxX,y), scale, strdup_s("Search")));
+      Part* search = r(result, label(glm::vec2(searchBoxX,y), scale, strdup_s("Search")));
       search->foregroundColor = PickerPalette::GrayDark;
     }
 
     y += scale+optionsPad;
 
-    Part* keymapScrollbox = scrollbox(vec2(0, 0),
-      vec2(keymapWidth, (InputAction::NumActions+InputGroup::NumInputGroups)*bindHeight));
+    Part* keymapScrollbox = scrollbox(glm::vec2(0, 0),
+      glm::vec2(keymapWidth, (InputAction::NumActions+InputGroup::NumInputGroups)*bindHeight));
     keymapScrollbox->flags |= _partLowered;
 
     // Check for changing action, and check for key if changing
@@ -793,18 +794,18 @@ Part* optionsPanel(float aspectRatio) {
 
       if (nextGroup != currentGroup) {
         currentGroup = nextGroup;
-        r(keymapScrollbox, label(vec2(0.0f, internalY), scale,
+        r(keymapScrollbox, label(glm::vec2(0.0f, internalY), scale,
           strdup_s(std::string("Category: " + getInputGroupStr(currentGroup)).c_str())));
-        r(keymapScrollbox, hr(vec2(0.0f, internalY+scale+0.1f), keymapWidth-(optionsPad*4.0f)));
+        r(keymapScrollbox, hr(glm::vec2(0.0f, internalY+scale+0.1f), keymapWidth-(optionsPad*4.0f)));
         internalY += bindHeight;
       }
 
-      //r(keymapScrollbox, hr(vec2(optionsPad, internalY), bindWidth));
+      //r(keymapScrollbox, hr(glm::vec2(optionsPad, internalY), bindWidth));
       //internalY += scale;
-      r(keymapScrollbox, label(vec2(0, internalY), scale, 
+      r(keymapScrollbox, label(glm::vec2(0, internalY), scale, 
         strdup_s(bind.actUIStr().c_str())));
 
-      Part* keyLabel = labelRight(vec2(0, internalY), vec2(bindWidth-optionsPad, scale),
+      Part* keyLabel = labelRight(glm::vec2(0, internalY), glm::vec2(bindWidth-optionsPad, scale),
         strdup_s(keymapChangeAction == (InputAction)i ? "???" : bind.keyStr().c_str()));
       if (bind.collided) {
         keyLabel->foregroundColor = PickerPalette::RedLight;
@@ -813,7 +814,7 @@ Part* optionsPanel(float aspectRatio) {
       }
       r(keymapScrollbox, keyLabel);
 
-      Part* keybindButton = button(vec2(0, internalY-optionsPad), vec2(bindWidth, scale+optionsPad*2), strdup_s(""), keymapStartSetNewKey);
+      Part* keybindButton = button(glm::vec2(0, internalY-optionsPad), glm::vec2(bindWidth, scale+optionsPad*2), strdup_s(""), keymapStartSetNewKey);
       keybindButton->itemData = i;
       keybindButton->flags |= keymapChangeAction == (InputAction)i ? _partHighlight : 0;
 
@@ -822,22 +823,22 @@ Part* optionsPanel(float aspectRatio) {
     }
 
     if (!anyMatches) {
-      Part* noMatch = r(keymapScrollbox, label(vec2(0,internalY), scale, sprintf_o("No keymaps found matching \"%s\".", searchText)));
+      Part* noMatch = r(keymapScrollbox, label(glm::vec2(0,internalY), scale, sprintf_o("No keymaps found matching \"%s\".", searchText)));
       noMatch->foregroundColor = PickerPalette::GrayLight;
     }
 
     // HR after last keybind
-    //r(keymapScrollbox, hr(vec2(optionsPad, internalY), bindWidth));
+    //r(keymapScrollbox, hr(glm::vec2(optionsPad, internalY), bindWidth));
     //internalY += scale;
 
-    Part* keymapScrollboxFrame = scrollboxFrame(vec2(optionsPad, y),
-      vec2(keymapWidth, oHeight - y + optionsPad),
+    Part* keymapScrollboxFrame = scrollboxFrame(glm::vec2(optionsPad, y),
+      glm::vec2(keymapWidth, oHeight - y + optionsPad),
       &keymapScrollState, keymapScrollbox);
 
     r(result, keymapScrollboxFrame);
 
   } else {
-    r(tabPanel, label(vec2(0, y), 1.25f, strdup_s("ERROR")));
+    r(tabPanel, label(glm::vec2(0, y), 1.25f, strdup_s("ERROR")));
     y += 1.25f;
   }
 

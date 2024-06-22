@@ -1,10 +1,10 @@
 #include "util.hpp"
-
-#include "spdlog/spdlog.h"
+#include "item.hpp"
 #include "string_proxy.hpp"
 
 #include <stdio.h>
 #include <glm/gtc/type_ptr.hpp>
+#include <glm/glm.hpp>
 
 item iclamp(item a, item b, item c) {
   if (a < b) return b;
@@ -12,7 +12,7 @@ item iclamp(item a, item b, item c) {
   return a;
 }
 
-bool removeFromVector(vector<item>* v, item n) {
+bool removeFromVector(std::vector<item>* v, item n) {
   bool found = false;
   for (int i = v->size()-1; i >= 0; i--) {
     if (v->at(i) == n) {
@@ -23,7 +23,7 @@ bool removeFromVector(vector<item>* v, item n) {
   return found;
 }
 
-bool isInVector(vector<item>* v, item n) {
+bool isInVector(std::vector<item>* v, item n) {
   for (int i = 0; i < v->size(); i ++) {
     if (v->at(i) == n) return true;
   }
@@ -36,7 +36,7 @@ float lerp(float a0, float a1, float w) {
   return (1.0 - w)*a0 + w*a1;
 }
 
-vec3 lerp(vec3 a0, vec3 a1, float w) {
+glm::vec3 lerp(glm::vec3 a0, glm::vec3 a1, float w) {
   return (1.0f - w)*a0 + w*a1;
 }
 
@@ -48,7 +48,7 @@ float getSqr(float val) {
   return val * val;
 }
 
-float distanceSqrd(vec3 v1, vec3 v2) {
+float distanceSqrd(glm::vec3 v1, glm::vec3 v2) {
   float x, y, z;
   x = v1.x - v2.x;
   y = v1.y - v2.y;
@@ -56,32 +56,32 @@ float distanceSqrd(vec3 v1, vec3 v2) {
   return x*x + y*y + z*z;
 }
 
-float distance2D(vec3 v1, vec3 v2) {
+float distance2D(glm::vec3 v1, glm::vec3 v2) {
   float x, y;
   x = v1.x - v2.x;
   y = v1.y - v2.y;
   return sqrt(x*x + y*y);
 }
 
-float distance2DSqrd(vec2 v1, vec2 v2) {
+float distance2DSqrd(glm::vec2 v1, glm::vec2 v2) {
   float x, y;
   x = v1.x - v2.x;
   y = v1.y - v2.y;
   return x*x + y*y;
 }
 
-float distance2DSqrd(vec3 v1, vec3 v2) {
+float distance2DSqrd(glm::vec3 v1, glm::vec3 v2) {
   float x, y;
   x = v1.x - v2.x;
   y = v1.y - v2.y;
   return x*x + y*y;
 }
 
-float lengthSqrd(vec3 v) {
+float lengthSqrd(glm::vec3 v) {
   return v.x*v.x + v.y*v.y + v.z*v.z;
 }
 
-float vecDistance(vec3 v1, vec3 v2) {
+float vecDistance(glm::vec3 v1, glm::vec3 v2) {
   float x, y, z;
   x = v1.x - v2.x;
   y = v1.y - v2.y;
@@ -89,19 +89,19 @@ float vecDistance(vec3 v1, vec3 v2) {
   return sqrt(x*x + y*y + z*z);
 }
 
-vec3 zNormal(vec3 v1) {
-  return vec3(v1.y, -v1.x, 0);
+glm::vec3 zNormal(glm::vec3 v1) {
+  return glm::vec3(v1.y, -v1.x, 0);
 }
 
-vec3 uzNormal(vec3 v1) {
-  return normalize(vec3(v1.y, -v1.x, 0));
+glm::vec3 uzNormal(glm::vec3 v1) {
+  return normalize(glm::vec3(v1.y, -v1.x, 0));
 }
 
-void printVec(vec3 vec) {
+void printVec(glm::vec3 vec) {
   printf("(%f, %f, %f)\n", vec.x, vec.y, vec.z);
 }
 
-void printMatrix(mat4 matrix) {
+void printMatrix(glm::mat4 matrix) {
   const float *pSource = (const float*)glm::value_ptr(matrix);
   for (int i = 0; i < 4; i ++) {
     if (i == 0) {
@@ -125,11 +125,11 @@ void printMatrix(mat4 matrix) {
   }
 }
 
-float pointLineDistance(const vec3 p, const Line l) {
+float pointLineDistance(const glm::vec3 p, const Line l) {
   return sqrt(pointLineDistanceSqrd(p, l));
 }
 
-float pointLineDistanceSqrd(const vec3 p, const Line l) {
+float pointLineDistanceSqrd(const glm::vec3 p, const Line l) {
   /*
    * DON'T DELETE
    *
@@ -143,7 +143,7 @@ float pointLineDistanceSqrd(const vec3 p, const Line l) {
   // It falls where t = [(p-v) . (w-v)] / |w-v|^2
   // We clamp t from [0,1] to handle points outside the segment vw.
   const float t = std::max(0.f, std::min(1.f, dot(p - v, w - v) / l2));
-  const vec3 projection = v + t * (w - v);  // Projection falls on the segment
+  const glm::vec3 projection = v + t * (w - v);  // Projection falls on the segment
   return vecDistance(p, projection);
   */
 
@@ -186,7 +186,7 @@ float pointLineDistanceSqrd(const vec3 p, const Line l) {
   return jpx*jpx + jpy*jpy + jpz*jpz;
 }
 
-float pointLineDistance2DSqrd(const vec3 p, const Line l) {
+float pointLineDistance2DSqrd(const glm::vec3 p, const Line l) {
   const float px = p.x;
   const float py = p.y;
 
@@ -219,7 +219,7 @@ float pointLineDistance2DSqrd(const vec3 p, const Line l) {
   return jpx*jpx + jpy*jpy;
 }
 
-float pointRayDistanceSqrd(const vec3 p, const Line l) {
+float pointRayDistanceSqrd(const glm::vec3 p, const Line l) {
   const float px = p.x;
   const float py = p.y;
   const float pz = p.z;
@@ -258,19 +258,19 @@ float pointRayDistanceSqrd(const vec3 p, const Line l) {
   return jpx*jpx + jpy*jpy + jpz*jpz;
 }
 
-vec3 nearestPointOnLine(vec3 p, Line l) {
+glm::vec3 nearestPointOnLine(glm::vec3 p, Line l) {
 
   /*
    * DON'T DELETE
    *
    * Use this commented code for reference, unrolled high-perf version below
    *
-  vec3 v = l.start, w = l.end;
+  glm::vec3 v = l.start, w = l.end;
   // Return minimum distance between line segment vw and point p
   const float l2 = distanceSqrd(v, w);  // i.e. |w-v|^2 -  avoid a sqrt
   if (l2 == 0.0) return v;   // v == w case
   const float t = std::max(0.f, std::min(1.f, dot(p - v, w - v) / l2));
-  const vec3 projection = v + t * (w - v);  // Projection falls on the segment
+  const glm::vec3 projection = v + t * (w - v);  // Projection falls on the segment
   return projection;
   */
 
@@ -306,40 +306,40 @@ vec3 nearestPointOnLine(vec3 p, Line l) {
   const float jy = vy + t*wvy;
   const float jz = vz + t*wvz;
 
-  return vec3(jx, jy, jz);
+  return glm::vec3(jx, jy, jz);
 }
 
-vec3 pointOfIntersection(Line l0, Line l1) {
+glm::vec3 pointOfIntersection(Line l0, Line l1) {
 
-  vec3 a0 = l0.start;
-  vec3 a1 = l0.end;
-  vec3 b0 = l1.start;
-  vec3 b1 = l1.end;
+  glm::vec3 a0 = l0.start;
+  glm::vec3 a1 = l0.end;
+  glm::vec3 b0 = l1.start;
+  glm::vec3 b1 = l1.end;
 
-  vec3 A = a1 - a0;
-  vec3 B = b1 - b0;
+  glm::vec3 A = a1 - a0;
+  glm::vec3 B = b1 - b0;
 
   float magA = length(A);
   float magB = length(B);
 
-  vec3 _A = A / magA;
-  vec3 _B = B / magB;
+  glm::vec3 _A = A / magA;
+  glm::vec3 _B = B / magB;
 
-  vec3 crossVec = cross(_A, _B);
+  glm::vec3 crossVec = cross(_A, _B);
   float denom = lengthSqrd(crossVec);
 
   // If lines are parallel (denom=0), return null
   if (denom == 0) {
-    return vec3(-1, -1, -1);
+    return glm::vec3(-1, -1, -1);
   }
 
   // Lines criss-cross: Calculate the projected closest points
-  vec3 t = (b0 - a0);
-  float detA = determinant(mat3(t, _B, crossVec));
+  glm::vec3 t = (b0 - a0);
+  float detA = determinant(glm::mat3(t, _B, crossVec));
 
-  float t0 = clamp(detA/denom, 0.f, magA);
+  float t0 = glm::clamp(detA/denom, 0.f, magA);
 
-  vec3 pA = a0 + (_A * t0); // Projected closest point on segment A
+  glm::vec3 pA = a0 + (_A * t0); // Projected closest point on segment A
 
   return pA;
 }
@@ -385,21 +385,21 @@ float lineDistance2D(Line l0, Line l1) {
 
 float lineDistance(Line l0, Line l1) {
 
-  vec3 a0 = l0.start;
-  vec3 a1 = l0.end;
-  vec3 b0 = l1.start;
-  vec3 b1 = l1.end;
+  glm::vec3 a0 = l0.start;
+  glm::vec3 a1 = l0.end;
+  glm::vec3 b0 = l1.start;
+  glm::vec3 b1 = l1.end;
 
-  vec3 A = a1 - a0;
-  vec3 B = b1 - b0;
+  glm::vec3 A = a1 - a0;
+  glm::vec3 B = b1 - b0;
 
   float magA = length(A);
   float magB = length(B);
 
-  vec3 _A = A / magA;
-  vec3 _B = B / magB;
+  glm::vec3 _A = A / magA;
+  glm::vec3 _B = B / magB;
 
-  vec3 crossVec = cross(_A, _B);
+  glm::vec3 crossVec = cross(_A, _B);
   float denom = lengthSqrd(crossVec);
 
   // If lines are parallel (denom=0) test if lines overlap.
@@ -429,15 +429,15 @@ float lineDistance(Line l0, Line l1) {
   }
 
   // Lines criss-cross: Calculate the projected closest points
-  vec3 t = (b0 - a0);
-  float detA = determinant(mat3(t, _B, crossVec));
-  float detB = determinant(mat3(t, _A, crossVec));
+  glm::vec3 t = (b0 - a0);
+  float detA = determinant(glm::mat3(t, _B, crossVec));
+  float detB = determinant(glm::mat3(t, _A, crossVec));
 
   float t0 = detA/denom;
   float t1 = detB/denom;
 
-  vec3 pA = a0 + (_A * t0); // Projected closest point on segment A
-  vec3 pB = b0 + (_B * t1); // Projected closest point on segment B
+  glm::vec3 pA = a0 + (_A * t0); // Projected closest point on segment A
+  glm::vec3 pB = b0 + (_B * t1); // Projected closest point on segment B
 
   // Clamp projections
   if (t0 < 0) {
@@ -477,8 +477,8 @@ float lineDistance(Line l0, Line l1) {
   return length(pA-pB);
 }
 
-vec3 lineAtZ(Line l, float z) {
-  vec3 along = l.end - l.start;
+glm::vec3 lineAtZ(Line l, float z) {
+  glm::vec3 along = l.end - l.start;
   float mag = (z - l.start.z) / along.z;
   return l.start + along*mag;
 }
@@ -519,7 +519,7 @@ item randItem(item a, item b) {
   return randItem(&randomSeed, a, b);
 }
 
-item randInSet(set<item>* s, item num) {
+item randInSet(std::set<item>* s, item num) {
   int size = s->size();
   if (size == 0) {
     return 0;
@@ -580,14 +580,14 @@ float slope(Line line) {
 // orig and dir defines the ray. v0, v1, v2 defines the triangle.
 // returns the distance from the ray origin to the intersection or 0.
 float triangle_intersection(Line line,
-  const vec3 v0, const vec3 v1, const vec3 v2) {
+  const glm::vec3 v0, const glm::vec3 v1, const glm::vec3 v2) {
 
-    vec3 orig = line.start;
-    vec3 dir = line.end - orig;
-    vec3 e1 = v1 - v0;
-    vec3 e2 = v2 - v0;
-    // Calculate planes normal vector
-    vec3 pvec = cross(dir, e2);
+    glm::vec3 orig = line.start;
+    glm::vec3 dir = line.end - orig;
+    glm::vec3 e1 = v1 - v0;
+    glm::vec3 e2 = v2 - v0;
+    // Calculate planes normal std::vector
+    glm::vec3 pvec = cross(dir, e2);
     float det = dot(e1, pvec);
 
     // Ray is parallel to plane
@@ -596,13 +596,13 @@ float triangle_intersection(Line line,
     }
 
     float inv_det = 1 / det;
-    vec3 tvec = orig - v0;
+    glm::vec3 tvec = orig - v0;
     float u = dot(tvec, pvec) * inv_det;
     if (u < 0 || u > 1) {
         return 0;
     }
 
-    vec3 qvec = cross(tvec, e1);
+    glm::vec3 qvec = cross(tvec, e1);
     float v = dot(dir, qvec) * inv_det;
     if (v < 0 || u + v > 1) {
         return 0;
@@ -611,10 +611,10 @@ float triangle_intersection(Line line,
 }
 
 bool boxLineIntersect(Line box, Line ml) {
-  vec3 t00 = box.start;
-  vec3 t01 = vec3(box.start.x, box.end.y, box.start.z);
-  vec3 t10 = vec3(box.end.x, box.start.y, box.end.z);
-  vec3 t11 = box.end;
+  glm::vec3 t00 = box.start;
+  glm::vec3 t01 = glm::vec3(box.start.x, box.end.y, box.start.z);
+  glm::vec3 t10 = glm::vec3(box.end.x, box.start.y, box.end.z);
+  glm::vec3 t11 = box.end;
   float ti0 = triangle_intersection(ml, t00, t01, t10);
   float ti1 = triangle_intersection(ml, t01, t11, t10);
   float ru = ti0 > ti1 ? ti0 : ti1;
@@ -625,27 +625,27 @@ void free_proxy(void* ptr) {
   free(ptr);
 }
 
-vec3 linePlaneIntersect(Line ray, vec3 p0, vec3 n) {
-  vec3 l0 = ray.start;
-  vec3 l = ray.end-l0;
+glm::vec3 linePlaneIntersect(Line ray, glm::vec3 p0, glm::vec3 n) {
+  glm::vec3 l0 = ray.start;
+  glm::vec3 l = ray.end-l0;
   float denom = dot(l, n);
   if (abs(denom) < 1e-6) {
-    return vec3(-1,-1,-1);
+    return glm::vec3(-1,-1,-1);
   }
   float t = dot((p0-l0), n)/denom;
   return l0+t*l;
 }
 
-bool isInDim(vec2 loc, Line dim) {
+bool isInDim(glm::vec2 loc, Line dim) {
   return loc.x >= dim.start.x && loc.x <= dim.start.x + dim.end.x &&
     loc.y >= dim.start.y && loc.y <= dim.start.y + dim.end.y;
 }
 
 bool validate(float f) {
-  return f == f && !isnan(f) && isfinite(f);
+  return f == f && !std::isnan(f) && std::isfinite(f);
 }
 
-bool validate(vec3 v) {
+bool validate(glm::vec3 v) {
   return validate(v.x) && validate(v.y) && validate(v.z);
 }
 

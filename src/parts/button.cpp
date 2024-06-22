@@ -7,9 +7,9 @@
 #include "label.hpp"
 #include "panel.hpp"
 
-Part* button(vec2 start, vec2 size, char* text, InputCallback callback) {
+Part* button(glm::vec2 start, glm::vec2 size, char* text, InputCallback callback) {
   Part* result = part(start);
-  result->dim.end = vec3(size, 0);
+  result->dim.end = glm::vec3(size, 0);
   result->renderMode = RenderText;
   result->text = text;
   result->onClick = callback;
@@ -18,23 +18,23 @@ Part* button(vec2 start, vec2 size, char* text, InputCallback callback) {
   return result;
 }
 
-Part* buttonCenter(vec2 start, vec2 size, char* text, InputCallback callback) {
+Part* buttonCenter(glm::vec2 start, glm::vec2 size, char* text, InputCallback callback) {
   Part* result = button(start, size, text, callback);
   result->flags |= _partAlignCenter;
   return result;
 }
 
-Part* button(vec2 start, vec3 icon, InputCallback callback) {
+Part* button(glm::vec2 start, glm::vec3 icon, InputCallback callback) {
   return button(start, icon, callback, 0);
 }
 
-Part* button(vec2 start, vec3 icon, InputCallback callback, item itemData) {
-  return button(start, icon, vec2(1,1), callback, itemData);
+Part* button(glm::vec2 start, glm::vec3 icon, InputCallback callback, item itemData) {
+  return button(start, icon, glm::vec2(1,1), callback, itemData);
 }
-Part* button(vec2 start, vec3 icon, vec2 size, InputCallback callback,
+Part* button(glm::vec2 start, glm::vec3 icon, glm::vec2 size, InputCallback callback,
     item itemData) {
   Part* result = part(start);
-  result->dim.end = vec3(size, 0);
+  result->dim.end = glm::vec3(size, 0);
   result->renderMode = RenderIcon;
   result->texture = iconToSpritesheet(icon);
   result->onClick = callback;
@@ -44,11 +44,11 @@ Part* button(vec2 start, vec3 icon, vec2 size, InputCallback callback,
   return result;
 }
 
-Part* button(vec2 start, vec3 icon, vec2 size, char* text,
+Part* button(glm::vec2 start, glm::vec3 icon, glm::vec2 size, char* text,
   InputCallback callback, item itemData) {
 
   Part* result = part(start);
-  result->dim.end = vec3(size, 0);
+  result->dim.end = glm::vec3(size, 0);
   result->renderMode = RenderIconAndText;
   result->texture = iconToSpritesheet(icon);
   result->text = text;
@@ -59,7 +59,7 @@ Part* button(vec2 start, vec3 icon, vec2 size, char* text,
   return result;
 }
 
-Part* superButton(vec2 start, vec2 size, vec3 ico, char* text,
+Part* superButton(glm::vec2 start, glm::vec2 size, glm::vec3 ico, char* text,
   InputCallback callback, item itemData, InputAction action, bool highlight) {
 
   Part* result = panel(start, size);
@@ -73,7 +73,7 @@ Part* superButton(vec2 start, vec2 size, vec3 ico, char* text,
   }
   result->padding = 0.1;
 
-  Part* icoPart = icon(vec2(-0.1,-0.1), vec2(size.y-0.1, size.y-0.1), ico);
+  Part* icoPart = icon(glm::vec2(-0.1,-0.1), glm::vec2(size.y-0.1, size.y-0.1), ico);
   r(result, icoPart);
 
   KeyBind bind = getKeyBind(action);
@@ -81,7 +81,7 @@ Part* superButton(vec2 start, vec2 size, vec3 ico, char* text,
     icoPart->text = strdup_s(getKeyStr(bind.key).c_str());
   }
 
-  Part* lbl = label(vec2(size.y-0.2,-0.1), size.y-0.1, text);
+  Part* lbl = label(glm::vec2(size.y-0.2,-0.1), size.y-0.1, text);
   r(result, lbl);
 
   return result;

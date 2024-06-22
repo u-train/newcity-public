@@ -32,12 +32,12 @@ const float zoneBrushSides[] ={
 };
 
 const float zoneBrushButtStart = 3.0f;
-const vec2 zoneIcon = vec2(2,6);
+const glm::vec2 zoneIcon = glm::vec2(2,6);
 static item zoneType = 1;
 static int zoneBrush = BrushMed;
 static bool zoneMouseClick = false;
 const static float zoneBrushSize = tileSize*1.5;
-static vector<item> highlightedLots;
+static std::vector<item> highlightedLots;
 static ScrollState statsScroll;
 static bool densityMode = false;
 static int densityValue = 10;
@@ -147,7 +147,7 @@ void zone_mouse_move_callback(InputEvent event) {
 
     bool side = false;
     Line l = getLine(elem);
-    vec3 mi = landIntersect(event.mouseLine);
+    glm::vec3 mi = landIntersect(event.mouseLine);
 
     // If using edge detection, and the distance is too great, don't show
     if(pointLineDistance(mi, l) >= tileSize * 4) return;
@@ -161,7 +161,7 @@ void zone_mouse_move_callback(InputEvent event) {
     highlightedLots.push_back(nearestLot(event.mouseLine, true));
 
   } else { // Radius Brush
-    vec3 mi = landIntersect(event.mouseLine);
+    glm::vec3 mi = landIntersect(event.mouseLine);
     setGuide(mi, zoneBrushRadius[zoneBrush]);
     highlightedLots = getLotsByRad(mi, zoneBrushRadius[zoneBrush]);
   }
@@ -284,7 +284,7 @@ bool toggleDensityMode(Part* part, InputEvent event) {
 
 bool openCitipediaZonePage(Part* part, InputEvent event) {
   item zone = part->itemData;
-  string article = zoneCode[zone];
+  std::string article = zoneCode[zone];
   article = "zones/" + article;
   followLink(strdup_s(article.c_str()));
   return true;
@@ -328,11 +328,11 @@ Part* zone_render(Line dim) {
   float zonePad = 0.125f;
 
   Part* result = panel(dim);
-  r(result, label(vec2(0,0), 1, strdup_s("Zone")));
+  r(result, label(glm::vec2(0,0), 1, strdup_s("Zone")));
 
   // Zone brush buttons
   for(int b = 0; b < numZoneBrushTypes; b++) {
-    Part* butt = button(vec2(zoneBrushButtStart + b, 0),
+    Part* butt = button(glm::vec2(zoneBrushButtStart + b, 0),
         iconZoneBrushType[b], setZoneBrush);
     butt->itemData = b;
     butt->inputAction = (InputAction)(ActZTBrushLine+b);
@@ -346,16 +346,16 @@ Part* zone_render(Line dim) {
     r(result, butt);
   }
 
-  //r(result, hr(vec2(0,1), dim.end.x-toolPad*2));
+  //r(result, hr(glm::vec2(0,1), dim.end.x-toolPad*2));
 
   if(!densityMode) { // Regular zoning mode
     for(int i=0; i < numZoneTypes-1; i++) {
       int z = zoneOrder[i];
       if(i != 0 && !isFeatureEnabled(FZoneResidential+z-1)) continue;
-      vec2 loc = i == 0 ? vec2(0.f, 5.f) :
-        i == 1 ? vec2(0.f, 3.75f) :
-        vec2(i*1.25f - .75f, 2.f);
-      vec2 size = i <= 1 ? vec2(1.25f, 1.25f) : vec2(1.25f, 4.25f);
+      glm::vec2 loc = i == 0 ? glm::vec2(0.f, 5.f) :
+        i == 1 ? glm::vec2(0.f, 3.75f) :
+        glm::vec2(i*1.25f - .75f, 2.f);
+      glm::vec2 size = i <= 1 ? glm::vec2(1.25f, 1.25f) : glm::vec2(1.25f, 4.25f);
 
       Part* buttContainer = panel(loc, size);
       buttContainer->padding = zonePad;
@@ -377,15 +377,15 @@ Part* zone_render(Line dim) {
       r(result, buttContainer);
 
       // Creates the demand chart for a zone type
-      // First vec2 is location, second vec2 is size
+      // First glm::vec2 is location, second glm::vec2 is size
       if(i > 1) {
         float demand = zoneDemandSoft(z);
         if (demand > 0) demand = pow(demand, 0.5);
-        r(buttContainer, icon(vec2(0, 3.f),
-          vec2(1, -demand*2.8f), iconZoneColor[z]));
+        r(buttContainer, icon(glm::vec2(0, 3.f),
+          glm::vec2(1, -demand*2.8f), iconZoneColor[z]));
       }
 
-      Part* butt = button(vec2(0, i <= 1 ? 0 : 3), iconZone[z], setZoneType);
+      Part* butt = button(glm::vec2(0, i <= 1 ? 0 : 3), iconZone[z], setZoneType);
       butt->itemData = z;
       r(buttContainer, butt);
 
@@ -397,41 +397,41 @@ Part* zone_render(Line dim) {
       if(z == zoneType) {
         if(z != NoZone) {
           float lblx = i <= 1 ? 0.75 : i;
-          r(result, label(vec2(lblx, 6.25f),
-            vec2(i <= 1 ? 2.f : 5.f, 0.75f), strdup_s(zoneLabel[zoneType])));
-          r(result, button(vec2(lblx-0.75f, 6.25f), iconCitipedia, vec2(.75f, .75f), openCitipediaZonePage, z));
+          r(result, label(glm::vec2(lblx, 6.25f),
+            glm::vec2(i <= 1 ? 2.f : 5.f, 0.75f), strdup_s(zoneLabel[zoneType])));
+          r(result, button(glm::vec2(lblx-0.75f, 6.25f), iconCitipedia, glm::vec2(.75f, .75f), openCitipediaZonePage, z));
 
         } else {
-          r(result, label(vec2(0.f, 6.25f),
+          r(result, label(glm::vec2(0.f, 6.25f),
             0.75f, strdup_s(zoneLabel[zoneType])));
         }
       }
     }
 
-    r(result, labelRight(vec2(6.f, 1.2f), vec2(4.f, 0.85f),
+    r(result, labelRight(glm::vec2(6.f, 1.2f), glm::vec2(4.f, 0.85f),
           strdup_s("Demand")));
-    r(result, label(vec2(9.f, 1.875f), 0.75f, strdup_s("-Hi")));
-    r(result, label(vec2(9.f, 4.75f), 0.75f, strdup_s("-Lo")));
+    r(result, label(glm::vec2(9.f, 1.875f), 0.75f, strdup_s("-Hi")));
+    r(result, label(glm::vec2(9.f, 4.75f), 0.75f, strdup_s("-Lo")));
 
   } else { // Density Control mode
     float densVal = densityValue/10.0f;
     float slideX = leftX+2.0f+zonePad;
     float slideW = dim.end.x-slideX-zonePad-1;
     float slideY = 3.35f;
-    Part* densSlider = slider(vec2(slideX, slideY),
-      vec2(slideW, 1.0f), densVal, zone_density_slider_callback);
+    Part* densSlider = slider(glm::vec2(slideX, slideY),
+      glm::vec2(slideW, 1.0f), densVal, zone_density_slider_callback);
     r(result, densSlider);
-    r(result, icon(vec2(slideX-1, slideY), vec2(1,1), iconHouse));
-    r(result, icon(vec2(slideX+slideW, slideY), vec2(1,1),
+    r(result, icon(glm::vec2(slideX-1, slideY), glm::vec2(1,1), iconHouse));
+    r(result, icon(glm::vec2(slideX+slideW, slideY), glm::vec2(1,1),
           iconZoneMono[OfficeZone]));
-    r(result, labelRight(vec2(6.f, 2.35f), vec2(4.f, 0.85f),
+    r(result, labelRight(glm::vec2(6.f, 2.35f), glm::vec2(4.f, 0.85f),
           sprintf_o("Level %d", densityValue)));
-    r(result, labelRight(vec2(6.f, 1.2f), vec2(4.f, 0.85f),
+    r(result, labelRight(glm::vec2(6.f, 1.2f), glm::vec2(4.f, 0.85f),
           strdup_s("Density Control")));
   }
 
   // Density control button
-  Part* densButt = panel(vec2(leftX, 2.35f), vec2(1, 1.35f));
+  Part* densButt = panel(glm::vec2(leftX, 2.35f), glm::vec2(1, 1.35f));
   densButt->renderMode = RenderTransparent;
   densButt->flags |= _partHover;
   densButt->onClick = toggleDensityMode;
@@ -439,15 +439,15 @@ Part* zone_render(Line dim) {
   setPartTooltipValues(densButt, TooltipType::ZoneDensity);
   if(densityMode) densButt->flags |= _partHighlight;
 
-  Part* ico = r(densButt, icon(vec2(0, 0), iconApartment));
+  Part* ico = r(densButt, icon(glm::vec2(0, 0), iconApartment));
   //ico->text = strdup_s("B");
-  r(densButt, labelCenter(vec2(0, .65f), vec2(1-zonePad, 0.75),
+  r(densButt, labelCenter(glm::vec2(0, .65f), glm::vec2(1-zonePad, 0.75),
         sprintf_o("%d", densityValue)));
   r(result, densButt);
 
   // Overzone Toggle
-  Part* overButt = button(vec2(2, 0), iconOverzone,
-    vec2(1.0f, 1.0f), toggleOverzone, 0);
+  Part* overButt = button(glm::vec2(2, 0), iconOverzone,
+    glm::vec2(1.0f, 1.0f), toggleOverzone, 0);
   overButt->inputAction = ActZTOverzoneMode;
   setPartTooltipValues(overButt,
     TooltipType::ZoneOverzone);
@@ -455,7 +455,7 @@ Part* zone_render(Line dim) {
   r(result, overButt);
 
   // Message button
-  Part* zoneButt = button(vec2(leftX, 1.25f), iconPin, toggleZoneMessage);
+  Part* zoneButt = button(glm::vec2(leftX, 1.25f), iconPin, toggleZoneMessage);
   setPartTooltipValues(zoneButt,
     TooltipType::GenMsg);
   if (hasMessage(ZoneDemandMessage, 0)) {
@@ -466,7 +466,7 @@ Part* zone_render(Line dim) {
   /*
   // Economy button
   if (isFeatureEnabled(FEconomyPanel)) {
-    Part* econButt = button(vec2(leftX,1.25f), iconChart, toggleEconomyPanel);
+    Part* econButt = button(glm::vec2(leftX,1.25f), iconChart, toggleEconomyPanel);
     setPartTooltipValues(econButt,
       TooltipType::GenGraphs);
     if (getLeftPanel() == EconomyPanel) {
@@ -481,13 +481,13 @@ Part* zone_render(Line dim) {
 
 void zoneInstructionPanel(Part* panel) {
   if (zoneType == ParkZone) {
-    r(panel, label(vec2(0,0), .85, strdup_s("Parks")));
+    r(panel, label(glm::vec2(0,0), .85, strdup_s("Parks")));
   } else {
-    r(panel, label(vec2(0,0), .85,
+    r(panel, label(glm::vec2(0,0), .85,
           sprintf_o("Factors in %s Demand", zoneName[zoneType])));
   }
 
-  vector<Statistic> stats;
+  std::vector<Statistic> stats;
   bool isBiz = zoneType != ResidentialZone && zoneType != ParkZone;
 
   if (zoneType == ResidentialZone || zoneType == MixedUseZone) {
@@ -532,15 +532,15 @@ void zoneInstructionPanel(Part* panel) {
   float y = 0;
   float xSize = width-1;
   item timePeriod = TimePeriods::Period5Y;
-  Part* statsPanel = scrollbox(vec2(0,0), vec2(width, height));
+  Part* statsPanel = scrollbox(glm::vec2(0,0), glm::vec2(width, height));
 
-  r(statsPanel, multiline(vec2(0,0), vec2(xSize, 0.75f),
+  r(statsPanel, multiline(glm::vec2(0,0), glm::vec2(xSize, 0.75f),
         strdup_s(zoneDemandHint[zoneType]), &y));
 
   for (int i = 0; i < stats.size(); i++) {
     item statItem = stats[i]*10 + timePeriod;
 
-    Part* pin = r(statsPanel, button(vec2(xSize-1, y),
+    Part* pin = r(statsPanel, button(glm::vec2(xSize-1, y),
           iconPin, toggleChartMessage));
     pin->dim.start.z += 15;
     pin->dim.end.z += 15;
@@ -550,7 +550,7 @@ void zoneInstructionPanel(Part* panel) {
       pin->flags |= _partHighlight;
     }
 
-    Part* chrt = chart(vec2(0,y), vec2(xSize, scl),
+    Part* chrt = chart(glm::vec2(0,y), glm::vec2(xSize, scl),
       ourCityEconNdx(), stats[i], timePeriod, true, true);
     chrt->onClick = selectChart;
     chrt->itemData = statItem;
@@ -560,14 +560,14 @@ void zoneInstructionPanel(Part* panel) {
   }
 
   float dy;
-  r(statsPanel, multiline(vec2(0,y), vec2(xSize, 0.75f), sprintf_o(
+  r(statsPanel, multiline(glm::vec2(0,y), glm::vec2(xSize, 0.75f), sprintf_o(
       "Note: People will not travel more than %d hours for work."
       " Find traffic problems using the Traffic view.",
       int(c(CMaxCommute))), &dy));
   y += dy;
 
-  r(panel, scrollboxFrame(vec2(0,1),
-      vec2(width, height), &statsScroll, statsPanel));
+  r(panel, scrollboxFrame(glm::vec2(0,1),
+      glm::vec2(width, height), &statsScroll, statsPanel));
 }
 
 std::string zone_name() {

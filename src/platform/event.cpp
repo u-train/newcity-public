@@ -1,14 +1,14 @@
 #include "event.hpp"
 
 #include "../item.hpp"
+#include "../error.hpp"
 
 #include "lua.hpp"
 
 #include "spdlog/spdlog.h"
 #include <vector>
-using namespace std;
 
-vector<vector<int>> eventHandlers;
+std::vector<std::vector<int>> eventHandlers;
 
 const char* eventNames[numEvents] = {
   #define EVENT(N) #N,

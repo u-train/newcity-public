@@ -1,42 +1,35 @@
 #include "camera.hpp"
 
+#include "../building/building.hpp"
+#include "../building/design.hpp"
 #include "../console/conDisplay.hpp"
 #include "../error.hpp"
 #include "../game/game.hpp"
-#include "../building/building.hpp"
-#include "../building/design.hpp"
 #include "../heatmap.hpp"
 #include "../input.hpp"
 #include "../land.hpp"
-#include "../option.hpp"
 #include "../parts/part.hpp"
-#include "../parts/toolbar.hpp"
-#include "../person.hpp"
-#include "../string.hpp"
 #include "../selection.hpp"
-#include "../serialize.hpp"
-#include "../string_proxy.hpp"
 #include "../time.hpp"
 #include "../tutorial.hpp"
 #include "../util.hpp"
 #include "../weather.hpp"
 
-#include "buffer.hpp"
 #include "entity.hpp"
 #include "framebuffer.hpp"
-#include "shader.hpp"
 #include "image.hpp"
+#include "shader.hpp"
 
 #include "spdlog/spdlog.h"
-#include <stdio.h>
 #include <algorithm>
-#include <unordered_map>
+#include <glm/glm.hpp>
 #include <glm/gtx/rotate_vector.hpp>
-
+#include <stdio.h>
+#include "../game/constants.hpp"
 #ifdef _WIN32
-  #define GLFW_EXPOSE_NATIVE_WIN32
-  #define GLFW_EXPOSE_NATIVE_WGL
-  #include "glfw3native.h"
+#define GLFW_EXPOSE_NATIVE_WIN32
+#define GLFW_EXPOSE_NATIVE_WGL
+#include "glfw3native.h"
 #endif
 
 const float shadowMapSize = 2048;
@@ -50,15 +43,15 @@ static float resDistMultTarget = 1;
 static bool freezeCamera = true;
 static float fov = 0;
 static float fovBias = 0;
-static vec2 trackPos;
+static glm::vec2 trackPos;
 static bool trackingMouse = false;
-static vec2 lastCursor;
+static glm::vec2 lastCursor;
 static bool cameraClassicRMB = false;
 static bool cameraEdgeScrolling = false;
 static int windowFocus = GLFW_FALSE;
 static item msaaSamples = 4;
 
-const GLFWvidmode* nativeVideoMode;
+const GLFWvidmode *nativeVideoMode;
 WindowMode nextWindowMode = Fullscreen;
 WindowMode nextWindowModeBack = Fullscreen;
 WindowMode currentWindowMode = Fullscreen;
@@ -82,50 +75,59 @@ Camera mapCameraBack;
 Camera captureCamera;
 Camera captureCameraBack;
 
-GLFWwindow* window;
+GLFWwindow *window;
 
 std::unordered_map<GLuint, unsigned char> debugCallbackCount;
 
 void setWindowState();
 
 #ifndef _WIN32
-__attribute__((stdcall)) void debugCallback(
-    GLenum source, GLenum type, GLuint id, GLenum severity,
-    GLsizei length, const GLchar *msg, const void *data ) {
+__attribute__((stdcall)) void debugCallback(GLenum source, GLenum type,
+                                            GLuint id, GLenum severity,
+                                            GLsizei length, const GLchar *msg,
+                                            const void *data) {
 
   char count = debugCallbackCount[id];
   if (count >= 4) {
     return;
   }
-  debugCallbackCount[id] = count+1;
+  debugCallbackCount[id] = count + 1;
 
-  SPDLOG_INFO("GL Debug call: s:{} t:{} i:{} {} {} {}",
-      source, type, id, severity, length, msg);
+  SPDLOG_INFO("GL Debug call: s:{} t:{} i:{} {} {} {}", source, type, id,
+              severity, length, msg);
   logStacktrace();
 
   switch (id) {
-    //case 131218: return; //NVIDIA warns about shader recompilation
-    case 131185: return; //NVIDIA says it'll use video memory
-    default: break;
+  // case 131218: return; //NVIDIA warns about shader recompilation
+  case 131185:
+    return; // NVIDIA says it'll use video memory
+  default:
+    break;
   }
 
-  //if (severity != GL_DEBUG_SEVERITY_NOTIFICATION) {
+  // if (severity != GL_DEBUG_SEVERITY_NOTIFICATION) {
 }
 
 #endif
 
 void checkOpenGLError() {
   GLenum errorCode = glGetError();
-  const GLubyte* errorString = 0;
+  const GLubyte *errorString = 0;
   int i = 0;
   // GL error code should be checked in a loop until it returns GL_NO_ERROR
   while (errorCode != GL_NO_ERROR) {
     errorString = gluErrorString(errorCode);
-    SPDLOG_ERROR("OpenGL error {} reported ({}/{}): {}", errorCode, i, maxGLErrorDepth, errorString != NULL ? errorString : (const GLubyte*)"Unknown error string" );
+    SPDLOG_ERROR("OpenGL error {} reported ({}/{}): {}", errorCode, i,
+                 maxGLErrorDepth,
+                 errorString != NULL ? errorString
+                                     : (const GLubyte *)"Unknown error string");
 
-    // At max depth const for error depth, break out of loop and mark in log appropriately
+    // At max depth const for error depth, break out of loop and mark in log
+    // appropriately
     if (i >= maxGLErrorDepth) {
-      SPDLOG_ERROR("FATAL ERROR: Max depth for OpenGL errors reached ({}/{}), breaking out of GL error checking!", i, maxGLErrorDepth);
+      SPDLOG_ERROR("FATAL ERROR: Max depth for OpenGL errors reached ({}/{}), "
+                   "breaking out of GL error checking!",
+                   i, maxGLErrorDepth);
       logStacktrace();
       return;
     }
@@ -136,28 +138,19 @@ void checkOpenGLError() {
   }
 }
 
-bool getCameraClassicRMB() {
-  return cameraClassicRMB;
-}
+bool getCameraClassicRMB() { return cameraClassicRMB; }
 
-void setCameraClassicRMB(bool val) {
-  cameraClassicRMB = val;
-}
+void setCameraClassicRMB(bool val) { cameraClassicRMB = val; }
 
-bool getCameraEdgeScrolling() {
-  return cameraEdgeScrolling;
-}
+bool getCameraEdgeScrolling() { return cameraEdgeScrolling; }
 
-void setCameraEdgeScrolling(bool val) {
-  cameraEdgeScrolling = val;
-}
+void setCameraEdgeScrolling(bool val) { cameraEdgeScrolling = val; }
 
-item getMsaaSamples() {
-  return msaaSamples;
-}
+item getMsaaSamples() { return msaaSamples; }
 
 void setMsaaSamples(item samples) {
-  if (samples <= 0 || samples > 16) return;
+  if (samples <= 0 || samples > 16)
+    return;
   msaaSamples = samples;
 }
 
@@ -166,7 +159,7 @@ double getCameraTargetZ(Camera cam) {
     return cam.target.z;
   } else {
     return std::max(0., double(pointOnLand(cam.target).z)) +
-      std::min(cam.distance * 0.1, 1000.);
+           std::min(cam.distance * 0.1, 1000.);
   }
 }
 
@@ -176,19 +169,19 @@ void resetCamera() {
 
   if (gameMode == ModeBuildingDesigner) {
     camera.distance = 150.0f;
-    float c = tileSize*getMapTiles()/2;
-    camera.target = vec3(tileSize*6, c+tileSize*.5f, 0);
-    camera.yaw = pi_o*3/4;
+    float c = tileSize * getMapTiles() / 2;
+    camera.target = glm::vec3(tileSize * 6, c + tileSize * .5f, 0);
+    camera.yaw = pi_o * 3 / 4;
 
   } else if (gameMode == ModeDesignOrganizer) {
     camera.distance = 4000.0f;
-    camera.target = vec3(mapSize/2, mapSize/2, 0);
-    camera.yaw = pi_o*5/4;
+    camera.target = glm::vec3(mapSize / 2, mapSize / 2, 0);
+    camera.yaw = pi_o * 5 / 4;
 
   } else {
     camera.distance = 20000.0f;
-    camera.target = vec3(mapSize/2, mapSize/2, 0);
-    camera.yaw = pi_o*3/4;
+    camera.target = glm::vec3(mapSize / 2, mapSize / 2, 0);
+    camera.yaw = pi_o * 3 / 4;
     if (isGameLoaded()) {
       item n = getTallestBuilding();
       if (n > 0) {
@@ -208,16 +201,15 @@ void resetCamera() {
   updateCamera(0);
 }
 
-
 void zoomCamera(float amount) {
-  if(amount < 0.0001f)
+  if (amount < 0.0001f)
     reportTutorialUpdate(TutorialUpdateCode::CameraZoomOut);
-  else if(amount > 0.0001f)
+  else if (amount > 0.0001f)
     reportTutorialUpdate(TutorialUpdateCode::CameraZoomIn);
 
   amount *= cameraTarget.distance;
   cameraTarget.distance -= amount;
-  float maxDist = 20.f*getMapTiles();
+  float maxDist = 20.f * getMapTiles();
   if (cameraTarget.distance < c(CMinCameraDistance)) {
     cameraTarget.distance = c(CMinCameraDistance);
   } else if (cameraTarget.distance > maxDist) {
@@ -231,99 +223,88 @@ void scrollCamera(InputEvent event) {
   }
 }
 
-void setWindowSize(GLFWwindow* window, int width, int height) {
-  SPDLOG_INFO("Window resized to {}x{} (Aspect Ratio: {})",
-      width, height, width*1.0/height);
-  //glfwSetWindowSize(window, width, height);
+void setWindowSize(GLFWwindow *window, int width, int height) {
+  SPDLOG_INFO("Window resized to {}x{} (Aspect Ratio: {})", width, height,
+              width * 1.0 / height);
+  // glfwSetWindowSize(window, width, height);
 }
 
-WindowMode getWindowMode() {
-  return nextWindowMode;
-}
+WindowMode getWindowMode() { return nextWindowMode; }
 
-void setWindowMode(WindowMode mode) {
-  nextWindowMode = mode;
-}
+void setWindowMode(WindowMode mode) { nextWindowMode = mode; }
 
 Plane::Plane() {
-    pt = vec3(0.0f, 0.0f, 0.0f);
-    norm = vec3(0.0f, 0.0f, 0.0f);
-    D = 0.0f;
-  }
+  pt = glm::vec3(0.0f, 0.0f, 0.0f);
+  norm = glm::vec3(0.0f, 0.0f, 0.0f);
+  D = 0.0f;
+}
 
-Plane::Plane(vec3 p, vec3 n) {
+Plane::Plane(glm::vec3 p, glm::vec3 n) {
   pt = p;
   norm = n;
   D = -dot(norm, pt);
 }
 
-void computeCameraMatricies(Camera* camera, vec3 mirror, float angle,
-    bool doOrtho) {
+void computeCameraMatricies(Camera *camera, glm::vec3 mirror, float angle,
+                            bool doOrtho) {
+  using namespace glm;
 
-  dvec3 camDir = -normalize(camera->direction);
-  dvec3 camX = normalize(cross(dvec3(0.0f, 0.0f, 1.0f), camDir));
-  dvec3 camUp = -normalize(cross(camDir, camX));
+  glm::dvec3 camDir = -normalize(camera->direction);
+  glm::dvec3 camX = normalize(cross(glm::dvec3(0.0f, 0.0f, 1.0f), camDir));
+  glm::dvec3 camUp = -normalize(cross(camDir, camX));
   camUp = rotate(camUp, camera->roll, camera->direction);
 
-  //dvec3 up = camera->direction + dvec3(0,0,1);
+  // glm::dvec3 up = camera->direction + glm::dvec3(0,0,1);
   double effectiveDistance = camera->distance;
   if (fov <= 0) {
     doOrtho = true;
   } else if (!doOrtho) {
-    effectiveDistance = camera->distance / fov * (2/3.f);
+    effectiveDistance = camera->distance / fov * (2 / 3.f);
   }
 
-  camera->position = camera->target -
-    dvec3(camera->direction)*effectiveDistance;
+  camera->position =
+      camera->target - glm::dvec3(camera->direction) * effectiveDistance;
   camera->ray = line(camera->position, camera->target);
-  float aspectFactor = camera->aspectRatio/std::min(0.5, cos(camera->pitch));
+  float aspectFactor = camera->aspectRatio / std::min(0.5, cos(camera->pitch));
 
-  camera->view = lookAt(
-    camera->position,
-    camera->target,
-    -camUp
-  );
+  camera->view = lookAt(camera->position, camera->target, -camUp);
 
   float camNearDist = 0.0f;
   float camFarDist = 0.0f;
 
   if (doOrtho) {
-    float planeDist = (effectiveDistance + camera->target.z)*aspectFactor;
+    float planeDist = (effectiveDistance + camera->target.z) * aspectFactor;
     camNearDist = float(-planeDist * 2);
-    camFarDist = float(planeDist*aspectFactor);
+    camFarDist = float(planeDist * aspectFactor);
     camera->projection = scale(
-      ortho(
-        -camera->projSize.x, camera->projSize.x,
-        -camera->projSize.y, camera->projSize.y,
-        camNearDist,
-        camFarDist
-      ), mirror);
+        glm::ortho(-camera->projSize.x, camera->projSize.x, -camera->projSize.y,
+                   camera->projSize.y, camNearDist, camFarDist),
+        mirror);
 
   } else {
-    camNearDist = std::max(float(effectiveDistance*.1), 5.f);
-    camFarDist = std::max(float(effectiveDistance*20.f), 20000.f);
-    camera->projection = scale( perspective(pi_o*fov, // FoV in radians
-        camera->aspectRatio,
-        camNearDist,
-        camFarDist
-    ), mirror);
+    camNearDist = std::max(float(effectiveDistance * .1), 5.f);
+    camFarDist = std::max(float(effectiveDistance * 20.f), 20000.f);
+    camera->projection = glm::scale(
+        glm::perspective(pi_o * fov, // FoV in radians
+                         camera->aspectRatio, camNearDist, camFarDist),
+        mirror);
   }
 
   // Calculate view frustum
   float aspectRatio = getAspectRatio();
-  Frustum* frustum = &camera->viewFrustum;
-  vec3 camPos = camera->position;
-  //vec3 camDir = -normalize(camera->direction);
-  //vec3 camX = normalize(cross(vec3(0.0f, 0.0f, 1.0f), camDir));
-  //vec3 camUp = -normalize(cross(camDir, camX));
+  Frustum *frustum = &camera->viewFrustum;
+  glm::vec3 camPos = camera->position;
+  // vec3 camDir = -normalize(camera->direction);
+  // vec3 camX = normalize(cross(glm::vec3(0.0f, 0.0f, 1.0f), camDir));
+  // vec3 camUp = -normalize(cross(camDir, camX));
   float hNear = 0.0f;
   float wNear = 0.0f;
   float hFar = 0.0f;
   float wFar = 0.0f;
 
   // Temp vars for calculating frustum plane normals
-  vec3 normal, normDir;
-  vec3 cNear, cFar, cTop, cRight, cBottom, cLeft;
+  glm::vec3 normal, normDir;
+  glm::vec3 cNear, cFar, cTop, cRight, cBottom, cLeft;
 
   if (doOrtho) {
     hNear = effectiveDistance;
@@ -331,48 +312,48 @@ void computeCameraMatricies(Camera* camera, vec3 mirror, float angle,
 
   } else {
     float fovRad = fov * pi_o;
-    float fovTan = 2 * tan(fovRad*.5f);
+    float fovTan = 2 * tan(fovRad * .5f);
     hNear = fovTan * camNearDist;
     hFar = fovTan * camFarDist;
-    //SPDLOG_INFO("fov {} fovRad {} fovTan {} hNear {} hFar {}",
-     //   fov, fovRad, fovTan, hNear, hFar);
+    // SPDLOG_INFO("fov {} fovRad {} fovTan {} hNear {} hFar {}",
+    //    fov, fovRad, fovTan, hNear, hFar);
   }
 
   wNear = hNear * aspectRatio;
   wFar = hFar * aspectRatio;
 
   // Near plane
-  cNear = camPos + (vec3(camDir) * camNearDist);
+  cNear = camPos + (glm::vec3(camDir) * camNearDist);
   camera->viewFrustum.planes[FrustumPlanes::NEARP] =
-    Plane(cNear, doOrtho ? vec3(camDir) : -vec3(camDir));
+      Plane(cNear, doOrtho ? glm::vec3(camDir) : -glm::vec3(camDir));
 
   // Far plane
-  cFar = camPos + (vec3(camDir) * camFarDist);
+  cFar = camPos + (glm::vec3(camDir) * camFarDist);
   camera->viewFrustum.planes[FrustumPlanes::FARP] =
-    Plane(cFar, doOrtho ? -vec3(camDir) : -vec3(camDir));
+      Plane(cFar, doOrtho ? -glm::vec3(camDir) : -glm::vec3(camDir));
 
   // Top Plane
-  cTop = cFar + (vec3(camUp) * hFar);
+  cTop = cFar + (glm::vec3(camUp) * hFar);
   normDir = normalize(cTop - camPos);
-  normal = doOrtho ? -vec3(camUp) : -cross(normDir, vec3(camX));
+  normal = doOrtho ? -glm::vec3(camUp) : -glm::cross(normDir, glm::vec3(camX));
   camera->viewFrustum.planes[FrustumPlanes::TOP] = Plane(cTop, normal);
 
   // Right Plane
-  cRight = cFar + (vec3(camX) * wFar);
+  cRight = cFar + (glm::vec3(camX) * wFar);
   normDir = normalize(cRight - camPos);
-  normal = doOrtho ? -vec3(camX) : -cross(vec3(camUp), normDir);
+  normal = doOrtho ? -glm::vec3(camX) : -cross(glm::vec3(camUp), normDir);
   camera->viewFrustum.planes[FrustumPlanes::RIGHT] = Plane(cRight, normal);
 
   // Bottom Plane
-  cBottom = cFar - (vec3(camUp) * hFar);
+  cBottom = cFar - (glm::vec3(camUp) * hFar);
   normDir = normalize(cBottom - camPos);
-  normal = doOrtho ? vec3(camUp) : -cross(vec3(camX), normDir);
+  normal = doOrtho ? glm::vec3(camUp) : -cross(glm::vec3(camX), normDir);
   camera->viewFrustum.planes[FrustumPlanes::BOTTOM] = Plane(cBottom, normal);
 
   // Left Plane
-  cLeft = cFar - (vec3(camX) * wFar);
+  cLeft = cFar - (glm::vec3(camX) * wFar);
   normDir = normalize(cLeft - camPos);
-  normal = doOrtho ? vec3(camX) : -cross(normDir, vec3(camUp));
+  normal = doOrtho ? glm::vec3(camX) : -cross(normDir, glm::vec3(camUp));
   camera->viewFrustum.planes[FrustumPlanes::LEFT] = Plane(cLeft, normal);
 
   frustum->nearDist = camNearDist;
@@ -382,49 +363,51 @@ void computeCameraMatricies(Camera* camera, vec3 mirror, float angle,
   frustum->farH = hFar;
   frustum->farW = wFar;
 
-  //if (angle != 0) {
-    //camera->projection = rotate(camera->projection,
-        //angle, vec3(0,0,1));
+  // if (angle != 0) {
+  // camera->projection = rotate(camera->projection,
+  // angle, glm::vec3(0,0,1));
   //}
 
   camera->viewProjection = camera->projection * camera->view;
-  //camera->viewProjection = camera->view * camera->projection;
+  // camera->viewProjection = camera->view * camera->projection;
   if (c(CMeshQuality) <= 0) {
     camera->resolutionDistance = 50000;
   } else {
-    camera->resolutionDistance = clamp(camera->distance *
-        pow(aspectFactor,.5) * resolutionDistanceMult / c(CMeshQuality),
-      0.1, 50000.);
+    camera->resolutionDistance =
+        glm::clamp(camera->distance * pow(aspectFactor, .5) *
+                  resolutionDistanceMult / c(CMeshQuality),
+              0.1, 50000.);
   }
 
-  vec3 nearPoint = camera->target;
-  vec3 farPoint = camera->target + normalize(camera->direction);
-  vec4 nearPointVP = camera->viewProjection * vec4(nearPoint, 1);
-  vec4 farPointVP = camera->viewProjection * vec4(farPoint, 1);
+  glm::vec3 nearPoint = camera->target;
+  glm::vec3 farPoint = camera->target + normalize(camera->direction);
+  glm::vec4 nearPointVP = camera->viewProjection * glm::vec4(nearPoint, 1);
+  glm::vec4 farPointVP = camera->viewProjection * glm::vec4(farPoint, 1);
   nearPointVP /= nearPointVP.w;
   farPointVP /= farPointVP.w;
-  float dist = farPointVP.z-nearPointVP.z;
+  float dist = farPointVP.z - nearPointVP.z;
   camera->distanceFactor = 1 / (getMeshQuality() * dist);
 }
 
-void computeCameraMatricies(Camera* camera, vec3 mirror, bool ortho) {
+void computeCameraMatricies(Camera *camera, glm::vec3 mirror, bool ortho) {
   computeCameraMatricies(camera, mirror, 0, ortho);
 }
 
 void setShadowCam() {
   Camera reference = getCurrentCamera_g();
-  float aspectFactor = reference.aspectRatio /
-    std::min(0.5, cos(reference.pitch));
+  float aspectFactor =
+      reference.aspectRatio / std::min(0.5, cos(reference.pitch));
 
   shadowCamera = reference;
   shadowCamera.direction = -reference.light.direction;
-  //shadowCamera.target.z += shadowCamera.distance*.02f;
-  if (fov > 0) shadowCamera.distance *= 2 + getFOV();
+  // shadowCamera.target.z += shadowCamera.distance*.02f;
+  if (fov > 0)
+    shadowCamera.distance *= 2 + getFOV();
 
-  dvec3 a = normalize(reference.direction);
-  dvec3 b = normalize(shadowCamera.direction);
+  glm::dvec3 a = normalize(reference.direction);
+  glm::dvec3 b = normalize(shadowCamera.direction);
   float shadowAngle = atan2(b.y, b.x) - atan2(a.y, a.x);
-  float xSkew = sin(-shadowAngle*2.f) *.5f;
+  float xSkew = sin(-shadowAngle * 2.f) * .5f;
   float ySkew = xSkew * .5f;
 
   // This math is super ad-hoc
@@ -432,37 +415,32 @@ void setShadowCam() {
   shadowCamera.projSize.y *= aspectFactor * .25f;
   shadowCamera.projSize *= 3 - abs(sin(shadowAngle));
 
-  //SPDLOG_INFO("shadowCamera");
-  computeCameraMatricies(&shadowCamera, vec3(1, 1, 1), shadowAngle, true);
+  // SPDLOG_INFO("shadowCamera");
+  computeCameraMatricies(&shadowCamera, glm::vec3(1, 1, 1), shadowAngle, true);
 
   // De-skew the rotated shadow map
-  mat4 skew(
-    1.0       , xSkew,      0.0, 0.0,
-    ySkew     , 1.0,        0.0, 0.0,
-    0.0       , 0.0,        1.0, 0.0,
-    0.0       , 0.0,        0.0, 1.0
-  );
+  glm::mat4 skew(1.0, xSkew, 0.0, 0.0, ySkew, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0,
+            0.0, 0.0, 1.0);
   shadowCamera.viewProjection = skew * shadowCamera.viewProjection;
 }
 
 void positionCamera() {
   int iscreenWidth, iscreenHeight;
-  glfwGetFramebufferSize(window,
-      &iscreenWidth, &iscreenHeight);
-  camera.window = vec2(iscreenWidth, iscreenHeight);
+  glfwGetFramebufferSize(window, &iscreenWidth, &iscreenHeight);
+  camera.window = glm::vec2(iscreenWidth, iscreenHeight);
   camera.aspectRatio = camera.window.x / camera.window.y;
-  camera.projSize = vec2(
-      camera.aspectRatio * camera.distance,
-      camera.distance);
+  camera.projSize =
+      glm::vec2(camera.aspectRatio * camera.distance, camera.distance);
 
-  float aspectFactor = camera.aspectRatio/std::min(0.5, cos(camera.pitch));
+  float aspectFactor = camera.aspectRatio / std::min(0.5, cos(camera.pitch));
   float dist = camera.distance;
   if (dist < 100) {
     dist = 100;
   }
   float cameraSize = dist; //*aspectFactor;
   camera.size = cameraSize;
-  camera.invProjSize = vec2(1.f/camera.projSize.x, 1.f/camera.projSize.y);
+  camera.invProjSize =
+      glm::vec2(1.f / camera.projSize.x, 1.f / camera.projSize.y);
 
   if (fov > 0) {
     fovBias = 0.3 * pow(fov, -0.778);
@@ -472,18 +450,15 @@ void positionCamera() {
 
   float vertCos = cos(camera.pitch);
   float vertSin = sin(camera.pitch);
-  camera.direction = -normalize(vec3(
-    cos(camera.yaw) * vertSin,
-    sin(camera.yaw) * vertSin,
-    vertCos
-  ));
+  camera.direction = -normalize(
+      glm::vec3(cos(camera.yaw) * vertSin, sin(camera.yaw) * vertSin, vertCos));
 
-  // Calculate up and right vectors for camera
-  dvec3 rawUp = vec3(0.0f, 1.0f, 0.0f);
+  // Calculate up and right std::vectors for camera
+  glm::dvec3 rawUp = glm::vec3(0.0f, 1.0f, 0.0f);
   camera.right = cross(rawUp, camera.direction);
   camera.up = cross(camera.direction, camera.right);
 
-  uiCamera.target = vec3(0,0,0);
+  uiCamera.target = glm::vec3(0, 0, 0);
   uiCamera.window = camera.window;
   uiCamera.size = 1000000;
   uiCamera.distance = 100000;
@@ -491,80 +466,68 @@ void positionCamera() {
 
   float xSize = uiGridSizeX * uiCamera.aspectRatio;
   float ySize = uiGridSizeY;
-  uiCamera.projection = ortho(
-    0.f, xSize,
-    ySize, 0.f,
-    -100.f, 100.f
-  );
+  uiCamera.projection = glm::ortho(0.f, xSize, ySize, 0.f, -100.f, 100.f);
 
-  uiCamera.view = mat4(1.0);
+  uiCamera.view = glm::mat4(1.0);
   uiCamera.viewProjection = uiCamera.projection * uiCamera.view;
 
   weatherCamera = camera;
-  weatherCamera.target = vec3(0,0,0);
+  weatherCamera.target = glm::vec3(0, 0, 0);
   weatherCamera.distance = 400;
   weatherCamera.size = 1000000;
-  weatherCamera.projSize = vec2(
-      weatherCamera.aspectRatio * weatherCamera.distance,
-      weatherCamera.distance);
+  weatherCamera.projSize =
+      glm::vec2(weatherCamera.aspectRatio * weatherCamera.distance,
+                weatherCamera.distance);
   vertCos = cos(weatherCamera.pitch);
   vertSin = sin(weatherCamera.pitch);
-  weatherCamera.direction = -normalize(vec3(
-    cos(weatherCamera.yaw) * vertSin,
-    sin(weatherCamera.yaw) * vertSin,
-    vertCos
-  ));
+  weatherCamera.direction =
+      -normalize(glm::vec3(cos(weatherCamera.yaw) * vertSin,
+                           sin(weatherCamera.yaw) * vertSin, vertCos));
 
   skyboxCamera = camera;
-  //skyboxCamera.pitch = mix(camera.pitch, (double)c(CMaxPitch), 0.9);
-  skyboxCamera.target = vec3(0,0,0);
+  // skyboxCamera.pitch = glm::mix(camera.pitch, (double)c(CMaxPitch), 0.9);
+  skyboxCamera.target = glm::vec3(0, 0, 0);
   skyboxCamera.distance = 500;
   skyboxCamera.size = 1000000;
-  skyboxCamera.projSize = vec2(
-      skyboxCamera.aspectRatio * skyboxCamera.distance,
-      skyboxCamera.distance);
+  skyboxCamera.projSize = glm::vec2(
+      skyboxCamera.aspectRatio * skyboxCamera.distance, skyboxCamera.distance);
   vertCos = cos(skyboxCamera.pitch);
   vertSin = sin(skyboxCamera.pitch);
-  skyboxCamera.direction = -normalize(vec3(
-    cos(skyboxCamera.yaw) * vertSin,
-    sin(skyboxCamera.yaw) * vertSin,
-    vertCos
-  ));
+  skyboxCamera.direction =
+      -normalize(glm::vec3(cos(skyboxCamera.yaw) * vertSin,
+                           sin(skyboxCamera.yaw) * vertSin, vertCos));
 
   float mapSize = getMapSize();
   mapCamera = camera;
-  mapCamera.distance = mapSize/2;
+  mapCamera.distance = mapSize / 2;
   mapCamera.size = mapCamera.distance;
-  mapCamera.target = vec3(mapSize/2, mapSize/2, 0);
+  mapCamera.target = glm::vec3(mapSize / 2, mapSize / 2, 0);
   mapCamera.pitch = 0.0001;
   mapCamera.yaw = 0;
-  mapCamera.projSize = vec2(mapCamera.distance, mapCamera.distance);
-  mapCamera.window = vec2(c(CSatMapResolution), c(CSatMapResolution));
-  mapCamera.light.color = vec3(1,1,1);
-  mapCamera.light.direction = vec3(0,0,1);
+  mapCamera.projSize = glm::vec2(mapCamera.distance, mapCamera.distance);
+  mapCamera.window = glm::vec2(c(CSatMapResolution), c(CSatMapResolution));
+  mapCamera.light.color = glm::vec3(1, 1, 1);
+  mapCamera.light.direction = glm::vec3(0, 0, 1);
   vertCos = cos(mapCamera.pitch);
   vertSin = sin(mapCamera.pitch);
-  mapCamera.direction = -normalize(vec3(
-    cos(mapCamera.yaw) * vertSin,
-    sin(mapCamera.yaw) * vertSin,
-    vertCos
-  ));
+  mapCamera.direction = -normalize(glm::vec3(
+      cos(mapCamera.yaw) * vertSin, sin(mapCamera.yaw) * vertSin, vertCos));
 
   captureCamera = camera;
   captureCamera.distance = 400;
   captureCamera.size = captureCamera.distance;
 
-  captureCamera.target = vec3(mapSize/2, mapSize/2, 0);
-  captureCamera.yaw = pi_o*3/4;
+  captureCamera.target = glm::vec3(mapSize / 2, mapSize / 2, 0);
+  captureCamera.yaw = pi_o * 3 / 4;
   if (isGameLoaded()) {
     item n = getTallestBuilding();
     if (n > 0) {
       captureCamera.target = getBuildingTop(n);
-      vec3 designSize = getDesign(getBuilding(n)->design)->size;
-      captureCamera.target.z -= designSize.z*.5f;
+      glm::vec3 designSize = getDesign(getBuilding(n)->design)->size;
+      captureCamera.target.z -= designSize.z * .5f;
       if (getGameMode() == ModeBuildingDesigner) {
-        float dim = std::max(designSize.x,
-            std::max(designSize.y, designSize.z));
+        float dim =
+            std::max(designSize.x, std::max(designSize.y, designSize.z));
         dim *= 0.6f;
         dim += 20;
         captureCamera.distance = dim;
@@ -576,34 +539,32 @@ void positionCamera() {
 
   captureCamera.pitch = c(CPitchClassic);
   captureCamera.window = getCaptureDimensions();
-  float aspectRatio = captureCamera.window.x/captureCamera.window.y;
-  captureCamera.projSize = vec2(captureCamera.distance,
-      captureCamera.distance/aspectRatio);
+  float aspectRatio = captureCamera.window.x / captureCamera.window.y;
+  captureCamera.projSize =
+      glm::vec2(captureCamera.distance, captureCamera.distance / aspectRatio);
   vertCos = cos(captureCamera.pitch);
   vertSin = sin(captureCamera.pitch);
-  captureCamera.direction = -normalize(vec3(
-    cos(captureCamera.yaw) * vertSin,
-    sin(captureCamera.yaw) * vertSin,
-    vertCos
-  ));
+  captureCamera.direction =
+      -normalize(glm::vec3(cos(captureCamera.yaw) * vertSin,
+                           sin(captureCamera.yaw) * vertSin, vertCos));
 
-  //SPDLOG_INFO("main camera");
-  computeCameraMatricies(&camera, vec3(-1, 1, 1), false);
-  //SPDLOG_INFO("weatherCamera");
-  computeCameraMatricies(&weatherCamera, vec3(-1, 1, 1), false);
-  //SPDLOG_INFO("mapCamera");
-  computeCameraMatricies(&mapCamera, vec3(-1, 1, 1), true);
-  //SPDLOG_INFO("captureCamera");
-  computeCameraMatricies(&captureCamera, vec3(-1, 1, 1), true);
-  //SPDLOG_INFO("skyboxCamera");
-  computeCameraMatricies(&skyboxCamera, vec3(-1, 1, 1), false);
+  // SPDLOG_INFO("main camera");
+  computeCameraMatricies(&camera, glm::vec3(-1, 1, 1), false);
+  // SPDLOG_INFO("weatherCamera");
+  computeCameraMatricies(&weatherCamera, glm::vec3(-1, 1, 1), false);
+  // SPDLOG_INFO("mapCamera");
+  computeCameraMatricies(&mapCamera, glm::vec3(-1, 1, 1), true);
+  // SPDLOG_INFO("captureCamera");
+  computeCameraMatricies(&captureCamera, glm::vec3(-1, 1, 1), true);
+  // SPDLOG_INFO("skyboxCamera");
+  computeCameraMatricies(&skyboxCamera, glm::vec3(-1, 1, 1), false);
   camera.light.cameraSpace =
-    normalize(vec3(camera.view * vec4(camera.light.direction,0)));
+      normalize(glm::vec3(camera.view * glm::vec4(camera.light.direction, 0)));
 
-  mapCamera.light.cameraSpace =
-    normalize(vec3(mapCamera.view * vec4(mapCamera.light.direction,0)));
-  captureCamera.light.cameraSpace = normalize(vec3(captureCamera.view *
-          vec4(captureCamera.light.direction,0)));
+  mapCamera.light.cameraSpace = normalize(
+      glm::vec3(mapCamera.view * glm::vec4(mapCamera.light.direction, 0)));
+  captureCamera.light.cameraSpace = normalize(glm::vec3(
+      captureCamera.view * glm::vec4(captureCamera.light.direction, 0)));
 
   setShadowCam();
 }
@@ -614,14 +575,14 @@ void clearColorAndDepth() {
 }
 
 void clearSky() {
-  glClearColor(cameraBack.clearColor.r,
-    cameraBack.clearColor.g, cameraBack.clearColor.b, 0.0f);
+  glClearColor(cameraBack.clearColor.r, cameraBack.clearColor.g,
+               cameraBack.clearColor.b, 0.0f);
 
   /*
   if (isUndergroundView()) {
     if (isHeatMapIntense()) {
       if (getHeatMap() == TrafficHeatMap) {
-        vec3 trafficColor0 = vec3(0.01f, 0.01f, 0.2f);
+        glm::vec3 trafficColor0 = glm::vec3(0.01f, 0.01f, 0.2f);
         glClearColor(0.01f, 0.01f, 0.2f, 0.f);
       } else {
         float lightness = getHeatMap() == TransitHeatMap ? 1. : 0.5;
@@ -643,9 +604,7 @@ void clearSky() {
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 }
 
-void clearDepth() {
-  glClear(GL_DEPTH_BUFFER_BIT);
-}
+void clearDepth() { glClear(GL_DEPTH_BUFFER_BIT); }
 
 void setMainViewport() {
   glViewport(0, 0, cameraBack.window.x, cameraBack.window.y);
@@ -654,14 +613,13 @@ void setMainViewport() {
 void setupShadowCamera(GLuint programID) {
   GLuint shadowMatrixID = glGetUniformLocation(programID, "depthVP");
   glUniformMatrix4fv(shadowMatrixID, 1, GL_FALSE,
-      &shadowCameraBack.viewProjection[0][0]);
+                     &shadowCameraBack.viewProjection[0][0]);
   GLuint viewMatrixID = glGetUniformLocation(programID, "V");
   glUniformMatrix4fv(viewMatrixID, 1, GL_FALSE, &cameraBack.view[0][0]);
   GLuint depthVID = glGetUniformLocation(programID, "depthV");
-  glUniformMatrix4fv(depthVID, 1, GL_FALSE,
-      &shadowCameraBack.view[0][0]);
-  //glDisable(GL_FRAMEBUFFER_SRGB);
-  //glDisable(GL_CULL_FACE);
+  glUniformMatrix4fv(depthVID, 1, GL_FALSE, &shadowCameraBack.view[0][0]);
+  // glDisable(GL_FRAMEBUFFER_SRGB);
+  // glDisable(GL_CULL_FACE);
   glEnable(GL_CULL_FACE);
   glCullFace(GL_BACK);
   glEnable(GL_DEPTH_TEST);
@@ -670,8 +628,8 @@ void setupShadowCamera(GLuint programID) {
 void setupLightingCamera(GLuint programID) {
   GLuint lightingMatrixID = glGetUniformLocation(programID, "lightingVP");
   glUniformMatrix4fv(lightingMatrixID, 1, GL_FALSE,
-      &cameraBack.viewProjection[0][0]);
-  //glDisable(GL_FRAMEBUFFER_SRGB);
+                     &cameraBack.viewProjection[0][0]);
+  // glDisable(GL_FRAMEBUFFER_SRGB);
   glDisable(GL_CULL_FACE);
   glEnable(GL_DEPTH_TEST);
 }
@@ -683,10 +641,10 @@ void setupWeatherCamera(GLuint programID) {
 
   glUniformMatrix4fv(viewMatrixID, 1, GL_FALSE, &weatherCameraBack.view[0][0]);
   glUniformMatrix4fv(vpMatrixID, 1, GL_FALSE,
-      &weatherCameraBack.viewProjection[0][0]);
-  glUniform3fv(lightColorID, 1, (const GLfloat*) &cameraBack.light.color);
+                     &weatherCameraBack.viewProjection[0][0]);
+  glUniform3fv(lightColorID, 1, (const GLfloat *)&cameraBack.light.color);
 
-  //glEnable(GL_FRAMEBUFFER_SRGB);
+  // glEnable(GL_FRAMEBUFFER_SRGB);
   glEnable(GL_CULL_FACE);
   glCullFace(GL_BACK);
   glDisable(GL_DEPTH_TEST);
@@ -700,10 +658,10 @@ void setupSkyboxCamera(GLuint programID) {
 
   glUniformMatrix4fv(viewMatrixID, 1, GL_FALSE, &skyboxCameraBack.view[0][0]);
   glUniformMatrix4fv(vpMatrixID, 1, GL_FALSE,
-      &skyboxCameraBack.viewProjection[0][0]);
-  glUniform3fv(lightColorID, 1, (const GLfloat*) &cameraBack.light.color);
+                     &skyboxCameraBack.viewProjection[0][0]);
+  glUniform3fv(lightColorID, 1, (const GLfloat *)&cameraBack.light.color);
 
-  //glEnable(GL_FRAMEBUFFER_SRGB);
+  // glEnable(GL_FRAMEBUFFER_SRGB);
   glEnable(GL_CULL_FACE);
   glCullFace(GL_BACK);
   glDisable(GL_DEPTH_TEST);
@@ -712,25 +670,21 @@ void setupSkyboxCamera(GLuint programID) {
 void setupMainCamera(GLuint programID) {
   Camera myCam = getCurrentCamera_r();
 
-  mat4 biasMatrix(
-    0.5, 0.0, 0.0, 0.0,
-    0.0, 0.5, 0.0, 0.0,
-    0.0, 0.0, 0.5, 0.0,
-    0.5, 0.5, 0.5, 1.0
-  );
-  mat4 depthBiasVP = getPerspective_r() == SatMapPerspective ? mat4(1) :
-    biasMatrix*shadowCameraBack.viewProjection;
-  mat4 lightingBiasVP = biasMatrix*myCam.viewProjection;
+  glm::mat4 biasMatrix(0.5, 0.0, 0.0, 0.0, 0.0, 0.5, 0.0, 0.0, 0.0, 0.0, 0.5,
+                       0.0, 0.5, 0.5, 0.5, 1.0);
+  glm::mat4 depthBiasVP = getPerspective_r() == SatMapPerspective
+                              ? glm::mat4(1)
+                              : biasMatrix * shadowCameraBack.viewProjection;
+  glm::mat4 lightingBiasVP = biasMatrix * myCam.viewProjection;
 
   GLuint viewMatrixID = glGetUniformLocation(programID, "V");
   GLuint vpMatrixID = glGetUniformLocation(programID, "VP");
   GLuint shadowBiasID = glGetUniformLocation(programID, "DepthBiasVP");
   GLuint lightingBiasID = glGetUniformLocation(programID, "lightingBiasVP");
-  GLuint lightCameraSpaceID = glGetUniformLocation(programID,
-    "lightDirection_cameraSpace");
+  GLuint lightCameraSpaceID =
+      glGetUniformLocation(programID, "lightDirection_cameraSpace");
   GLuint lightColorID = glGetUniformLocation(programID, "LightColor");
-  GLuint screenSizeID = glGetUniformLocation(programID,
-    "screenSize");
+  GLuint screenSizeID = glGetUniformLocation(programID, "screenSize");
 
   glUniform1i(glGetUniformLocation(programID, "shadowMap"), 1);
   glUniform1i(glGetUniformLocation(programID, "lightingTex"), 2);
@@ -738,18 +692,17 @@ void setupMainCamera(GLuint programID) {
   glUniformMatrix4fv(shadowBiasID, 1, GL_FALSE, &depthBiasVP[0][0]);
   glUniformMatrix4fv(lightingBiasID, 1, GL_FALSE, &lightingBiasVP[0][0]);
   glUniformMatrix4fv(viewMatrixID, 1, GL_FALSE, &myCam.view[0][0]);
-  glUniformMatrix4fv(vpMatrixID, 1, GL_FALSE,
-      &myCam.viewProjection[0][0]);
+  glUniformMatrix4fv(vpMatrixID, 1, GL_FALSE, &myCam.viewProjection[0][0]);
   glUniform3fv(lightCameraSpaceID, 1,
-      (const GLfloat*) &myCam.light.cameraSpace);
-  glUniform3fv(lightColorID, 1, (const GLfloat*) &myCam.light.color);
-  glUniform2fv(screenSizeID, 1, (const GLfloat*) &myCam.window);
+               (const GLfloat *)&myCam.light.cameraSpace);
+  glUniform3fv(lightColorID, 1, (const GLfloat *)&myCam.light.color);
+  glUniform2fv(screenSizeID, 1, (const GLfloat *)&myCam.window);
   glUniform1f(glGetUniformLocation(programID, "distanceFactor"),
-      myCam.distanceFactor);
+              myCam.distanceFactor);
 
-  //glEnable(GL_FRAMEBUFFER_SRGB);
+  // glEnable(GL_FRAMEBUFFER_SRGB);
   glEnable(GL_CULL_FACE);
-  //glDisable(GL_CULL_FACE);
+  // glDisable(GL_CULL_FACE);
   glCullFace(GL_FRONT);
   glEnable(GL_DEPTH_TEST);
 }
@@ -759,100 +712,81 @@ void setupUICamera(GLuint programID) {
   GLuint vpMatrixID = glGetUniformLocation(programID, "VP");
   glUniformMatrix4fv(viewMatrixID, 1, GL_FALSE, &uiCameraBack.view[0][0]);
   glUniformMatrix4fv(vpMatrixID, 1, GL_FALSE,
-      &uiCameraBack.viewProjection[0][0]);
-  //glEnable(GL_FRAMEBUFFER_SRGB);
+                     &uiCameraBack.viewProjection[0][0]);
+  // glEnable(GL_FRAMEBUFFER_SRGB);
   glDisable(GL_CULL_FACE);
   glEnable(GL_DEPTH_TEST);
 }
 
-void glfwErrorCallback(int code, const char* description)
-{
+void glfwErrorCallback(int code, const char *description) {
   SPDLOG_ERROR("ERROR: {:X} {}", code, description);
   logStacktrace();
 }
 
-void glfwFocusCallback(GLFWwindow* window, int focus)
-{
+void glfwFocusCallback(GLFWwindow *window, int focus) {
   windowFocus = focus;
   SPDLOG_INFO("NewCity focus: {}", focus);
 }
 
 void setupCursor(float windowWidth, float windowHeight) {
   GLFWimage cursorImage;
-  int x=0, y=0, n=0;
+  int x = 0, y = 0, n = 0;
   cursorImage.pixels = loadImage("textures/cursor.png", &x, &y, &n, 4);
   cursorImage.width = x;
   cursorImage.height = y;
-  GLFWcursor* cursor = glfwCreateCursor(&cursorImage, x*.5f, y*.5f);
+  GLFWcursor *cursor = glfwCreateCursor(&cursorImage, x * .5f, y * .5f);
   glfwSetCursor(window, cursor);
-  glfwSetCursorPos(window, windowWidth*.5, windowHeight*.75);
+  glfwSetCursorPos(window, windowWidth * .5, windowHeight * .75);
   free(cursorImage.pixels);
 }
 
 int initGraphics() {
   SPDLOG_INFO("Initializing GLFW");
-  if( !glfwInit() )
-  {
+  if (!glfwInit()) {
     handleError("Failed to initialize GLFW");
   }
 
   glfwSetErrorCallback(glfwErrorCallback);
   glfwWindowHint(GLFW_SAMPLES, msaaSamples);
   SPDLOG_INFO("Setting MSAA Samples to {}", msaaSamples);
-  //glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
-  //glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 1);
-  //glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
-  //glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 5);
-  // To make MacOS happy; should not be needed
-  //glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
-  //glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-  #ifdef LP_DEBUG
-    glfwWindowHint(GLFW_OPENGL_DEBUG_CONTEXT, GL_TRUE);
-  #endif
+// glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
+// glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 1);
+// glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
+// glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 5);
+//  To make MacOS happy; should not be needed
+// glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
+// glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+#ifdef LP_DEBUG
+  glfwWindowHint(GLFW_OPENGL_DEBUG_CONTEXT, GL_TRUE);
+#endif
 
   SPDLOG_INFO("Initializing Window");
-  GLFWmonitor* monitor = glfwGetPrimaryMonitor();
-  const GLFWvidmode* mode = glfwGetVideoMode(monitor);
+  GLFWmonitor *monitor = glfwGetPrimaryMonitor();
+  const GLFWvidmode *mode = glfwGetVideoMode(monitor);
   nativeVideoMode = mode;
   glfwWindowHint(GLFW_RED_BITS, mode->redBits);
   glfwWindowHint(GLFW_GREEN_BITS, mode->greenBits);
   glfwWindowHint(GLFW_BLUE_BITS, mode->blueBits);
   glfwWindowHint(GLFW_REFRESH_RATE, mode->refreshRate);
 
-  SPDLOG_INFO("Monitor: {}, Mode: {}x{}@{}Hz, nextWindowMode: {}",
-    monitor != 0, mode->width, mode->height,
-    mode->refreshRate, nextWindowMode);
+  SPDLOG_INFO("Monitor: {}, Mode: {}x{}@{}Hz, nextWindowMode: {}", monitor != 0,
+              mode->width, mode->height, mode->refreshRate, nextWindowMode);
 
   // Open a window and create its OpenGL context
   currentWindowMode = nextWindowModeBack = nextWindowMode;
   if (currentWindowMode == WindowedFullscreen) {
     SPDLOG_INFO("glfwCreateWindow as WindowedFullscreen");
-    window = glfwCreateWindow(
-      mode->width,
-      mode->height,
-      "NewCity",
-      NULL,
-      NULL
-    );
+    window = glfwCreateWindow(mode->width, mode->height, "NewCity", NULL, NULL);
 
   } else if (currentWindowMode == Windowed) {
     SPDLOG_INFO("glfwCreateWindow as Windowed");
-    window = glfwCreateWindow(
-      mode->width*.5f, mode->height*.5f,
-      "NewCity",
-      NULL,
-      NULL
-    );
+    window = glfwCreateWindow(mode->width * .5f, mode->height * .5f, "NewCity",
+                              NULL, NULL);
 
   } else if (currentWindowMode == Fullscreen) {
     SPDLOG_INFO("glfwCreateWindow as Fullscreen");
-    window = glfwCreateWindow(
-      mode->width,
-      mode->height,
-      "NewCity",
-      monitor,
-      NULL
-    );
+    window =
+        glfwCreateWindow(mode->width, mode->height, "NewCity", monitor, NULL);
 
   } else {
     handleError("Unrecognized window mode");
@@ -865,24 +799,24 @@ int initGraphics() {
     glfwSetWindowFocusCallback(window, glfwFocusCallback);
   }
 
-  #ifdef WIN32
-    int x=0, y=0, n=0;
-    GLFWimage image;
-    image.pixels = loadImage("textures/icon.png", &x, &y, &n, 4);
-    image.width = x;
-    image.height = y;
-    glfwSetWindowIcon(window, 1, &image);
-    free(image.pixels);
-  #endif
+#ifdef WIN32
+  int x = 0, y = 0, n = 0;
+  GLFWimage image;
+  image.pixels = loadImage("textures/icon.png", &x, &y, &n, 4);
+  image.width = x;
+  image.height = y;
+  glfwSetWindowIcon(window, 1, &image);
+  free(image.pixels);
+#endif
 
   glfwSetWindowSizeCallback(window, setWindowSize);
 
-  if( window == NULL ){
+  if (window == NULL) {
     handleError("Failed to open GLFW window.");
   }
   SPDLOG_INFO("glfwMakeContextCurrent");
   glfwMakeContextCurrent(window);
-  if(glfwGetCurrentContext() == NULL) {
+  if (glfwGetCurrentContext() == NULL) {
     handleError("OpenGL context not created");
   }
 
@@ -904,10 +838,10 @@ int initGraphics() {
   SPDLOG_INFO("GL vender: {}", glGetString(GL_VENDOR));
   SPDLOG_INFO("GL renderer: {}", glGetString(GL_RENDERER));
   SPDLOG_INFO("GLSL version: {}", glGetString(GL_SHADING_LANGUAGE_VERSION));
-  #ifdef __linux__
-    SPDLOG_INFO("registering debug callback\n");
-    glDebugMessageCallback((GLDEBUGPROC)debugCallback, NULL);
-  #endif
+#ifdef __linux__
+  SPDLOG_INFO("registering debug callback\n");
+  glDebugMessageCallback((GLDEBUGPROC)debugCallback, NULL);
+#endif
 
   GLint texture_units = 0;
   glGetIntegerv(GL_MAX_TEXTURE_IMAGE_UNITS, &texture_units);
@@ -949,31 +883,32 @@ void setWindowState() {
   bool maximized = currentWindowMode != Fullscreen;
 
   glfwSetWindowAttrib(window, GLFW_DECORATED, decorated);
-  glfwSetWindowMonitor(window, fullscreen ? glfwGetPrimaryMonitor() : NULL,
-      0, 0, nativeVideoMode->width, nativeVideoMode->height,
-      nativeVideoMode->refreshRate);
+  glfwSetWindowMonitor(window, fullscreen ? glfwGetPrimaryMonitor() : NULL, 0,
+                       0, nativeVideoMode->width, nativeVideoMode->height,
+                       nativeVideoMode->refreshRate);
   if (maximized) {
     glfwMaximizeWindow(window);
   }
 
-  #ifdef _WIN32
-    HWND hwnd = glfwGetWin32Window(window);
-    if (maximized) {
-      ShowWindowAsync(hwnd, SW_MAXIMIZE);
-    }
+#ifdef _WIN32
+  HWND hwnd = glfwGetWin32Window(window);
+  if (maximized) {
+    ShowWindowAsync(hwnd, SW_MAXIMIZE);
+  }
 
-    //Remove decorations
-    LONG lStyle = GetWindowLong(hwnd, GWL_STYLE);
-    if (decorated) {
-      lStyle |= WS_OVERLAPPEDWINDOW;
-    } else {
-      lStyle &= ~(WS_CAPTION | WS_THICKFRAME |
-          WS_MINIMIZEBOX | WS_MAXIMIZEBOX | WS_SYSMENU);
-    }
-    SetWindowLongPtr(hwnd, GWL_STYLE, lStyle);
-    SetWindowPos(hwnd, NULL, 0,0,0,0,
-      SWP_FRAMECHANGED|SWP_NOMOVE|SWP_NOSIZE|SWP_NOZORDER|SWP_NOOWNERZORDER);
-  #endif
+  // Remove decorations
+  LONG lStyle = GetWindowLong(hwnd, GWL_STYLE);
+  if (decorated) {
+    lStyle |= WS_OVERLAPPEDWINDOW;
+  } else {
+    lStyle &= ~(WS_CAPTION | WS_THICKFRAME | WS_MINIMIZEBOX | WS_MAXIMIZEBOX |
+                WS_SYSMENU);
+  }
+  SetWindowLongPtr(hwnd, GWL_STYLE, lStyle);
+  SetWindowPos(hwnd, NULL, 0, 0, 0, 0,
+               SWP_FRAMECHANGED | SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER |
+                   SWP_NOOWNERZORDER);
+#endif
 }
 
 void updateWindowMode() {
@@ -1015,9 +950,7 @@ void updateWindowMode() {
   }
 }
 
-void swapGLBuffers() {
-  glfwSwapBuffers(window);
-}
+void swapGLBuffers() { glfwSwapBuffers(window); }
 
 void swapCameras() {
   cameraBack = camera;
@@ -1035,123 +968,130 @@ void swapCameras() {
 void updateCamera(double duration) {
 
   float mapSize = getMapSize();
-  float mapBuffer = c(CCityDistance)*15;
+  float mapBuffer = c(CCityDistance) * 15;
   if (cameraTarget.target.x < -mapBuffer)
-    cameraTarget.target.x -= c(CCameraSpringSpeed) *
-      (cameraTarget.target.x + mapBuffer);
+    cameraTarget.target.x -=
+        c(CCameraSpringSpeed) * (cameraTarget.target.x + mapBuffer);
   if (cameraTarget.target.y < -mapBuffer)
-    cameraTarget.target.y -= c(CCameraSpringSpeed) *
-      (cameraTarget.target.y + mapBuffer);
-  if (cameraTarget.target.x > mapSize+mapBuffer)
-    cameraTarget.target.x -= c(CCameraSpringSpeed) *
-      (cameraTarget.target.x-mapSize-mapBuffer);
-  if (cameraTarget.target.y > mapSize+mapBuffer)
-    cameraTarget.target.y -= c(CCameraSpringSpeed) *
-      (cameraTarget.target.y-mapSize-mapBuffer);
+    cameraTarget.target.y -=
+        c(CCameraSpringSpeed) * (cameraTarget.target.y + mapBuffer);
+  if (cameraTarget.target.x > mapSize + mapBuffer)
+    cameraTarget.target.x -=
+        c(CCameraSpringSpeed) * (cameraTarget.target.x - mapSize - mapBuffer);
+  if (cameraTarget.target.y > mapSize + mapBuffer)
+    cameraTarget.target.y -=
+        c(CCameraSpringSpeed) * (cameraTarget.target.y - mapSize - mapBuffer);
 
-  double alpha = c(CCameraLag) == 0 ? 1 :
-    clamp(duration/c(CCameraLag), 0., 0.2);
+  double alpha =
+      c(CCameraLag) == 0 ? 1 : glm::clamp(duration / c(CCameraLag), 0., 0.2);
 
   camera.light = getLightInformation();
   if (isUndergroundView()) {
     if (isHeatMapIntense()) {
       if (getHeatMap() == TrafficHeatMap) {
-        camera.clearColor = vec3(0.01f, 0.01f, 0.2f)*.25f; // traffic blue
+        camera.clearColor =
+            glm::vec3(0.01f, 0.01f, 0.2f) * .25f; // traffic blue
       } else {
-        float lightness = getHeatMap() == ZoneHeatMap ? .1f :
-          getHeatMap() == RoadHeatMap ? .25f : 0.5;
-        camera.clearColor = vec3(lightness, lightness, lightness);
+        float lightness = getHeatMap() == ZoneHeatMap   ? .1f
+                          : getHeatMap() == RoadHeatMap ? .25f
+                                                        : 0.5;
+        camera.clearColor = glm::vec3(lightness, lightness, lightness);
       }
     } else {
-      //camera.clearColor = vec3(0.376, 0.208, 0.168)*.1f; // dirt
-      camera.clearColor = vec3(0.117, 0.032, 0.020)*.25f; // dirt
-      //camera.clearColor *= camera.light.skyColor[2];
+      // camera.clearColor = glm::vec3(0.376, 0.208, 0.168)*.1f; // dirt
+      camera.clearColor = glm::vec3(0.117, 0.032, 0.020) * .25f; // dirt
+      // camera.clearColor *= camera.light.skyColor[2];
     }
 
   } else {
-    //camera.clearColor = camera.light.skyColor[2];
+    // camera.clearColor = camera.light.skyColor[2];
   }
 
-  //if (!freezeCamera) {
-    if (abs(cameraTarget.pitch - c(CPitchClassic)) < 0.15) {
-      cameraTarget.pitch = mix(cameraTarget.pitch,
-          (double)c(CPitchClassic), alpha);
-    }
+  // if (!freezeCamera) {
+  if (abs(cameraTarget.pitch - c(CPitchClassic)) < 0.15) {
+    cameraTarget.pitch =
+        glm::mix(cameraTarget.pitch, (double)c(CPitchClassic), alpha);
+  }
 
-    for (int i = 0; i <= 8; i++) {
-      double p = pi_o*i/8;
-      if (abs(cameraTarget.yaw - p) < 0.15) {
-        cameraTarget.yaw = mix(cameraTarget.yaw, p, alpha);
-      }
+  for (int i = 0; i <= 8; i++) {
+    double p = pi_o * i / 8;
+    if (abs(cameraTarget.yaw - p) < 0.15) {
+      cameraTarget.yaw = glm::mix(cameraTarget.yaw, p, alpha);
     }
+  }
 
-    if (isGameLoaded() && c(CEnableCameraMovement)) {
-      //double cameraLandZ = getCameraTargetZ(cameraTarget);
-      //cameraTarget.target.z = mix(cameraTarget.target.z, cameraLandZ, alpha);
-      cameraTarget.target.z = getCameraTargetZ(cameraTarget);
-    }
+  if (isGameLoaded() && c(CEnableCameraMovement)) {
+    // double cameraLandZ = getCameraTargetZ(cameraTarget);
+    // cameraTarget.target.z = glm::mix(cameraTarget.target.z, cameraLandZ, alpha);
+    cameraTarget.target.z = getCameraTargetZ(cameraTarget);
+  }
 
-    vec3 oldTarget = camera.target;
-    camera.target = mix(camera.target, cameraTarget.target, alpha);
-    camera.pitch = mix(camera.pitch, cameraTarget.pitch, alpha);
-    camera.yaw = mix(camera.yaw, cameraTarget.yaw, alpha);
-    camera.roll = mix(camera.roll, cameraTarget.roll, alpha);
-    float oldDist = camera.distance;
-    camera.distance = mix(camera.distance, cameraTarget.distance, alpha);
+  glm::vec3 oldTarget = camera.target;
+  camera.target = glm::mix(camera.target, cameraTarget.target, alpha);
+  camera.pitch = glm::mix(camera.pitch, cameraTarget.pitch, alpha);
+  camera.yaw = glm::mix(camera.yaw, cameraTarget.yaw, alpha);
+  camera.roll = glm::mix(camera.roll, cameraTarget.roll, alpha);
+  float oldDist = camera.distance;
+  camera.distance = glm::mix(camera.distance, cameraTarget.distance, alpha);
 
-    vec2 shift = vec2(0,0);
-    if (camera.pitch > 0.1) {
-      vec3 targetDiff = vec3(camera.target) - oldTarget;
-      vec3 cameraDirection2D = vec3(cos(cameraTarget.yaw),
-          sin(cameraTarget.yaw), 0);
-      vec3 cameraDirection2DNormal =
-        vec3(cameraDirection2D.y, -cameraDirection2D.x, 0);
-      cameraDirection2D *= 5*cos(cameraTarget.pitch);
-      shift = vec2(dot(targetDiff, cameraDirection2DNormal),
-          -dot(targetDiff, cameraDirection2D));
-      shift *= 0.5f;
-    }
-    shift.y += (camera.distance - oldDist);
-    shift /= camera.distance;
-    moveRain(shift);
+  glm::vec2 shift = glm::vec2(0, 0);
+  if (camera.pitch > 0.1) {
+    glm::vec3 targetDiff = glm::vec3(camera.target) - oldTarget;
+    glm::vec3 cameraDirection2D =
+        glm::vec3(cos(cameraTarget.yaw), sin(cameraTarget.yaw), 0);
+    glm::vec3 cameraDirection2DNormal =
+        glm::vec3(cameraDirection2D.y, -cameraDirection2D.x, 0);
+    cameraDirection2D *= 5 * cos(cameraTarget.pitch);
+    shift = glm::vec2(dot(targetDiff, cameraDirection2DNormal),
+                      -dot(targetDiff, cameraDirection2D));
+    shift *= 0.5f;
+  }
+  shift.y += (camera.distance - oldDist);
+  shift /= camera.distance;
+  moveRain(shift);
   //}
 
-  //float durationError = clamp(getLastDurationError()+.5f, -.05f, .05f);
-  //resDistMultTarget += durationError;
-  //resDistMultTarget = clamp(resDistMultTarget, 0.01f, 10.f);
-  //resolutionDistanceMult = mix(resolutionDistanceMult, resDistMultTarget,
-      //duration);
-  //SPDLOG_INFO("resDistMult {} durError {}", resolutionDistanceMult,
-   //   durationError);
+  // float durationError = glm::clamp(getLastDurationError()+.5f, -.05f, .05f);
+  // resDistMultTarget += durationError;
+  // resDistMultTarget = glm::clamp(resDistMultTarget, 0.01f, 10.f);
+  // resolutionDistanceMult = glm::mix(resolutionDistanceMult, resDistMultTarget,
+  // duration);
+  // SPDLOG_INFO("resDistMult {} durError {}", resolutionDistanceMult,
+  //    durationError);
 
   positionCamera();
 }
 
-//int ko = 0;
-//int yo = 0;
+// int ko = 0;
+// int yo = 0;
 
 void moveCamera(double duration, InputEvent event) {
-  if (freezeCamera) return;
-  if (consoleIsOpen()) return;
-  if (!c(CEnableCameraMovement)) return;
-  if (duration > 0.2) duration = 0.2;
+  if (freezeCamera)
+    return;
+  if (consoleIsOpen())
+    return;
+  if (!c(CEnableCameraMovement))
+    return;
+  if (duration > 0.2)
+    duration = 0.2;
 
-  vec2 cursor = event.cameraSpaceMouseLoc;
-  vec2 movement = cursor - lastCursor;
+  glm::vec2 cursor = event.cameraSpaceMouseLoc;
+  glm::vec2 movement = cursor - lastCursor;
   lastCursor = cursor;
 
-  if (event.isButtonDown[MMB] || (event.isButtonDown[LMB] && (event.mods & GLFW_MOD_CONTROL))) {
+  if (event.isButtonDown[MMB] ||
+      (event.isButtonDown[LMB] && (event.mods & GLFW_MOD_CONTROL))) {
     // Check for Tutorial updates
-    if(movement.x > 0.0f)
+    if (movement.x > 0.0f)
       reportTutorialUpdate(TutorialUpdateCode::CameraRotateLeft);
-    else if(movement.x < 0.0f)
+    else if (movement.x < 0.0f)
       reportTutorialUpdate(TutorialUpdateCode::CameraRotateRight);
-    else if(movement.y > 0.0f)
+    else if (movement.y > 0.0f)
       reportTutorialUpdate(TutorialUpdateCode::CameraRotateDown);
-    else if(movement.y < 0.0f)
+    else if (movement.y < 0.0f)
       reportTutorialUpdate(TutorialUpdateCode::CameraRotateUp);
 
-    cameraTarget.yaw   += c(CCameraYawSpeed) * movement.x;
+    cameraTarget.yaw += c(CCameraYawSpeed) * movement.x;
     cameraTarget.pitch += c(CCameraPitchSpeed) * movement.y;
     if (cameraTarget.pitch > c(CMaxPitch)) {
       cameraTarget.pitch = c(CMaxPitch);
@@ -1162,68 +1102,74 @@ void moveCamera(double duration, InputEvent event) {
 
   // Capture mouse position when we start holding down
   // the RMB, if we haven't started tracking it already
-  if(!event.isButtonDown[RMB]) {
-    trackPos = vec2(0, 0);
+  if (!event.isButtonDown[RMB]) {
+    trackPos = glm::vec2(0, 0);
     trackingMouse = false;
   } else if (!trackingMouse) {
     trackingMouse = true;
     trackPos = cursor;
   }
 
-  vec3 cameraDirection2D = vec3(cos(cameraTarget.yaw),
-      sin(cameraTarget.yaw), 0);
-  vec3 cameraDirection2DNormal =
-    vec3(cameraDirection2D.y, -cameraDirection2D.x, 0);
+  glm::vec3 cameraDirection2D =
+      glm::vec3(cos(cameraTarget.yaw), sin(cameraTarget.yaw), 0);
+  glm::vec3 cameraDirection2DNormal =
+      glm::vec3(cameraDirection2D.y, -cameraDirection2D.x, 0);
   cameraDirection2D /= std::max(0.1, cos(cameraTarget.pitch));
-  float moveFactor = duration * cameraTarget.distance * (1 - .9f*getFOV());
-  vec3 cameraDirection2Dm = cameraDirection2D * 
-    moveFactor * c(CCameraSpeedY);
-  vec3 cameraDirection2DNormalm = cameraDirection2DNormal *
-    moveFactor * c(CCameraSpeedX);
+  float moveFactor = duration * cameraTarget.distance * (1 - .9f * getFOV());
+  glm::vec3 cameraDirection2Dm =
+      cameraDirection2D * moveFactor * c(CCameraSpeedY);
+  glm::vec3 cameraDirection2DNormalm =
+      cameraDirection2DNormal * moveFactor * c(CCameraSpeedX);
 
-  bool unmoddedRMB = event.isButtonDown[RMB] && !(event.mods & GLFW_MOD_CONTROL);
+  bool unmoddedRMB =
+      event.isButtonDown[RMB] && !(event.mods & GLFW_MOD_CONTROL);
 
-  if(unmoddedRMB && trackingMouse) {
-    if(cameraClassicRMB) {
-      vec2 flatVec = cursor - trackPos;
-      cameraTarget.target += ((cameraDirection2D * -flatVec.y) +
-        (cameraDirection2DNormal * flatVec.x)) *
-        float(c(CCameraPanSpeedClassic) *
-          camera.distance * 0.025f);
+  if (unmoddedRMB && trackingMouse) {
+    if (cameraClassicRMB) {
+      glm::vec2 flatVec = cursor - trackPos;
+      cameraTarget.target +=
+          ((cameraDirection2D * -flatVec.y) +
+           (cameraDirection2DNormal * flatVec.x)) *
+          float(c(CCameraPanSpeedClassic) * camera.distance * 0.025f);
       setFollowingSelection(false);
     } else {
-      vec2 flatVec = movement * float(camera.distance*c(CCameraPanSpeed));
+      glm::vec2 flatVec =
+          movement * float(camera.distance * c(CCameraPanSpeed));
       cameraTarget.target -= (cameraDirection2D * -flatVec.y) +
-        (cameraDirection2DNormal * flatVec.x);
+                             (cameraDirection2DNormal * flatVec.x);
       float bounce = 1 - c(CCameraPanSmoothing);
-      camera.target -= .5f* ((cameraDirection2D * -flatVec.y) +
-        (cameraDirection2DNormal * flatVec.x));
+      camera.target -= .5f * ((cameraDirection2D * -flatVec.y) +
+                              (cameraDirection2DNormal * flatVec.x));
     }
   }
 
   if (getKeyBind((int)InputAction::ActMoveUp).active ||
-      (windowFocus == GLFW_TRUE && cameraEdgeScrolling && cursor.y > (1.0f * edgeScrollZoneY))) {
+      (windowFocus == GLFW_TRUE && cameraEdgeScrolling &&
+       cursor.y > (1.0f * edgeScrollZoneY))) {
     cameraTarget.target -= cameraDirection2Dm;
     setFollowingSelection(false);
     reportTutorialUpdate(TutorialUpdateCode::CameraMoveUp);
   }
 
   if (getKeyBind((int)InputAction::ActMoveLeft).active ||
-      (windowFocus == GLFW_TRUE && cameraEdgeScrolling && cursor.x < (-1.0f * edgeScrollZoneX))) {
+      (windowFocus == GLFW_TRUE && cameraEdgeScrolling &&
+       cursor.x < (-1.0f * edgeScrollZoneX))) {
     cameraTarget.target -= cameraDirection2DNormalm;
     setFollowingSelection(false);
     reportTutorialUpdate(TutorialUpdateCode::CameraMoveLeft);
   }
 
   if (getKeyBind((int)InputAction::ActMoveDown).active ||
-      (windowFocus == GLFW_TRUE && cameraEdgeScrolling && cursor.y < (-1.0f * edgeScrollZoneY))) {
+      (windowFocus == GLFW_TRUE && cameraEdgeScrolling &&
+       cursor.y < (-1.0f * edgeScrollZoneY))) {
     cameraTarget.target += cameraDirection2Dm;
     setFollowingSelection(false);
     reportTutorialUpdate(TutorialUpdateCode::CameraMoveDown);
   }
 
   if (getKeyBind((int)InputAction::ActMoveRight).active ||
-      (windowFocus == GLFW_TRUE && cameraEdgeScrolling && cursor.x > (1.0f * edgeScrollZoneX))) {
+      (windowFocus == GLFW_TRUE && cameraEdgeScrolling &&
+       cursor.x > (1.0f * edgeScrollZoneX))) {
     cameraTarget.target += cameraDirection2DNormalm;
     setFollowingSelection(false);
     reportTutorialUpdate(TutorialUpdateCode::CameraMoveRight);
@@ -1243,108 +1189,83 @@ void moveCamera(double duration, InputEvent event) {
   }
 
   float zoomAmount = 0;
-  if (getKeyBind((int)InputAction::ActZoomIn).active) zoomAmount ++;
-  if (getKeyBind((int)InputAction::ActZoomOut).active) zoomAmount --;
+  if (getKeyBind((int)InputAction::ActZoomIn).active)
+    zoomAmount++;
+  if (getKeyBind((int)InputAction::ActZoomOut).active)
+    zoomAmount--;
   zoomCamera(zoomAmount * c(CCameraKeyZoomSpeed));
 }
 
-bool inFrustrum(Camera c, vec3 eloc, float eSize) {
+bool inFrustrum(Camera c, glm::vec3 eloc, float eSize) {
   Plane p;
 
-  //for(int i = FrustumPlanes::BOTTOM; true; i ++) {
-  //for(int i = yo; true; i ++) {
-  for(int i = 0; i < FrustumPlanes::NUM_PLANES; i ++) {
-  //for(int i = 1; i < 2; i++) {
+  // for(int i = FrustumPlanes::BOTTOM; true; i ++) {
+  // for(int i = yo; true; i ++) {
+  for (int i = 0; i < FrustumPlanes::NUM_PLANES; i++) {
+    // for(int i = 1; i < 2; i++) {
     p = c.viewFrustum.planes[i];
-    if(dot(p.norm, eloc) + p.D < -eSize) {
+    if (dot(p.norm, eloc) + p.D < -eSize) {
       return false;
     }
-    //break;
+    // break;
   }
 
   return true;
 }
 
-float getHorizontalCameraAngle() {
-  return camera.yaw;
-}
+float getHorizontalCameraAngle() { return camera.yaw; }
 
 void setHorizontalCameraAngle(float angle) {
   float diff = angle - cameraTarget.yaw;
   if (diff > pi_o) {
-    diff -= 2*pi_o;
+    diff -= 2 * pi_o;
   }
 
-  cameraTarget.yaw += diff*.01f;
+  cameraTarget.yaw += diff * .01f;
 }
 
-float getVerticalCameraAngle() {
-  return camera.pitch;
-}
+float getVerticalCameraAngle() { return camera.pitch; }
 
-float getCameraDistance() {
-  return camera.distance;
-}
+float getCameraDistance() { return camera.distance; }
 
-void setCameraDistance(float dist) {
-  cameraTarget.distance = dist;
-}
+void setCameraDistance(float dist) { cameraTarget.distance = dist; }
 
-vec3 getCameraTarget() {
-  return camera.target;
-}
+glm::vec3 getCameraTarget() { return camera.target; }
 
-float getAspectRatio() {
-  return camera.aspectRatio;
-}
+float getAspectRatio() { return camera.aspectRatio; }
 
-void setCameraTarget(vec3 location) {
+void setCameraTarget(glm::vec3 location) {
   if (validate(location)) {
     cameraTarget.target = location;
   }
 }
 
-void setCameraYaw(float yaw) {
-  cameraTarget.yaw = yaw;
-}
+void setCameraYaw(float yaw) { cameraTarget.yaw = yaw; }
 
-void setCameraPitch(float pitch) {
-  cameraTarget.pitch = pitch;
-}
+void setCameraPitch(float pitch) { cameraTarget.pitch = pitch; }
 
-void setCameraRoll(float roll) {
-  cameraTarget.roll = roll;
-}
+void setCameraRoll(float roll) { cameraTarget.roll = roll; }
 
-Camera getUICamera() {
-  return uiCamera;
-}
+Camera getUICamera() { return uiCamera; }
 
-Camera getMainCamera() {
-  return camera;
-}
+Camera getMainCamera() { return camera; }
 
-Camera getMainCameraBack() {
-  return cameraBack;
-}
+Camera getMainCameraBack() { return cameraBack; }
 
-Camera getMapCamera() {
-  return mapCamera;
-}
+Camera getMapCamera() { return mapCamera; }
 
-Camera getCaptureCamera() {
-  return captureCamera;
-}
+Camera getCaptureCamera() { return captureCamera; }
 
-Camera getCaptureCameraBack() {
-  return captureCameraBack;
-}
+Camera getCaptureCameraBack() { return captureCameraBack; }
 
 Camera getCurrentCamera_r() {
   switch (perspective_r) {
-    case MainPerspective: return cameraBack;
-    case SatMapPerspective: return mapCameraBack;
-    case CapturePerspective: return captureCameraBack;
+  case MainPerspective:
+    return cameraBack;
+  case SatMapPerspective:
+    return mapCameraBack;
+  case CapturePerspective:
+    return captureCameraBack;
   }
   handleError("Invalid Perspective");
   return cameraBack;
@@ -1352,33 +1273,28 @@ Camera getCurrentCamera_r() {
 
 Camera getCurrentCamera_g() {
   switch (perspective_g) {
-    case MainPerspective: return camera;
-    case SatMapPerspective: return mapCamera;
-    case CapturePerspective: return captureCamera;
+  case MainPerspective:
+    return camera;
+  case SatMapPerspective:
+    return mapCamera;
+  case CapturePerspective:
+    return captureCamera;
   }
   handleError("Invalid Perspective");
   return camera;
 }
 
 void setNextPerspective_g(item nextPerspective) {
-  perspective_g = (Perspective) nextPerspective;
+  perspective_g = (Perspective)nextPerspective;
 }
 
-Perspective getPerspective_r() {
-  return perspective_r;
-}
+Perspective getPerspective_r() { return perspective_r; }
 
-Perspective getPerspective_g() {
-  return perspective_g;
-}
+Perspective getPerspective_g() { return perspective_g; }
 
-GLFWwindow* getWindow() {
-  return window;
-}
+GLFWwindow *getWindow() { return window; }
 
-void setFreezeCamera(bool v) {
-  freezeCamera = v;
-}
+void setFreezeCamera(bool v) { freezeCamera = v; }
 
 void setFOV(float newFOV) { fov = newFOV; }
 float getFOV() { return fov; }

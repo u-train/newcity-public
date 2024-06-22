@@ -6,13 +6,13 @@
 #pragma once
 
 #include "binaryfileshared.hpp"
-
+#include <string>
 
 // BinaryFileBuilder: Used for assembling binary files
 // with a consistent header/sector approach.
 class BinaryFileBuilder {
 private:
-  BinaryFileBuilder() {}; // Don't want to instantiate this class
+  BinaryFileBuilder(){}; // Don't want to instantiate this class
 public:
   static void setVerbose(bool v);
   static bool getVerbose();
@@ -33,6 +33,6 @@ public:
   static bool writeKeyBind(KeyBind k);
 
   // General abstracted write methods
-  static bool writeHeader(FileSectorHeader* header);
-  static bool writeSectorKeyBind(FileSector<KeyBind>* sector);
+  static bool writeHeader(FileSectorHeader *header);
+  static bool writeSectorKeyBind(FileSector<KeyBind> *sector);
 };

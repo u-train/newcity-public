@@ -2,6 +2,7 @@
 
 #include "article.hpp"
 
+#include "../game/constants.hpp"
 #include "../game/game.hpp"
 #include "../economy.hpp"
 #include "../money.hpp"
@@ -12,11 +13,12 @@
 #include "../time.hpp"
 #include "../util.hpp"
 #include "../weather.hpp"
+#include "../string_proxy.hpp"
 
 #include "spdlog/spdlog.h"
 
 bool newspaperExists = false;
-string newspaperName = "";
+std::string newspaperName = "";
 Cup<NewspaperIssue> issues;
 float newspaperTime = 0;
 
@@ -55,13 +57,13 @@ void resetNewspaper() {
   issues.clear();
 }
 
-string getNewspaperName() {
-  string result = "The ";
+std::string getNewspaperName() {
+  std::string result = "The ";
   return result + getCityName() + " " + newspaperName;
 }
 
-string getNewspaperNameShort() {
-  string result = "The ";
+std::string getNewspaperNameShort() {
+  std::string result = "The ";
   return result + newspaperName;
 }
 
@@ -96,7 +98,7 @@ void addFinancialScore(NewspaperIssue* issue, const char* name, float mult) {
   issue->financialScores.push_back(FinancialScore { strdup_s(name), val });
 }
 
-string getNewspaperAdvertisement(item issueNdx, item adNum) {
+std::string getNewspaperAdvertisement(item issueNdx, item adNum) {
   if (numAdArticles() <= 0) return "";
 
   NewspaperIssue* issue = issues.get(issueNdx);
@@ -113,7 +115,7 @@ string getNewspaperAdvertisement(item issueNdx, item adNum) {
 
   setNewspaperTime(issue->date);
 
-  string result = getAdArticle(adArticleNum);
+  std::string result = getAdArticle(adArticleNum);
   issue->ads.resize(adNum+1);
   issue->ads.set(adNum, strdup_s(result.c_str())); // write to cache
   return result;

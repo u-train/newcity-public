@@ -52,7 +52,7 @@ void testRoutingGeneric() {
   router.encode = noop;
   router.decode = noop;
 
-  vector<item> result = route(router);
+  std::vector<item> result = route(router);
   if (result.size() != 4) {
     printf("wrong result size %d\n", result.size());
     throw "";

@@ -1,17 +1,16 @@
-#ifndef PART_BUTTON_H
-#define PART_BUTTON_H
+#pragma once
 
 #include "part.hpp"
 
-Part* button(vec2 start, vec2 size, char* text, InputCallback callback);
-Part* buttonCenter(vec2 start, vec2 size, char* text, InputCallback callback);
-Part* button(vec2 start, vec3 icon, InputCallback callback);
-Part* button(vec2 start, vec3 icon, InputCallback callback, item itemData);
-Part* button(vec2 start, vec3 icon, vec2 size, InputCallback callback,
+Part* button(glm::vec2 start, glm::vec2 size, char* text, InputCallback callback);
+Part* buttonCenter(glm::vec2 start, glm::vec2 size, char* text, InputCallback callback);
+Part* button(glm::vec2 start, glm::vec3 icon, InputCallback callback);
+Part* button(glm::vec2 start, glm::vec3 icon, InputCallback callback, item itemData);
+Part* button(glm::vec2 start, glm::vec3 icon, glm::vec2 size, InputCallback callback,
     item itemData);
-Part* button(vec2 start, vec3 icon, vec2 size, char* text,
+Part* button(glm::vec2 start, glm::vec3 icon, glm::vec2 size, char* text,
   InputCallback callback, item itemData);
-Part* superButton(vec2 start, vec2 size, vec3 ico, char* text,
+Part* superButton(glm::vec2 start, glm::vec2 size, glm::vec3 ico, char* text,
   InputCallback callback, item itemData, InputAction action, bool highlight);
 
-#endif
+

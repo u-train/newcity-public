@@ -29,8 +29,8 @@ struct RouteInfo {
 
 GraphLocation getNextGraphLoc(Route* route);
 char* routeString(Route* route);
-char* routeString(vector<Location> route, item currentStep);
-bool isRouteValid_g(vector<Location> route, Location start, Location end);
+char* routeString(std::vector<Location> route, item currentStep);
+bool isRouteValid_g(std::vector<Location> route, Location start, Location end);
 RouteInfo computeRouteInfo_g(Cup<Location>* route, bool walking, bool bus);
 void clearRoute(Route* route);
 void copyRoute(Route* source, Route* dest);

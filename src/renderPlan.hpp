@@ -1,5 +1,4 @@
-#ifndef RENDER_PLAN_H
-#define RENDER_PLAN_H
+#pragma once
 
 #include "item.hpp"
 
@@ -9,4 +8,4 @@ bool isShowPlans();
 void setShowPlans(bool value);
 void placePlan(item ndx);
 
-#endif
+

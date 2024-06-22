@@ -8,14 +8,15 @@
 #include "../pool.hpp"
 #include "../renum.hpp"
 #include "../vehicle/model.hpp"
-
-#include "spdlog/spdlog.h"
+#include <string>
+#include "../string_proxy.hpp"
+#include "../error.hpp"
 #include <unordered_map>
 
 RenumTable decosRenum;
 Pool<DecoType> decoTypes;
 Pool<DecoGroup> decoGroups;
-unordered_map<string, item> decoGroupsByCode;
+std::unordered_map<std::string, item> decoGroupsByCode;
 bool legacyGroupVisible = true;
 item statueDecoTypeNdx = 0;
 item specialGroupNdx = 0;

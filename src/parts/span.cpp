@@ -13,7 +13,7 @@
 typedef boost::tokenizer<boost::char_separator<char> > tokenizer;
 using namespace std;
 
-Part* spanLine(vec2 start, vec2 size, string line, bool center) {
+Part* spanLine(glm::vec2 start, glm::vec2 size, string line, bool center) {
   char* str = strdup_s(line.c_str());
   Part* l = label(start, size, str);
   l->lineHeight = size.y;
@@ -26,17 +26,17 @@ Part* spanLine(vec2 start, vec2 size, string line, bool center) {
   return l;
 }
 
-Part* span(vec2 start, float indent, vec2 size, char* text, vec2* end,
+Part* span(glm::vec2 start, float indent, glm::vec2 size, char* text, glm::vec2* end,
     bool center) {
-  Part* result = part(vec2(0, 0));
+  Part* result = part(glm::vec2(0, 0));
   float padding = size.y*0.125;
   result->padding = 0;
   result->renderMode = RenderSpan;
   float ySizeLine = (size.y - padding*2);
   float lineSpacing = size.y;
   float xSizeLine = (size.x - padding*2);
-  vec2 cursor = start;
-  string str(text);
+  glm::vec2 cursor = start;
+  std::string str(text);
 
   if (cursor.x >= xSizeLine) {
     cursor.x = indent;
@@ -45,7 +45,7 @@ Part* span(vec2 start, float indent, vec2 size, char* text, vec2* end,
 
   boost::char_separator<char> sepNewLine("\n", "", boost::keep_empty_tokens);
   tokenizer lineTokens(str, sepNewLine);
-  string currentLine;
+  std::string currentLine;
 
   BOOST_FOREACH(std::string const& lineToken, lineTokens) {
     boost::char_separator<char> sepSpace(" ", "", boost::keep_empty_tokens);
@@ -64,11 +64,11 @@ Part* span(vec2 start, float indent, vec2 size, char* text, vec2* end,
           endChar --;
           subWordToken = wordToken.substr(subNdx, endChar - subNdx);
         } while (endChar > subNdx+1 &&
-            stringWidth(subWordToken.c_str())*ySizeLine + cursor.x > xSizeLine);
+            std::stringWidth(subWordToken.c_str())*ySizeLine + cursor.x > xSizeLine);
             */
 
         if (!firstOne) currentLine += " ";
-        string next = currentLine + subWordToken;
+        std::string next = currentLine + subWordToken;
         //if (next.length() <= 0) next = " ";
         //SPDLOG_INFO("token: |{}| => |{}|", subWordToken, next);
         float strLength = stringWidth(next.c_str())*ySizeLine;
@@ -76,7 +76,7 @@ Part* span(vec2 start, float indent, vec2 size, char* text, vec2* end,
           currentLine = next;
         } else {
           rtrim(currentLine);
-          vec2 size = vec2(xSizeLine - cursor.x, ySizeLine);
+          glm::vec2 size = glm::vec2(xSizeLine - cursor.x, ySizeLine);
           r(result, spanLine(cursor, size, currentLine, center));
           currentLine = subWordToken;
           cursor.x = indent;
@@ -90,7 +90,7 @@ Part* span(vec2 start, float indent, vec2 size, char* text, vec2* end,
     }
 
     if (currentLine.length() > 0) {
-      vec2 size = vec2(xSizeLine - cursor.x, ySizeLine);
+      glm::vec2 size = glm::vec2(xSizeLine - cursor.x, ySizeLine);
       r(result, spanLine(cursor, size, currentLine, center));
       currentLine = "";
       cursor.x = indent;
@@ -104,7 +104,7 @@ Part* span(vec2 start, float indent, vec2 size, char* text, vec2* end,
     *end = cursor;
   } else {
     Part* last = result->contents[result->numContents-1];
-    vec2 lastCursor = vec2(last->dim.start);
+    glm::vec2 lastCursor = glm::vec2(last->dim.start);
     lastCursor.x += stringWidth(last->text)*ySizeLine;
     *end = lastCursor;
   }
@@ -114,23 +114,23 @@ Part* span(vec2 start, float indent, vec2 size, char* text, vec2* end,
   return result;
 }
 
-Part* span(vec2 start, float indent, vec2 size, char* text, vec2* end) {
+Part* span(glm::vec2 start, float indent, glm::vec2 size, char* text, glm::vec2* end) {
   return span(start, indent, size, text, end, false);
 }
 
-Part* span(vec2 start, float indent, vec2 size, char* text, float* y) {
-  vec2 end;
+Part* span(glm::vec2 start, float indent, glm::vec2 size, char* text, float* y) {
+  glm::vec2 end;
   Part* result = span(start, indent, size, text, &end, false);
   *y = end.y;
   return result;
 }
 
-Part* spanCenter(vec2 start, float indent, vec2 size, char* text, vec2* end) {
+Part* spanCenter(glm::vec2 start, float indent, glm::vec2 size, char* text, glm::vec2* end) {
   return span(start, indent, size, text, end, true);
 }
 
-Part* spanCenter(vec2 start, float indent, vec2 size, char* text, float* y) {
-  vec2 end;
+Part* spanCenter(glm::vec2 start, float indent, glm::vec2 size, char* text, float* y) {
+  glm::vec2 end;
   Part* result = span(start, indent, size, text, &end, true);
   *y = end.y;
   return result;

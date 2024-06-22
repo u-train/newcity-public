@@ -6,6 +6,7 @@
 #include "../land.hpp"
 #include "../icons.hpp"
 #include "../string_proxy.hpp"
+#include "../error.hpp"
 
 #include "button.hpp"
 #include "hr.hpp"
@@ -113,17 +114,17 @@ bool setNextLeftHandTraffic(Part* part, InputEvent event) {
 }
 
 Part* landConfigToggle(float y, const char* lbl, uint32_t flag) {
-  Part* result = button(vec2(0,y),
+  Part* result = button(glm::vec2(0,y),
         getNextLandConfig()->flags & flag ? iconCheck : iconNull,
-        vec2(ngButtWidth, ngScale), strdup_s(lbl),
+        glm::vec2(ngButtWidth, ngScale), strdup_s(lbl),
         toggleLandFlag, flag);
   return result;
 }
 
 Part* diffConfigToggle(float x, float y, const char* lbl, GameDifficulty diff) {
-  Part* result = button(vec2(x, y),
+  Part* result = button(glm::vec2(x, y),
     diff == getNextGameDifficulty() ? iconCheck : iconNull,
-    vec2(ngButtWidth, ngScale), strdup_s(lbl),
+    glm::vec2(ngButtWidth, ngScale), strdup_s(lbl),
     setGameDiff, diff);
   return result;
 }
@@ -172,11 +173,11 @@ bool resetLand(Part* part, InputEvent event) {
 }
 
 Part* newGamePanel(float aspectRatio) {
-  vec2 newGamePanelSizePadded =
-    vec2(ngWidth+ngPad*2, ngHeight+ngPad*2);
+  glm::vec2 newGamePanelSizePadded =
+    glm::vec2(ngWidth+ngPad*2, ngHeight+ngPad*2);
   float uiX = uiGridSizeX * aspectRatio;
   Part* result = panel(
-      vec2(uiX,uiGridSizeY)*0.5f - newGamePanelSizePadded*0.5f,
+      glm::vec2(uiX,uiGridSizeY)*0.5f - newGamePanelSizePadded*0.5f,
       newGamePanelSizePadded);
   result->padding = ngPad;
   float colHeight = 7*ngScale+ngPad*2;
@@ -185,31 +186,31 @@ Part* newGamePanel(float aspectRatio) {
   bool design = newGameModeTab == ModeBuildingDesigner;
 
   // Header
-  r(result, label(vec2(0,0), 1.25f, strdup_s(
+  r(result, label(glm::vec2(0,0), 1.25f, strdup_s(
           newGameModeTab == ModeTest ? "New Test" :
           newGameModeTab == ModeBuildingDesigner ? "New Design" :
           newGameModeTab == ModeGame ? "New City" : "Err")));
 
   // Close button
-  r(result, button(vec2(ngWidth-1.25f,0), iconX, vec2(1.25f, 1.25f),
+  r(result, button(glm::vec2(ngWidth-1.25f,0), iconX, glm::vec2(1.25f, 1.25f),
         openMainMenu, 0));
 
   if (!design) {
     // Reset button
-    Part* resetButt = r(result, button(vec2(ngWidth-2.5, 0),
-        iconUndo, vec2(1.25, 1.25), resetLand, 0));
+    Part* resetButt = r(result, button(glm::vec2(ngWidth-2.5, 0),
+        iconUndo, glm::vec2(1.25, 1.25), resetLand, 0));
     setPartTooltipValues(resetButt, TooltipType::GenLandReset);
   }
 
   y += 1.25f;
-  r(result, hr(vec2(0,y), ngWidth));
+  r(result, hr(glm::vec2(0,y), ngWidth));
   y += 1;
 
   // Mode Tabs
   for (int i = ModeGame; i <= ModeBuildingDesigner; i++) {
     float modeTabPad = 0.5f;
     float modeTabWidth = (ngWidth)/3;
-    Part* modeTab = r(result, buttonCenter(vec2(i*(modeTabWidth+modeTabPad)-0.5, -1.5), vec2(modeTabWidth, 1), strdup_s(
+    Part* modeTab = r(result, buttonCenter(glm::vec2(i*(modeTabWidth+modeTabPad)-0.5, -1.5), glm::vec2(modeTabWidth, 1), strdup_s(
           i == ModeBuildingDesigner ? "New Design" :
           i == ModeTest ? "New Scenario" : "New City"),
           selectNewGameModeTab));
@@ -226,10 +227,10 @@ Part* newGamePanel(float aspectRatio) {
     // Name Text Box
     float nameTBWidth = ngColWidth*2 + ngPad;
     cityNameTBState.text = getNextCityNamePtr();
-    r(result, label(vec2(0,y), 0.75, strdup_s("City Name")));
+    r(result, label(glm::vec2(0,y), 0.75, strdup_s("City Name")));
     y += 0.75;
     Part* nameTB = r(result,
-        textBox(vec2(0,y), vec2(nameTBWidth, 1.25), &cityNameTBState));
+        textBox(glm::vec2(0,y), glm::vec2(nameTBWidth, 1.25), &cityNameTBState));
     nameTB->itemData = NGPTextBox::CityName;
     nameTB->onClick = focusNewGamePanelTextBox;
 
@@ -248,25 +249,25 @@ Part* newGamePanel(float aspectRatio) {
     hSeedState.text = &hSeedTxtPtr;
 
     float hSeedLabelX = (ngColWidth+ngPad)*2;
-    Part* hSeedLabel = r(result, label(vec2(hSeedLabelX, y-0.75),
+    Part* hSeedLabel = r(result, label(glm::vec2(hSeedLabelX, y-0.75),
         0.75, strdup_s("Seed")));
-    Part* hSeedTB = r(result, textBox(vec2(hSeedLabelX, y),
-      vec2(ngColWidth-1.25, 1.25), &hSeedState));
+    Part* hSeedTB = r(result, textBox(glm::vec2(hSeedLabelX, y),
+      glm::vec2(ngColWidth-1.25, 1.25), &hSeedState));
     hSeedTB->itemData = NGPTextBox::HeightSeed;
     hSeedTB->onClick = focusNewGamePanelTextBox;
     setPartTooltipValues(hSeedTB, TooltipType::GenSeedH);
 
-    Part* randomButt = r(result, button(vec2(hSeedLabelX+ngColWidth-1.25, y),
-        iconDice, vec2(1.25, 1.25), randomizeLand, 0));
+    Part* randomButt = r(result, button(glm::vec2(hSeedLabelX+ngColWidth-1.25, y),
+        iconDice, glm::vec2(1.25, 1.25), randomizeLand, 0));
     setPartTooltipValues(randomButt, TooltipType::GenSeedRandom);
 
     y += 2.25f;
 
     // Difficulty Column
-    r(result, labelCenter(vec2(0,y), vec2(ngColWidth, 1.25f),
+    r(result, labelCenter(glm::vec2(0,y), glm::vec2(ngColWidth, 1.25f),
           strdup_s("Difficulty")));
-    Part* diffPanel = panel(vec2((ngColWidth+ngPad)*0,y+1.25f),
-        vec2(ngColWidth, colHeight));
+    Part* diffPanel = panel(glm::vec2((ngColWidth+ngPad)*0,y+1.25f),
+        glm::vec2(ngColWidth, colHeight));
     diffPanel->padding = ngPad;
     diffPanel->flags |= _partLowered | _partClip;
     r(result, diffPanel);
@@ -277,29 +278,29 @@ Part* newGamePanel(float aspectRatio) {
       yb += ngScale;
     }
 
-    r(diffPanel, hr(vec2(0, colHeight-ngScale*2-ngPad*3), ngButtWidth));
+    r(diffPanel, hr(glm::vec2(0, colHeight-ngScale*2-ngPad*3), ngButtWidth));
 
     // Accelerated toggle
     bool accel = getNextGameAccelerated();
-    Part* accelTgl = button(vec2(0, colHeight-ngScale*2-ngPad*2),
+    Part* accelTgl = button(glm::vec2(0, colHeight-ngScale*2-ngPad*2),
       accel ? iconCheck : iconNull,
-      vec2(ngButtWidth, ngScale),
+      glm::vec2(ngButtWidth, ngScale),
       sprintf_o("Accelerated Start"), setNextGameAccelerated, !accel);
     r(diffPanel, accelTgl);
 
     // Left Hand Traffic toggle
     bool left = getNextLeftHandTraffic();
-    Part* leftTgl = button(vec2(0, colHeight-ngScale-ngPad*2),
+    Part* leftTgl = button(glm::vec2(0, colHeight-ngScale-ngPad*2),
       left ? iconCheck : iconNull,
-      vec2(ngButtWidth, ngScale),
+      glm::vec2(ngButtWidth, ngScale),
       sprintf_o("Left Hand Traffic"), setNextLeftHandTraffic, !left);
     r(diffPanel, leftTgl);
 
     // Terrain Column
-    r(result, labelCenter(vec2(ngColWidth+ngPad,y), vec2(ngColWidth, 1.25f),
+    r(result, labelCenter(glm::vec2(ngColWidth+ngPad,y), glm::vec2(ngColWidth, 1.25f),
           strdup_s("Terrain")));
-    Part* terrainPanel = panel(vec2((ngColWidth+ngPad)*1,y+1.25f),
-        vec2(ngColWidth, colHeight));
+    Part* terrainPanel = panel(glm::vec2((ngColWidth+ngPad)*1,y+1.25f),
+        glm::vec2(ngColWidth, colHeight));
     terrainPanel->padding = ngPad;
     terrainPanel->flags |= _partLowered | _partClip;
     r(result, terrainPanel);
@@ -321,10 +322,10 @@ Part* newGamePanel(float aspectRatio) {
     yb += ngScale;
 
     // Size Column
-    r(result, labelCenter(vec2((ngColWidth+ngPad)*2,y), vec2(ngColWidth, 1.25f),
+    r(result, labelCenter(glm::vec2((ngColWidth+ngPad)*2,y), glm::vec2(ngColWidth, 1.25f),
           strdup_s("Size")));
-    Part* sizePanel = panel(vec2((ngColWidth+ngPad)*2, y+1.25f),
-        vec2(ngColWidth, colHeight));
+    Part* sizePanel = panel(glm::vec2((ngColWidth+ngPad)*2, y+1.25f),
+        glm::vec2(ngColWidth, colHeight));
     sizePanel->padding = ngPad;
     sizePanel->flags |= _partLowered | _partClip;
     r(result, sizePanel);
@@ -333,9 +334,9 @@ Part* newGamePanel(float aspectRatio) {
     yb = 0;
     for (int i = 0; i < numLandSizes + hasCustomSize; i++) {
       int ls = i == numLandSizes ? c(CCustomLandSize) : landSize[i];
-      Part* butt = button(vec2(0,yb),
+      Part* butt = button(glm::vec2(0,yb),
         ls == getNextLandConfig()->landSize ? iconCheck : iconNull,
-        vec2(ngButtWidth, ngScale),
+        glm::vec2(ngButtWidth, ngScale),
         sprintf_o("%dx%d Chunks", ls, ls), setLandSize, ls);
       r(sizePanel, butt);
       yb += ngScale;
@@ -346,7 +347,7 @@ Part* newGamePanel(float aspectRatio) {
     y = 15.75;
   }
 
-  r(result, buttonCenter(vec2(ngPad,y), vec2(ngWidth-ngPad*2, 1),
+  r(result, buttonCenter(glm::vec2(ngPad,y), glm::vec2(ngWidth-ngPad*2, 1),
         strdup_s("Generate"), generateMap));
   y += 1;
 

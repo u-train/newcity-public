@@ -1,13 +1,11 @@
 #include "renderBuilding.hpp"
 
 #include "building.hpp"
-#include "buildingTexture.hpp"
 #include "design.hpp"
 #include "designPackage.hpp"
 #include "statue.hpp"
 
 #include "../box.hpp"
-#include "../business.hpp"
 #include "../color.hpp"
 #include "../draw/entity.hpp"
 #include "../draw/texture.hpp"
@@ -17,7 +15,6 @@
 #include "../land.hpp"
 #include "../parts/designConfigPanel.hpp"
 #include "../parts/toolbar.hpp"
-#include "../person.hpp"
 #include "../plan.hpp"
 #include "../renderUtils.hpp"
 #include "../selection.hpp"
@@ -27,36 +24,39 @@
 #include "../weather.hpp"
 #include "../zone.hpp"
 
-#include "spdlog/spdlog.h"
 #include <glm/gtx/rotate_vector.hpp>
-#include <stdio.h>
+#include <glm/glm.hpp>
+using glm::clamp;
+using glm::cos;
+using glm::sin;
+
 #include <algorithm>
 
 //Building render
 const float paveFlare = 4;
 /*
-vec4 buildingColor = vec4(.902f, .765f, .733f, 1.0f);
-vec4 roofColor = vec4(.376f, .208f, .169f, 1.0f);
-vec4 trimColor = vec4(.376f, .208f, .169f, 1.0f);
+vec4 buildingColor = glm::vec4(.902f, .765f, .733f, 1.0f);
+vec4 roofColor = glm::vec4(.376f, .208f, .169f, 1.0f);
+vec4 trimColor = glm::vec4(.376f, .208f, .169f, 1.0f);
 */
 static item handlesEntity = 0;
 static item bordersEntity = 0;
 static item designTextEntity = 0;
 //const float simpleDistance = 100;
 
-static const vec3 xp = vec3(0.5, 0.0, 0);
-//static const vec3 xwall_s = vec3(0/16.f, 0, 1);
-//static const vec3 xwall_e = vec3(1/16.f, 1, 1);
-static const vec3 xwall_s = vec3(5.f/16.f, 0.5, 0);
-static const vec3 xwall_e = vec3(5.f/16.f, 0.5, 0);
-static const vec3 xbwall_s = vec3(8/16.f, 0, 0);
-static const vec3 xbwall_e = vec3(9/16.f, 1, 0);
-//static const vec3 xroof_s = vec3(3.1/16.f, 0, 1);
-//static const vec3 xroof_e = vec3(3.9/16.f, 1, 1);
-static const vec3 xroof_s = vec3(0., 0.00, 0);
-static const vec3 xroof_e = vec3(1., 0.25, 0);
-static const vec3 xroof_ss = vec3(0, 0.00, 1);
-static const vec3 xroof_es = vec3(1., 0.25, 1);
+static const glm::vec3 xp = glm::vec3(0.5, 0.0, 0);
+//static const glm::vec3 xwall_s = glm::vec3(0/16.f, 0, 1);
+//static const glm::vec3 xwall_e = glm::vec3(1/16.f, 1, 1);
+static const glm::vec3 xwall_s = glm::vec3(5.f/16.f, 0.5, 0);
+static const glm::vec3 xwall_e = glm::vec3(5.f/16.f, 0.5, 0);
+static const glm::vec3 xbwall_s = glm::vec3(8/16.f, 0, 0);
+static const glm::vec3 xbwall_e = glm::vec3(9/16.f, 1, 0);
+//static const glm::vec3 xroof_s = glm::vec3(3.1/16.f, 0, 1);
+//static const glm::vec3 xroof_e = glm::vec3(3.9/16.f, 1, 1);
+static const glm::vec3 xroof_s = glm::vec3(0., 0.00, 0);
+static const glm::vec3 xroof_e = glm::vec3(1., 0.25, 0);
+static const glm::vec3 xroof_ss = glm::vec3(0, 0.00, 1);
+static const glm::vec3 xroof_es = glm::vec3(1., 0.25, 1);
 static item buildingRenderSeed = 101;
 static float lastLowTide = -1;
 static float lastHighTide = -1;
@@ -89,35 +89,35 @@ const float treeWidth = 10;
 const float treeBelly = 2;
 const double sectionLength = 4;
 
-static vector<float> decoCull;
-static vector<item> issueIconMeshes;
+static std::vector<float> decoCull;
+static std::vector<item> issueIconMeshes;
 
 void resetBuildingRender() {
   issueIconMeshes.clear();
   decoCull.clear();
 }
 
-vec3 adjustRoofTex(vec3 loc, vec3 br, vec3 axis) {
-  vec3 along = loc - br;
+glm::vec3 adjustRoofTex(glm::vec3 loc, glm::vec3 br, glm::vec3 axis) {
+  glm::vec3 along = loc - br;
   float x = dot(along, axis);
-  float y = dot(along, vec3(axis.y, -axis.x, 0));
-  y = -length(vec3(0, y, along.z));
-  vec3 result = vec3(0, 0.25, 0) + vec3(x,y,0)/16.f;
-  result.y = clamp(result.y, 0.f, 0.25f);
+  float y = dot(along, glm::vec3(axis.y, -axis.x, 0));
+  y = -length(glm::vec3(0, y, along.z));
+  glm::vec3 result = glm::vec3(0, 0.25, 0) + glm::vec3(x,y,0)/16.f;
+  result.y = glm::clamp(result.y, 0.f, 0.25f);
   result.z = 1;
   return result;
 }
 
-void makeRoofQuad(Mesh* mesh, vec3 br, vec3 bl, vec3 tr, vec3 tl) {
-  vec3 xbr = vec3(0,0.25,1);
-  vec3 axis = normalize(bl - br);
-  vec3 xtr = adjustRoofTex(tr, br, axis);
-  vec3 xbl = adjustRoofTex(bl, br, axis);
-  vec3 xtl = adjustRoofTex(tl, br, axis);
+void makeRoofQuad(Mesh* mesh, glm::vec3 br, glm::vec3 bl, glm::vec3 tr, glm::vec3 tl) {
+  glm::vec3 xbr = glm::vec3(0,0.25,1);
+  glm::vec3 axis = normalize(bl - br);
+  glm::vec3 xtr = adjustRoofTex(tr, br, axis);
+  glm::vec3 xbl = adjustRoofTex(bl, br, axis);
+  glm::vec3 xtl = adjustRoofTex(tl, br, axis);
   makeQuad(mesh, tr, br, tl, bl, xtr, xbr, xtl, xbl);
 }
 
-void makeWallNew(Mesh* mesh, dvec3 loc, dvec3 along, double height,
+void makeWallNew(Mesh* mesh, glm::dvec3 loc, glm::dvec3 along, double height,
   item zone, bool simple) {
 
   const double texSize1 = 4.;
@@ -127,10 +127,10 @@ void makeWallNew(Mesh* mesh, dvec3 loc, dvec3 along, double height,
   double l = length(along)/sectionLength;
   double h = height/sectionLength;
   double lz = loc.z;
-  dvec3 ualong = normalize(along)*sectionLength;
+  glm::dvec3 ualong = normalize(along)*sectionLength;
 
   if (lz <= 0) {
-    loc -= vec3(0,0,sectionLength*drop);
+    loc -= glm::vec3(0,0,sectionLength*drop);
     h += drop;
   }
 
@@ -140,9 +140,9 @@ void makeWallNew(Mesh* mesh, dvec3 loc, dvec3 along, double height,
     bool lastPart = h-y-texSize1 < 0.1;
     bool firstPart = y <= 0 && lz <= sectionLength;
 
-    dvec3 start = loc + dvec3(0,0,sectionLength*y);
-    dvec3 sup = vec3(0,0,sectionLength*ya);
-    dvec3 start_up = start+sup;
+    glm::dvec3 start = loc + glm::dvec3(0,0,sectionLength*y);
+    glm::dvec3 sup = glm::vec3(0,0,sectionLength*ya);
+    glm::dvec3 start_up = start+sup;
     //double tx_y = ya/48./16.f;
     double tx_ys = firstPart ? (texSize4-ya)/texSize4 :
       lastPart ? texSize1/texSize4 : (texSize1*3.-ya)/texSize4;
@@ -155,8 +155,8 @@ void makeWallNew(Mesh* mesh, dvec3 loc, dvec3 along, double height,
     double tx_xs = 0.5-tx_b;
     if (randFloat(&buildingRenderSeed) < 0.5) tx_xs ++;
     double tx_xe = tx_xs + tx_x;
-    dvec3 tx_s = dvec3(tx_xs, tx_ys, 0.);
-    dvec3 tx_e = dvec3(tx_xe, tx_ye, 0.);
+    glm::dvec3 tx_s = glm::dvec3(tx_xs, tx_ys, 0.);
+    glm::dvec3 tx_e = glm::dvec3(tx_xe, tx_ye, 0.);
 
     makeQuad(mesh, start_up, start_up+along, start, start+along, tx_s, tx_e);
 
@@ -169,13 +169,13 @@ void makeWallNew(Mesh* mesh, dvec3 loc, dvec3 along, double height,
   }
 }
 
-void makeWall(Mesh* mesh, dvec3 loc, dvec3 along, double height,
+void makeWall(Mesh* mesh, glm::dvec3 loc, glm::dvec3 along, double height,
   item zone, bool simple) {
 
   double l = length(along)/sectionLength;
   double h = height/sectionLength + 2;
-  dvec3 ualong = normalize(along)*sectionLength;
-  loc -= vec3(0,0,sectionLength*2);
+  glm::dvec3 ualong = normalize(along)*sectionLength;
+  loc -= glm::vec3(0,0,sectionLength*2);
   item zoneAdj = zone == OfficeZone ? RetailZone :
     zone == FactoryZone ? FarmZone :
     zone == MixedUseZone ? ResidentialZone : zone;
@@ -188,13 +188,13 @@ void makeWall(Mesh* mesh, dvec3 loc, dvec3 along, double height,
         continue;
       }
 
-      dvec3 start = loc + ualong*double(x) + dvec3(0,0,sectionLength*4*b);
-      dvec3 salong = ualong*xa;
-      dvec3 sup = vec3(0,0,sectionLength*ya);
+      glm::dvec3 start = loc + ualong*double(x) + glm::dvec3(0,0,sectionLength*4*b);
+      glm::dvec3 salong = ualong*xa;
+      glm::dvec3 sup = glm::vec3(0,0,sectionLength*ya);
       float texZone = (zoneAdj-1)*0.25 + (b||simple ? 0.125 : 0);
       float yfudge = b ? (ya-int(ya))*0.125 : 0;
-      dvec3 texStart = dvec3(texZone, 1-ya*0.25-yfudge, 1);
-      dvec3 texEnd = dvec3(texZone + xa/32, 1-yfudge, 1);
+      glm::dvec3 texStart = glm::dvec3(texZone, 1-ya*0.25-yfudge, 1);
+      glm::dvec3 texEnd = glm::dvec3(texZone + xa/32, 1-yfudge, 1);
 
       makeQuad(mesh, start+sup, start+sup+salong, start, start+salong,
         texStart, texEnd);
@@ -202,7 +202,7 @@ void makeWall(Mesh* mesh, dvec3 loc, dvec3 along, double height,
   }
 }
 
-void makeBuildingCube(Mesh* mesh, vec3 loc, vec3 right, vec3 along,
+void makeBuildingCube(Mesh* mesh, glm::vec3 loc, glm::vec3 right, glm::vec3 along,
   float height, item zone, bool simple) {
 
   makeWallNew(mesh, loc, right, height, zone, simple);
@@ -215,17 +215,17 @@ void makeBuildingCube(Mesh* mesh, vec3 loc, vec3 right, vec3 along,
   }
 }
 
-void makeFlat(Mesh* mesh, vec3 loc, vec3 right, vec3 along, float height,
+void makeFlat(Mesh* mesh, glm::vec3 loc, glm::vec3 right, glm::vec3 along, float height,
     item zone, float slope, bool simple) {
 
   slope *= 1.1;
-  vec3 up = vec3(0,0,height);
-  vec3 s = loc-right*.5f;
-  vec3 ru = normalize(up) * slope;
-  vec3 rs = s + up - ru;
-  vec3 rb = s + up - ru*1.01f;
-  vec3 ir = normalize(right) * (simple?2.f:1.f) * slope;
-  vec3 ia = normalize(along) * (simple?2.f:1.f) * slope;
+  glm::vec3 up = glm::vec3(0,0,height);
+  glm::vec3 s = loc-right*.5f;
+  glm::vec3 ru = normalize(up) * slope;
+  glm::vec3 rs = s + up - ru;
+  glm::vec3 rb = s + up - ru*1.01f;
+  glm::vec3 ir = normalize(right) * (simple?2.f:1.f) * slope;
+  glm::vec3 ia = normalize(along) * (simple?2.f:1.f) * slope;
 
   /*
   //Air Conditioner
@@ -267,58 +267,58 @@ void makeFlat(Mesh* mesh, vec3 loc, vec3 right, vec3 along, float height,
   }
 }
 
-void makeHip(Mesh* mesh, vec3 loc, vec3 right, vec3 along, float height,
+void makeHip(Mesh* mesh, glm::vec3 loc, glm::vec3 right, glm::vec3 along, float height,
     item zone, float slope, bool simple) {
 
-  vec3 up = vec3(0,0,height);
+  glm::vec3 up = glm::vec3(0,0,height);
   float lright = length(right);
   float lalong = length(along);
 
   loc -= right*.5f;
   if (lright > lalong) {
-    vec3 temp = right;
+    glm::vec3 temp = right;
     right = along;
     along = -temp;
     loc -= along;
   }
 
-  vec3 rs = loc+up;
-  vec3 rc = rs+right*.5f;
+  glm::vec3 rs = loc+up;
+  glm::vec3 rc = rs+right*.5f;
   float roofHeight = length(right)*slope;
-  vec3 pitch = vec3(0,0,roofHeight);
-  vec3 in = normalize(along) * roofHeight;
-  vec3 rp0 = rc+in+pitch;
-  vec3 rp1 = rc+along-in+pitch;
+  glm::vec3 pitch = glm::vec3(0,0,roofHeight);
+  glm::vec3 in = normalize(along) * roofHeight;
+  glm::vec3 rp0 = rc+in+pitch;
+  glm::vec3 rp1 = rc+along-in+pitch;
   makeRoofQuad(mesh, rs, rs+along, rp0, rp1);
   makeRoofQuad(mesh, rs+along+right, rs+right, rp1, rp0);
-  vec3 xr0 = vec3(0,0.25,1);
-  vec3 xr1 = vec3(0.5,0,1);
-  vec3 xr2 = vec3(1,0.25,1);
+  glm::vec3 xr0 = glm::vec3(0,0.25,1);
+  glm::vec3 xr1 = glm::vec3(0.5,0,1);
+  glm::vec3 xr2 = glm::vec3(1,0.25,1);
   makeTriangle(mesh, rs, rp0, rs+right, xr0, xr1, xr2);
   makeTriangle(mesh, rs+along+right, rp1, rs+along, xr0, xr1, xr2);
 
   /*
   //Chimney
   if (!simple) {
-    vec3 ia = normalize(along);
-    vec3 ir = normalize(right);
-    vec3 ru = vec3(0,0,1);
+    glm::vec3 ia = normalize(along);
+    glm::vec3 ir = normalize(right);
+    glm::vec3 ru = glm::vec3(0,0,1);
     makeAngledCube(mesh, rs+along-ia*4.f+ir*1.f, ir, ia, ru*2.f, true, xp);
   }
   */
 }
 
-void makeSlant(Mesh* mesh, vec3 loc, vec3 right, vec3 along, float height,
+void makeSlant(Mesh* mesh, glm::vec3 loc, glm::vec3 right, glm::vec3 along, float height,
     item zone, float slope, bool simple) {
 
-  loc += vec3(0,0,height) - right*.5f;
+  loc += glm::vec3(0,0,height) - right*.5f;
 
-  vec3 ia = normalize(along);
-  vec3 ir = normalize(right);
-  vec3 ru = vec3(0,0,1);
+  glm::vec3 ia = normalize(along);
+  glm::vec3 ir = normalize(right);
+  glm::vec3 ru = glm::vec3(0,0,1);
 
-  vec3 roofUp = vec3(0,0, length(right)*slope);
-  vec3 locAlong = loc+along;
+  glm::vec3 roofUp = glm::vec3(0,0, length(right)*slope);
+  glm::vec3 locAlong = loc+along;
   makeRoofQuad(mesh,
       locAlong+right+roofUp,
       loc+right+roofUp,
@@ -340,39 +340,39 @@ void makeSlant(Mesh* mesh, vec3 loc, vec3 right, vec3 along, float height,
   */
 }
 
-void makeBarrel(Mesh* mesh, vec3 loc, vec3 right, vec3 along, float height,
+void makeBarrel(Mesh* mesh, glm::vec3 loc, glm::vec3 right, glm::vec3 along, float height,
     int segments, item zone, float slope, bool simple) {
 
   float theta = pi_o/segments;
-  vec3 ys[8];
-  vec3 zs[8];
-  vec3 up = vec3(0,0,height);
+  glm::vec3 ys[8];
+  glm::vec3 zs[8];
+  glm::vec3 up = glm::vec3(0,0,height);
   float roofHeight = length(right)*slope;
   for (int i=0; i <= segments; i++) {
-    ys[i] = cos(theta*i)*right*.5f;
-    zs[i] = vec3(0, 0, sin(theta*i)*roofHeight);
+    ys[i] = right * cos(theta*i) * 0.5f;
+    zs[i] = glm::vec3(0, 0, sin(theta*i)*roofHeight);
   }
   for (int i=0; i < segments; i++) {
-    vec3 loc0 = loc+ys[i  ]+up;
-    vec3 loc1 = loc+ys[i+1]+up;
-    vec3 rloc0 = loc0+zs[i  ];
-    vec3 rloc1 = loc1+zs[i+1];
+    glm::vec3 loc0 = loc+ys[i  ]+up;
+    glm::vec3 loc1 = loc+ys[i+1]+up;
+    glm::vec3 rloc0 = loc0+zs[i  ];
+    glm::vec3 rloc1 = loc1+zs[i+1];
     makeQuad(mesh, rloc0, loc0, rloc1, loc1, xwall_s, xwall_e);
     makeQuad(mesh, loc0+along, rloc0+along, loc1+along, rloc1+along,
         xwall_s, xwall_e);
     makeRoofQuad(mesh, rloc0+along, rloc0, rloc1+along, rloc1);
   }
 
-  vec3 e0 = ys[0]+loc;
-  vec3 re0 = e0 + zs[0]+up;
-  vec3 e1 = ys[segments]+loc;
-  vec3 re1 = e1 + zs[segments]+up;
+  glm::vec3 e0 = ys[0]+loc;
+  glm::vec3 re0 = e0 + zs[0]+up;
+  glm::vec3 e1 = ys[segments]+loc;
+  glm::vec3 re1 = e1 + zs[segments]+up;
   //makeQuad(mesh, e0+along, e0, re0+along, re0);
   //makeQuad(mesh, e1, e1+along, re1, re1+along);
 
-  vec3 ia = normalize(along);
-  vec3 ir = normalize(right);
-  vec3 ru = vec3(0,0,1);
+  glm::vec3 ia = normalize(along);
+  glm::vec3 ir = normalize(right);
+  glm::vec3 ru = glm::vec3(0,0,1);
 
   /*
   //Chimney
@@ -384,13 +384,13 @@ void makeBarrel(Mesh* mesh, vec3 loc, vec3 right, vec3 along, float height,
 
 void renderStructure(Mesh* mesh, Structure* structure, item zone,
     bool simple) {
-  vec3 loc = structure->location;
-  vec3 size = structure->size;
+  glm::vec3 loc = structure->location;
+  glm::vec3 size = structure->size;
   float slope = structure->roofSlope;
   float cangle = cos(structure->angle);
   float sangle = sin(structure->angle);
-  vec3 right = vec3(-cangle, sangle, 0) * size.x;
-  vec3 along = vec3(sangle, cangle, 0) * size.y;
+  glm::vec3 right = glm::vec3(-cangle, sangle, 0) * size.x;
+  glm::vec3 along = glm::vec3(sangle, cangle, 0) * size.y;
   item roofType = structure->roofType;
   bool body = roofType >= 0;
   if (roofType < 0) {
@@ -435,7 +435,7 @@ void setDecoCull(float dist, item ndx) {
   //}
 }
 
-vec3 maxPoint(vec3 current, vec3 addition) {
+glm::vec3 maxPoint(glm::vec3 current, glm::vec3 addition) {
   if (abs(addition.y)*2 > current.y) {
     current.y = abs(addition.y)*2;
   }
@@ -448,7 +448,7 @@ vec3 maxPoint(vec3 current, vec3 addition) {
   return current;
 }
 
-vec3 maxPoint(vec3 current, Deco* deco) {
+glm::vec3 maxPoint(glm::vec3 current, Deco* deco) {
   current = maxPoint(current, deco->location);
 
   item type = deco->decoType;
@@ -484,8 +484,8 @@ vec3 maxPoint(vec3 current, Deco* deco) {
   return current;
 }
 
-vec3 maxPoint(Design* d) {
-  vec3 current = vec3(tileSize*.1f, tileSize*.1f, 0);
+glm::vec3 maxPoint(Design* d) {
+  glm::vec3 current = glm::vec3(tileSize*.1f, tileSize*.1f, 0);
   if (d->flags & _designAquatic) {
     if (current.x < d->highTide) current.x = d->highTide;
     if (current.x < d->lowTide) current.x = d->lowTide;
@@ -498,12 +498,12 @@ vec3 maxPoint(Design* d) {
   for (int i=0; i < d->structures.size(); i++) {
     Structure* structure = &d->structures[i];
 
-    vec3 size = structure->size;
+    glm::vec3 size = structure->size;
     float cangle = cos(structure->angle);
     float sangle = sin(structure->angle);
-    vec3 right = vec3(-cangle, sangle, 0) * size.x * .5f;
-    vec3 along = vec3(sangle, cangle, 0) * size.y;
-    vec3 loc = structure->location;
+    glm::vec3 right = glm::vec3(-cangle, sangle, 0) * size.x * .5f;
+    glm::vec3 along = glm::vec3(sangle, cangle, 0) * size.y;
+    glm::vec3 loc = structure->location;
 
     current = maxPoint(current, loc-right);
     current = maxPoint(current, loc+right);
@@ -519,10 +519,10 @@ vec3 maxPoint(Design* d) {
 
 void renderDeco(Mesh* decoMesh, Deco* deco, bool simple, item ndx,
     item buildingNdx) {
-  vec3 loc = deco->location;
-  vec3 uright = vec3(0, 1, 0);
-  vec3 ualong = vec3(1, 0, 0);
-  vec3 up = vec3(0, 0, 1);
+  glm::vec3 loc = deco->location;
+  glm::vec3 uright = glm::vec3(0, 1, 0);
+  glm::vec3 ualong = glm::vec3(1, 0, 0);
+  glm::vec3 up = glm::vec3(0, 0, 1);
   item type = deco->decoType;
 
   if (type >= numLegacyDecoTypes) {
@@ -560,7 +560,7 @@ void renderDeco(Mesh* decoMesh, Deco* deco, bool simple, item ndx,
       }
     }
 
-    vec3 scale = vec3(1,1,1);
+    glm::vec3 scale = glm::vec3(1,1,1);
     if (decoType->flags & _decoScaleX) scale.x = deco->scale;
     if (decoType->flags & _decoScaleY) scale.y = deco->scale;
     if (decoType->flags & _decoScaleZ) scale.z = deco->scale;
@@ -573,7 +573,7 @@ void renderDeco(Mesh* decoMesh, Deco* deco, bool simple, item ndx,
 
   } else if (type == TreeDeco) {
     float sizeMult = ((ndx*163)%256)/1024.f + 1;
-    vec3 bellyLoc = loc;
+    glm::vec3 bellyLoc = loc;
     bellyLoc.z += treeBelly;
     if (simple) {
       makeSimpleTree(decoMesh, bellyLoc,
@@ -588,7 +588,7 @@ void renderDeco(Mesh* decoMesh, Deco* deco, bool simple, item ndx,
     float length = 5;
     float width = .5f;
     makeAngledCube(decoMesh,
-      vec3(loc.x-width*.5f, loc.y-length*.5f, loc.z-height),
+      glm::vec3(loc.x-width*.5f, loc.y-length*.5f, loc.z-height),
       uright*length, ualong*width, up*height*2.f,
       true, colorBeige);
 
@@ -597,7 +597,7 @@ void renderDeco(Mesh* decoMesh, Deco* deco, bool simple, item ndx,
     length = 6;
     width = 1;
     makeAngledCube(decoMesh,
-      vec3(loc.x-width*.5f, loc.y-length*.5f, loc.z-descent),
+      glm::vec3(loc.x-width*.5f, loc.y-length*.5f, loc.z-descent),
       uright*length, ualong*width, up*(height+descent),
       true, colorBrown);
 
@@ -606,7 +606,7 @@ void renderDeco(Mesh* decoMesh, Deco* deco, bool simple, item ndx,
     float length = 2;
     float width = 6;
     makeAngledCube(decoMesh,
-      vec3(loc.x-width*.5f, loc.y-length*.5f, loc.z-height),
+      glm::vec3(loc.x-width*.5f, loc.y-length*.5f, loc.z-height),
       uright*length, ualong*width, up*height*3.f,
       true, colorBrown);
 
@@ -615,7 +615,7 @@ void renderDeco(Mesh* decoMesh, Deco* deco, bool simple, item ndx,
       length = 1;
       width = .5f;
       makeAngledCube(decoMesh,
-        vec3(loc.x-width*.5f+i*2.5f, loc.y-length*.5f, loc.z),
+        glm::vec3(loc.x-width*.5f+i*2.5f, loc.y-length*.5f, loc.z),
         uright*length, ualong*width, up*height,
         true, colorBrown);
     }
@@ -625,21 +625,21 @@ void renderDeco(Mesh* decoMesh, Deco* deco, bool simple, item ndx,
       length = .5f;
       width = 5;
       makeAngledCube(decoMesh,
-        vec3(loc.x-width*.5f, loc.y-length*.5f, loc.z+i*height*1.5+1),
+        glm::vec3(loc.x-width*.5f, loc.y-length*.5f, loc.z+i*height*1.5+1),
         uright*length, ualong*width, up*height,
         true, colorBeige);
     }
 
   } else if (type == TallSign) {
-    vec3 xdecoDarkWind = vec3(colorBrown.x, colorBrown.y, 1);
-    vec3 xdecoDarkWindHalf = vec3(colorBrown.x, colorBrown.y, 0.4);
-    vec3 xdecoLightWind = vec3(colorBeige.x, colorBeige.y, 1);
+    glm::vec3 xdecoDarkWind = glm::vec3(colorBrown.x, colorBrown.y, 1);
+    glm::vec3 xdecoDarkWindHalf = glm::vec3(colorBrown.x, colorBrown.y, 0.4);
+    glm::vec3 xdecoLightWind = glm::vec3(colorBeige.x, colorBeige.y, 1);
     float height = .5f;
     float length = 1.5f;
     float width = 1.5f;
     if (!simple) {
       makeAngledCube(decoMesh,
-        vec3(loc.x-width*.5f, loc.y-length*.5f, loc.z-height),
+        glm::vec3(loc.x-width*.5f, loc.y-length*.5f, loc.z-height),
         uright*length, ualong*width, up*height*3.f,
         true, colorBrown);
     }
@@ -653,7 +653,7 @@ void renderDeco(Mesh* decoMesh, Deco* deco, bool simple, item ndx,
     length = 1;
     width = 5.5f;
     makeAngledCube(decoMesh,
-      vec3(loc.x-width*.5f, loc.y-length*.5f, loc.z+10),
+      glm::vec3(loc.x-width*.5f, loc.y-length*.5f, loc.z+10),
       uright*length, ualong*width, up*height,
       true, xdecoDarkWind);
 
@@ -661,7 +661,7 @@ void renderDeco(Mesh* decoMesh, Deco* deco, bool simple, item ndx,
     length = .5f;
     width = 5;
     makeAngledCube(decoMesh,
-      vec3(loc.x-width*.5f, loc.y-length*.5f, loc.z+10.5f),
+      glm::vec3(loc.x-width*.5f, loc.y-length*.5f, loc.z+10.5f),
       uright*length, ualong*width, up*height,
       true, xdecoLightWind);
 
@@ -669,16 +669,16 @@ void renderDeco(Mesh* decoMesh, Deco* deco, bool simple, item ndx,
     length = 1;
     width = 5.5f;
     makeAngledCube(decoMesh,
-      vec3(loc.x-width*.5f, loc.y-length*.5f, loc.z+13.5f),
+      glm::vec3(loc.x-width*.5f, loc.y-length*.5f, loc.z+13.5f),
       uright*length, ualong*width, up*height,
       true, xdecoDarkWind);
 
   } else if (type == Smokestack) {
     int sides = simple?6:24;
-    makeCylinder(decoMesh, loc-up, vec3(0, 0, 2), 3, sides, colorBrown);
-    makePipe(decoMesh, loc, vec3(0, 0, 25), 2.5f, 2, sides,
+    makeCylinder(decoMesh, loc-up, glm::vec3(0, 0, 2), 3, sides, colorBrown);
+    makePipe(decoMesh, loc, glm::vec3(0, 0, 25), 2.5f, 2, sides,
         colorBrown);
-    makePipe(decoMesh, loc+up*25.f, vec3(0, 0, 1), 3, 2, sides, colorBrown);
+    makePipe(decoMesh, loc+up*25.f, glm::vec3(0, 0, 1), 3, 2, sides, colorBrown);
 
   } else if ((type == DecoPool && !simple) || type == DecoBigPool) {
     const bool big = type == DecoBigPool;
@@ -688,44 +688,44 @@ void renderDeco(Mesh* decoMesh, Deco* deco, bool simple, item ndx,
     const float hwater = .6f;
     const float hwall = .7f;
     const float depth = 4.f;
-    vec3 wall = vec3(0,0,depth+hwall);
-    vec3 loc3 = loc;
+    glm::vec3 wall = glm::vec3(0,0,depth+hwall);
+    glm::vec3 loc3 = loc;
 
     makeAngledCube(decoMesh,
-      loc3 + vec3(-xi-t, -yi-t, -depth),
-      vec3(xi*2+t*2,0,0), vec3(0,t,0), wall,
+      loc3 + glm::vec3(-xi-t, -yi-t, -depth),
+      glm::vec3(xi*2+t*2,0,0), glm::vec3(0,t,0), wall,
       true, colorBeige);
     makeAngledCube(decoMesh,
-      loc3 + vec3(-xi-t, yi, -depth),
-      vec3(xi*2+t*2,0,0), vec3(0,t,0), wall,
+      loc3 + glm::vec3(-xi-t, yi, -depth),
+      glm::vec3(xi*2+t*2,0,0), glm::vec3(0,t,0), wall,
       true, colorBeige);
     makeAngledCube(decoMesh,
-      loc3 + vec3( xi, -yi, -depth),
-      vec3(t,0,0), vec3(0,yi*2,0), wall,
+      loc3 + glm::vec3( xi, -yi, -depth),
+      glm::vec3(t,0,0), glm::vec3(0,yi*2,0), wall,
       true, colorBeige);
     makeAngledCube(decoMesh,
-      loc3 + vec3(-xi-t, -yi, -depth),
-      vec3(t,0,0), vec3(0,yi*2,0), wall,
+      loc3 + glm::vec3(-xi-t, -yi, -depth),
+      glm::vec3(t,0,0), glm::vec3(0,yi*2,0), wall,
       true, colorBeige);
     makeQuad(decoMesh,
-        loc3+vec3(-xi, -yi, hwater),
-        loc3+vec3( xi, -yi, hwater),
-        loc3+vec3(-xi,  yi, hwater),
-        loc3+vec3( xi,  yi, hwater),
+        loc3+glm::vec3(-xi, -yi, hwater),
+        loc3+glm::vec3( xi, -yi, hwater),
+        loc3+glm::vec3(-xi,  yi, hwater),
+        loc3+glm::vec3( xi,  yi, hwater),
         colorWaterBlue, colorWaterBlue);
 
   } else if (type == BigTank) {
     int sides = simple?6:24;
-    makeCylinder(decoMesh, loc-up, vec3(0, 0, 16), 10, sides, colorBeige);
+    makeCylinder(decoMesh, loc-up, glm::vec3(0, 0, 16), 10, sides, colorBeige);
 
   } else if (type == SmallTanks && !simple) {
     int sides = simple?6:24;
     for (int i = 0; i < 4; i++) {
-      vec3 tloc = loc - up + vec3(i/2-0.5f, i%2-0.5f, 0)*2.f;
-      makeCylinder(decoMesh, tloc, vec3(0, 0, 5), 2, sides,
+      glm::vec3 tloc = loc - up + glm::vec3(i/2-0.5f, i%2-0.5f, 0)*2.f;
+      makeCylinder(decoMesh, tloc, glm::vec3(0, 0, 5), 2, sides,
           colorBeige);
       if (i/2 == 0) {
-        makeCube(decoMesh, tloc+vec3(1,0,0), vec3(5.f, .5f, 5.5f),
+        makeCube(decoMesh, tloc+glm::vec3(1,0,0), glm::vec3(5.f, .5f, 5.5f),
               colorBrown, true, false);
       }
     }
@@ -735,24 +735,24 @@ void renderDeco(Mesh* decoMesh, Deco* deco, bool simple, item ndx,
     for (int i = 0; i < 6; i++) {
       float y = (i/2 && !(i%2))*.25f + (i%2 ? 1.5f : -1.f);
       float z = 2*(i/2)-2.1f;
-      vec3 color = (i == ndx % 5) ? colorTree : colorBrown;
-      vec3 offset;
-      vec3 size;
+      glm::vec3 color = (i == ndx % 5) ? colorTree : colorBrown;
+      glm::vec3 offset;
+      glm::vec3 size;
       if (horz) {
-        offset = vec3(0, y, z);
-        size = vec3(6,2,2);
+        offset = glm::vec3(0, y, z);
+        size = glm::vec3(6,2,2);
       } else {
-        offset = vec3(y, 0, z);
-        size = vec3(2,6,2);
+        offset = glm::vec3(y, 0, z);
+        size = glm::vec3(2,6,2);
       }
-      vec3 cloc = loc + offset;
+      glm::vec3 cloc = loc + offset;
       makeCube(decoMesh, cloc, size, color, true, false);
     }
 
   } else if (type == HangingSign && !simple) {
-    vec3 sloc = loc + vec3(-2, 0, 3);
-    makeCube(decoMesh, sloc, vec3(3, .25f, 2), colorBeige, true, false);
-    makeCylinder(decoMesh, sloc + vec3(3,0,2), vec3(-4.6f,0,0),
+    glm::vec3 sloc = loc + glm::vec3(-2, 0, 3);
+    makeCube(decoMesh, sloc, glm::vec3(3, .25f, 2), colorBeige, true, false);
+    makeCylinder(decoMesh, sloc + glm::vec3(3,0,2), glm::vec3(-4.6f,0,0),
         .25f, 6, colorBrown);
 
   } else if (type == SwingSet && !simple) {
@@ -761,83 +761,83 @@ void renderDeco(Mesh* decoMesh, Deco* deco, bool simple, item ndx,
     float length = 2;
     float thickness = 0.25;
     int numSides = 6;
-    vec3 sloc = loc - vec3(0,0,height-.5f);
-    vec3 seatloc = loc+vec3(0,0,height*.5f-thickness);
-    vec3 xdecoDarkWind = vec3(colorBrown.x, colorBrown.y, 2);
+    glm::vec3 sloc = loc - glm::vec3(0,0,height-.5f);
+    glm::vec3 seatloc = loc+glm::vec3(0,0,height*.5f-thickness);
+    glm::vec3 xdecoDarkWind = glm::vec3(colorBrown.x, colorBrown.y, 2);
 
     //Top Beam
-    makeCylinder(decoMesh, sloc + vec3(-length,0,height*2-thickness),
-        vec3(length*2,0,0), thickness, numSides, colorBrown);
+    makeCylinder(decoMesh, sloc + glm::vec3(-length,0,height*2-thickness),
+        glm::vec3(length*2,0,0), thickness, numSides, colorBrown);
 
     //Poles
     for (int i=0; i < 4; i++) {
       float x = i%2==0 ? -1 : 1;
       float y = i/2==0 ? -1 : 1;
-      makeCylinder(decoMesh, sloc + vec3(length*x,width*y,0),
-          vec3(0,-width*y,height*2), thickness, numSides, colorBrown);
+      makeCylinder(decoMesh, sloc + glm::vec3(length*x,width*y,0),
+          glm::vec3(0,-width*y,height*2), thickness, numSides, colorBrown);
     }
 
     //Swings
     for (int i=0; i < 4; i++) {
-      makeCylinder(decoMesh, seatloc + vec3(.75f*(i-1.5f), 0.f, 0.f),
+      makeCylinder(decoMesh, seatloc + glm::vec3(.75f*(i-1.5f), 0.f, 0.f),
           height-thickness-.5f,
           thickness*.25f, numSides, xdecoDarkWind, colorBrown);
     }
     for (int i=0; i < 2; i++) {
-      makeCube(decoMesh, seatloc + vec3(.75f*(i*2-1), 0.f, 0.f),
-          vec3(1.f, 0.25f, 0.125f), xdecoDarkWind, true, false);
+      makeCube(decoMesh, seatloc + glm::vec3(.75f*(i*2-1), 0.f, 0.f),
+          glm::vec3(1.f, 0.25f, 0.125f), xdecoDarkWind, true, false);
     }
 
   } else if (type == VerticalFence) {
-    makeCube(decoMesh, loc-up*4.f, vec3(24.125f, .25f, 8),
+    makeCube(decoMesh, loc-up*4.f, glm::vec3(24.125f, .25f, 8),
         colorBrown, true, false);
 
   } else if (type == HorizontalFence) {
-    makeCube(decoMesh, loc-up*4.f, vec3(.25f, 24.125f, 8),
+    makeCube(decoMesh, loc-up*4.f, glm::vec3(.25f, 24.125f, 8),
         colorBrown, true, false);
 
   } else if (type == VerticalFenceLong) {
-    makeCube(decoMesh, loc-up*4.f, vec3(72.125f, .25f, 8),
+    makeCube(decoMesh, loc-up*4.f, glm::vec3(72.125f, .25f, 8),
         colorBrown, true, false);
 
   } else if (type == HorizontalFenceLong) {
-    makeCube(decoMesh, loc-up*4.f, vec3(.25f, 72.125f, 8),
+    makeCube(decoMesh, loc-up*4.f, glm::vec3(.25f, 72.125f, 8),
         colorBrown, true, false);
 
   } else if (type == ShrubsV) {
-    makeFlaredCube(decoMesh, loc-up*4.f, vec3(12.f, 2.f, 6.f), 2, colorTree,
-        vec3(colorTree.x, colorTree.y, 1));
+    makeFlaredCube(decoMesh, loc-up*4.f, glm::vec3(12.f, 2.f, 6.f), 2, colorTree,
+        glm::vec3(colorTree.x, colorTree.y, 1));
 
   } else if (type == ShrubsH) {
-    makeFlaredCube(decoMesh, loc-up*4.f, vec3(2.f, 12.f, 6.f), 2, colorTree,
-        vec3(colorTree.x, colorTree.y, 1));
+    makeFlaredCube(decoMesh, loc-up*4.f, glm::vec3(2.f, 12.f, 6.f), 2, colorTree,
+        glm::vec3(colorTree.x, colorTree.y, 1));
 
   } else if (type == PathV) {
-    makeFlaredCube(decoMesh, loc-up*2.f, vec3(12.f, 4.f, 2.5f), paveFlare,
+    makeFlaredCube(decoMesh, loc-up*2.f, glm::vec3(12.f, 4.f, 2.5f), paveFlare,
         colorBeige, colorBeige);
 
   } else if (type == PathH) {
-    makeFlaredCube(decoMesh, loc-up*2.f, vec3(4.f, 12.f, 2.5f), paveFlare,
+    makeFlaredCube(decoMesh, loc-up*2.f, glm::vec3(4.f, 12.f, 2.5f), paveFlare,
         colorBeige, colorBeige);
 
   } else if (type == Pavilion) {
-    makeFlaredCube(decoMesh, loc-up*2.f, vec3(12.f, 12.f, 2.5f), paveFlare,
+    makeFlaredCube(decoMesh, loc-up*2.f, glm::vec3(12.f, 12.f, 2.5f), paveFlare,
         colorBeige, colorBeige);
 
   } else if (type == RoadV) {
-    makeFlaredCube(decoMesh, loc-up*2.f, vec3(12.f, 4.f, 2.4f), paveFlare,
+    makeFlaredCube(decoMesh, loc-up*2.f, glm::vec3(12.f, 4.f, 2.4f), paveFlare,
         colorPavement, colorPavement);
 
   } else if (type == RoadH) {
-    makeFlaredCube(decoMesh, loc-up*2.f, vec3(4.f, 12.f, 2.4f), paveFlare,
+    makeFlaredCube(decoMesh, loc-up*2.f, glm::vec3(4.f, 12.f, 2.4f), paveFlare,
         colorPavement, colorPavement);
 
   } else if (type == Parking) {
-    makeFlaredCube(decoMesh, loc-up*2.f, vec3(12.f, 12.f, 2.4f), paveFlare,
+    makeFlaredCube(decoMesh, loc-up*2.f, glm::vec3(12.f, 12.f, 2.4f), paveFlare,
         colorPavement, colorPavement);
 
   } else if (type == ParkingSuper) {
-    makeFlaredCube(decoMesh, loc-up*2.f, vec3(36.f, 36.f, 2.4f), paveFlare,
+    makeFlaredCube(decoMesh, loc-up*2.f, glm::vec3(36.f, 36.f, 2.4f), paveFlare,
         colorPavement, colorPavement);
 
   } else if (type == VerticalCropsGreen ||
@@ -850,43 +850,43 @@ void renderDeco(Mesh* decoMesh, Deco* deco, bool simple, item ndx,
     float xs = isVertical ? 75.f : simple ? 0.f : rowWidth;
     float ys = !isVertical ? 75.f : simple ? 0.f : rowWidth;
     float zs = 6.f;
-    vec3 offset = isVertical ?  vec3(0, rowWidth*2, 0) :
-      vec3(rowWidth*2, 0, 0);
-    vec3 tex = type == VerticalCropsGreen || type == HorizontalCropsGreen ?
+    glm::vec3 offset = isVertical ?  glm::vec3(0, rowWidth*2, 0) :
+      glm::vec3(rowWidth*2, 0, 0);
+    glm::vec3 tex = type == VerticalCropsGreen || type == HorizontalCropsGreen ?
       colorLightGreen : colorYellowFarm;
-    vec3 texTop = vec3(tex.x, tex.y, 0);
+    glm::vec3 texTop = glm::vec3(tex.x, tex.y, 0);
     int count = tileSize/rowWidth;
     if (simple) {
       makeFlaredCube(decoMesh, loc-up*4.f,
-          vec3(xs, ys, zs)+offset*float(count), 3, tex, tex);
+          glm::vec3(xs, ys, zs)+offset*float(count), 3, tex, tex);
     } else {
       for (int i = 0; i < count; i++) {
         makeFlaredCube(decoMesh, loc-up*4.f + float(i-count/2)*offset,
-            vec3(xs, ys, zs), 3, tex, texTop);
+            glm::vec3(xs, ys, zs), 3, tex, texTop);
       }
     }
 
   } else if (type == Awning && !simple) {
     int sides = 6;
-    vec3 xdecoDarkWind = vec3(colorBrown.x, colorBrown.y, 0.2);
+    glm::vec3 xdecoDarkWind = glm::vec3(colorBrown.x, colorBrown.y, 0.2);
     for (int i = 0; i < 4; i++) {
-      vec3 ploc = loc-up*3.f + vec3((i/2-0.5f)*5.75f, (i%2-0.5f)*7.75f, 0);
+      glm::vec3 ploc = loc-up*3.f + glm::vec3((i/2-0.5f)*5.75f, (i%2-0.5f)*7.75f, 0);
       makeCylinder(decoMesh, ploc, 6, .125f, sides, colorBrown, xdecoDarkWind);
     }
-    makeFlaredCube(decoMesh, loc+up*3.f, vec3(2.25f, 4.25f, 1.5f), 2,
-        vec3(colorRed.x, colorRed.y, 0.2),
-        vec3(colorRed.x, colorRed.y, 1));
+    makeFlaredCube(decoMesh, loc+up*3.f, glm::vec3(2.25f, 4.25f, 1.5f), 2,
+        glm::vec3(colorRed.x, colorRed.y, 0.2),
+        glm::vec3(colorRed.x, colorRed.y, 1));
 
   } else if (type >= BleachersN && type <= BleachersW) {
-    vec3 along =
-      type == BleachersN ? vec3(0, 1, 0) :
-      type == BleachersE ? vec3( 1,0, 0) :
-      type == BleachersS ? vec3(0,-1, 0) :
-                           vec3(-1,0, 0);
-    vec3 right = vec3(along.y, -along.x, 0);
+    glm::vec3 along =
+      type == BleachersN ? glm::vec3(0, 1, 0) :
+      type == BleachersE ? glm::vec3( 1,0, 0) :
+      type == BleachersS ? glm::vec3(0,-1, 0) :
+                           glm::vec3(-1,0, 0);
+    glm::vec3 right = glm::vec3(along.y, -along.x, 0);
     int numSteps = 16;
     float blechWidth = 20.f;
-    vec3 ploc = loc - up*3.25f - (numSteps*.5f)*right -
+    glm::vec3 ploc = loc - up*3.25f - (numSteps*.5f)*right -
       along*blechWidth*.5f;
 
     for (int s = 0; s < numSteps; s++) {
@@ -897,52 +897,52 @@ void renderDeco(Mesh* decoMesh, Deco* deco, bool simple, item ndx,
     }
 
   } else if (type == BaseballDiamond) {
-    vec3 along = vec3(0,1,0);
-    vec3 right = vec3(1,0,0);
-    vec3 ploc = loc - up*3.f;
-    vec3 plocUp = loc + up*.25f;
-    vec3 tx = vec3(colorYellow.x, colorYellow.y, 0.f);
+    glm::vec3 along = glm::vec3(0,1,0);
+    glm::vec3 right = glm::vec3(1,0,0);
+    glm::vec3 ploc = loc - up*3.f;
+    glm::vec3 plocUp = loc + up*.25f;
+    glm::vec3 tx = glm::vec3(colorYellow.x, colorYellow.y, 0.f);
     float dbSize = 20.f;
-    vec3 home = ploc - along*10.f - right*10.f;
-    vec3 homeUp = plocUp - along*10.f - right*10.f;
-    vec3 homeTop = loc + up*.3f - along*10.f - right*10.f;
+    glm::vec3 home = ploc - along*10.f - right*10.f;
+    glm::vec3 homeUp = plocUp - along*10.f - right*10.f;
+    glm::vec3 homeTop = loc + up*.3f - along*10.f - right*10.f;
     float mf = .5f;
     float dbFlare = dbSize*2.f + 4.f;
 
     // Sides and Lines
     makeFlaredCube(decoMesh, ploc - right * 12.5f + along*dbSize*.5f,
-        vec3(5.f, dbSize*2.f, 3.3f), 4.f, tx, tx);
+        glm::vec3(5.f, dbSize*2.f, 3.3f), 4.f, tx, tx);
     makeFlaredCube(decoMesh, ploc - along * 12.5f + right*(dbSize*.5f - 2.5f),
-        vec3(dbSize*2.f+5.f, 5.f, 3.3f), 4.f, tx, tx);
+        glm::vec3(dbSize*2.f+5.f, 5.f, 3.3f), 4.f, tx, tx);
 
     makeFlaredCube(decoMesh, plocUp - right * 10.f + along*dbSize*.375f,
-        vec3(.25f, dbSize*1.5f, .26f), mf, colorBeige, colorBeige);
+        glm::vec3(.25f, dbSize*1.5f, .26f), mf, colorBeige, colorBeige);
     makeFlaredCube(decoMesh, plocUp - along * 10.f + right* dbSize*.375f,
-        vec3(dbSize*1.5f, .25f, .26f), mf, colorBeige, colorBeige);
+        glm::vec3(dbSize*1.5f, .25f, .26f), mf, colorBeige, colorBeige);
 
     // Mounds
-    makeFlaredCube(decoMesh, plocUp, vec3(1.f, 1.f, .5f), mf,
+    makeFlaredCube(decoMesh, plocUp, glm::vec3(1.f, 1.f, .5f), mf,
         colorBeige, colorBeige);
-    makeFlaredCube(decoMesh, homeUp, vec3(1.f, 1.f, .5f), mf,
+    makeFlaredCube(decoMesh, homeUp, glm::vec3(1.f, 1.f, .5f), mf,
         colorBeige, colorBeige);
-    makeFlaredCube(decoMesh, homeUp+along*dbSize, vec3(1.f, 1.f, .5f), mf,
+    makeFlaredCube(decoMesh, homeUp+along*dbSize, glm::vec3(1.f, 1.f, .5f), mf,
         colorBeige, colorBeige);
-    makeFlaredCube(decoMesh, homeUp+right*dbSize, vec3(1.f, 1.f, .5f), mf,
+    makeFlaredCube(decoMesh, homeUp+right*dbSize, glm::vec3(1.f, 1.f, .5f), mf,
         colorBeige, colorBeige);
     makeFlaredCube(decoMesh, homeUp+right*dbSize+along*dbSize,
-        vec3(1.f, 1.f, .5f), mf, colorBeige, colorBeige);
+        glm::vec3(1.f, 1.f, .5f), mf, colorBeige, colorBeige);
 
     for (int i = 0; i < 12; i++) {
       int j = i+1;
       float theta0 = i/12.f*pi_o*.5f;
       float theta1 = j/12.f*pi_o*.5f;
-      vec3 udir0 = vec3(cos(theta0), sin(theta0), 0);
-      vec3 udir1 = vec3(cos(theta1), sin(theta1), 0);
+      glm::vec3 udir0 = glm::vec3(cos(theta0), sin(theta0), 0);
+      glm::vec3 udir1 = glm::vec3(cos(theta1), sin(theta1), 0);
 
-      vec3 p0 = homeTop + udir0*dbSize*2.f;
-      vec3 p1 = homeTop + udir1*dbSize*2.f;
-      vec3 p2 = home + udir0*dbFlare;
-      vec3 p3 = home + udir1*dbFlare;
+      glm::vec3 p0 = homeTop + udir0*dbSize*2.f;
+      glm::vec3 p1 = homeTop + udir1*dbSize*2.f;
+      glm::vec3 p2 = home + udir0*dbFlare;
+      glm::vec3 p3 = home + udir1*dbFlare;
 
       Triangle t1 = {{
         {p0, up, tx},
@@ -955,8 +955,8 @@ void renderDeco(Mesh* decoMesh, Deco* deco, bool simple, item ndx,
     }
 
   } else if (type == Facade) {
-    vec3 along = vec3(1,0,0);
-    vec3 right = vec3(0,1,0);
+    glm::vec3 along = glm::vec3(1,0,0);
+    glm::vec3 right = glm::vec3(0,1,0);
     int numSteps = 20;
     int numColumns = 8;
     float baseHeight = 7.f;
@@ -965,29 +965,29 @@ void renderDeco(Mesh* decoMesh, Deco* deco, bool simple, item ndx,
     float stepWidth = .5f;
     float stepHeight = baseHeight / numSteps;
     float colHeight = 6.f;
-    vec3 ploc = loc-up*3.f + .25f*along*(baseDepth+numSteps*stepWidth);
+    glm::vec3 ploc = loc-up*3.f + .25f*along*(baseDepth+numSteps*stepWidth);
 
     for (int s = 0; s < numSteps; s++) {
       makeCube(decoMesh, ploc - along*.5f*(baseDepth+s),
-          vec3(stepWidth, baseWidth, stepHeight*(numSteps-s-1)),
+          glm::vec3(stepWidth, baseWidth, stepHeight*(numSteps-s-1)),
           colorBeige, true, false);
     }
 
-    makeCube(decoMesh, ploc, vec3(baseDepth, baseWidth, baseHeight),
+    makeCube(decoMesh, ploc, glm::vec3(baseDepth, baseWidth, baseHeight),
         colorBeige, true, false);
 
     for (int c = 0; c < numColumns; c++) {
-      vec3 col = ploc + up*baseHeight + right*(c*2.f-numColumns+1) +
+      glm::vec3 col = ploc + up*baseHeight + right*(c*2.f-numColumns+1) +
         along*.5f*(baseDepth-2);
-      makeCube(decoMesh, col, vec3(1.f, 1.f, .25f), colorBeige, true, false);
+      makeCube(decoMesh, col, glm::vec3(1.f, 1.f, .25f), colorBeige, true, false);
       makeCylinder(decoMesh, col, colHeight, .375f, simple ? 6 : 24,
           colorBeige);
-      makeCube(decoMesh, col+up*colHeight, vec3(1.f, 1.f, .25f),
+      makeCube(decoMesh, col+up*colHeight, glm::vec3(1.f, 1.f, .25f),
           colorBeige, false, false);
     }
 
     makeCube(decoMesh, ploc + up*(baseHeight+colHeight) +
-        along*.5f*(baseDepth-2), vec3(2.f, baseWidth, 1.f),
+        along*.5f*(baseDepth-2), glm::vec3(2.f, baseWidth, 1.f),
         colorBeige, true, false);
   }
 }
@@ -995,13 +995,13 @@ void renderDeco(Mesh* decoMesh, Deco* deco, bool simple, item ndx,
 Box boxForStructure(Structure* s) {
   float cangle = cos(s->angle);
   float sangle = sin(s->angle);
-  //vec3 along = vec3(sangle, cangle, 0) * s->size.y;
-  //return box(s->location, vec2(s->size), along);
-  vec3 size = s->size;
-  vec2 normnorm = normalize(vec2(sangle, cangle));
-  vec2 axis0 = normnorm * size.y;
-  vec2 axis1 = vec2(normnorm.y, -normnorm.x) * size.x;
-  vec2 corner = vec2(s->location) - axis1*.5f;
+  //glm::vec3 along = glm::vec3(sangle, cangle, 0) * s->size.y;
+  //return box(s->location, glm::vec2(s->size), along);
+  glm::vec3 size = s->size;
+  glm::vec2 normnorm = normalize(glm::vec2(sangle, cangle));
+  glm::vec2 axis0 = normnorm * size.y;
+  glm::vec2 axis1 = glm::vec2(normnorm.y, -normnorm.x) * size.x;
+  glm::vec2 corner = glm::vec2(s->location) - axis1*.5f;
   return box(corner, axis0, axis1);
 }
 
@@ -1042,11 +1042,11 @@ void renderDesign(item designNdx, item buildingNdx) {
     renderStructure(simpleMesh, &design->structures[i], design->zone, true);
 
     /*
-    vec3 color = structureCollide(design, i) ? colorRed : colorTree;
+    glm::vec3 color = structureCollide(design, i) ? colorRed : colorTree;
     Box b = boxForStructure(&design->structures[i]);
-    vec3 loc = vec3(b.corner, 20);
-    vec3 along = vec3(b.axis0, 0);
-    vec3 back = vec3(b.axis1, 0);
+    glm::vec3 loc = glm::vec3(b.corner, 20);
+    glm::vec3 along = glm::vec3(b.axis0, 0);
+    glm::vec3 back = glm::vec3(b.axis1, 0);
     makeQuad(decoMesh, loc+along, loc, loc+along+back, loc+back, color, color);
     */
   }
@@ -1114,11 +1114,11 @@ void renderDesign(item designNdx, item buildingNdx) {
 
   // Fallback elevator
   if (c(CShowFallbackElevators)) {
-    vec3 center = vec3(1.f, -.5f*design->size.y, 0);
-    vec3 diag = vec3(design->size.x*.5f, design->size.y*.5f, 0);
-    vec3 pad = vec3(2, 4, 0);
-    vec3 up = vec3(0,0,20);
-    vec3 down = vec3(0,0,2);
+    glm::vec3 center = glm::vec3(1.f, -.5f*design->size.y, 0);
+    glm::vec3 diag = glm::vec3(design->size.x*.5f, design->size.y*.5f, 0);
+    glm::vec3 pad = glm::vec3(2, 4, 0);
+    glm::vec3 up = glm::vec3(0,0,20);
+    glm::vec3 down = glm::vec3(0,0,2);
     makeFlaredCube(decoMesh, center+diag-up-down, 2.f*diag+up+pad,
         4, colorDarkSand, colorDarkSand, true);
     //makeFlaredCube(simpleDecoMesh, center+diag-up-down, 2.f*diag+up+pad,
@@ -1142,7 +1142,7 @@ item getIssueIconMesh(item ndx) {
   if (issueIconMeshes.size() <= ndx) issueIconMeshes.resize(ndx+1);
   if (issueIconMeshes[ndx] != 0) return issueIconMeshes[ndx];
 
-  vec3 ico;
+  glm::vec3 ico;
   switch(ndx) {
     case Jobless:      {ico = iconWorker;} break;
     case Hungry:       {ico = iconFood;} break;
@@ -1158,9 +1158,9 @@ item getIssueIconMesh(item ndx) {
   item meshNdx = addMesh();
   Mesh* mesh = getMesh(meshNdx);
   float size = tileSize;
-  vec3 right = vec3(size, 0, 0);
-  vec3 down = vec3(0, size, 0);
-  vec3 topLeft = -.5f*(right+down) + vec3(0,0,20);
+  glm::vec3 right = glm::vec3(size, 0, 0);
+  glm::vec3 down = glm::vec3(0, size, 0);
+  glm::vec3 topLeft = -.5f*(right+down) + glm::vec3(0,0,20);
   Line icoLine = iconToSpritesheet(ico);
   makeQuad(mesh, topLeft, topLeft+right,
       topLeft+down, topLeft+right+down, icoLine.start, icoLine.end);
@@ -1292,21 +1292,21 @@ void paintBuilding(item ndx) {
     setEntityRedHighlight(building->iconEntity, true);
     setEntityVisible(building->iconEntity, issuesIconsVisible());
     setEntityTransparent(building->iconEntity, false);
-    vec3 loc = getBuildingTop(ndx) + vec3(0,0,25);
+    glm::vec3 loc = getBuildingTop(ndx) + glm::vec3(0,0,25);
     placeEntity(building->iconEntity, loc, 0.f, 0.f);
     setCull(building->iconEntity, 100, 5000);
   }
 }
 
-static const vec3 handleSize = vec3(3, 3, 3);
-static const vec3 up = vec3(0, 0, handleSize.z);
+static const glm::vec3 handleSize = glm::vec3(3, 3, 3);
+static const glm::vec3 up = glm::vec3(0, 0, handleSize.z);
 
 void renderBoundaries(Mesh* mesh, Mesh* textMesh) {
   if (c(CObjectViewer)) return;
   Design* design = getDesign(1);
-  vec3 uright = vec3(1, 0, 0);
-  vec3 ualong = vec3(0, 1, 0);
-  vec3 loc;
+  glm::vec3 uright = glm::vec3(1, 0, 0);
+  glm::vec3 ualong = glm::vec3(0, 1, 0);
+  glm::vec3 loc;
   float fontSize = (design->size.x + design->size.y)/tileSize+10;
   float textSetback = 10;
   float textShift = 10;
@@ -1314,27 +1314,27 @@ void renderBoundaries(Mesh* mesh, Mesh* textMesh) {
   char* sizeStrY = sprintf_o("%.1f", ceil(design->size.y/tileSize*10)*.1f);
 
   for (float i=-0.5; i < 1; i+=1) {
-    loc = vec3(.1f, design->size.y*i+.5f, -.5f);
+    loc = glm::vec3(.1f, design->size.y*i+.5f, -.5f);
     makeAngledCube(mesh, loc, uright*(design->size.x-.1f), -ualong,
       up*.5f, true, colorRed);
   }
 
-  loc = vec3(design->size.x, design->size.y*.5f + .5f, -.5f);
+  loc = glm::vec3(design->size.x, design->size.y*.5f + .5f, -.5f);
   makeAngledCube(mesh, loc, uright, -ualong*(design->size.y+1),
     up*.5f, true, colorRed);
 
   renderString(textMesh, sizeStrX,
-    vec3(textShift, design->size.y*.5f+textSetback, 5),
+    glm::vec3(textShift, design->size.y*.5f+textSetback, 5),
     uright*fontSize);
   renderString(textMesh, sizeStrX,
-    vec3(design->size.x-textShift, -design->size.y*.5f-textSetback, 5),
+    glm::vec3(design->size.x-textShift, -design->size.y*.5f-textSetback, 5),
     -uright*fontSize);
 
   renderString(textMesh, sizeStrY,
-    vec3(-textSetback, -design->size.y*.5f+textShift, 5),
+    glm::vec3(-textSetback, -design->size.y*.5f+textShift, 5),
     ualong*fontSize, -uright*fontSize);
   renderString(textMesh, sizeStrY,
-    vec3(design->size.x+textSetback, design->size.y*.5f-textShift, 5),
+    glm::vec3(design->size.x+textSetback, design->size.y*.5f-textShift, 5),
     -ualong*fontSize, uright*fontSize);
 
   free(sizeStrX);
@@ -1352,15 +1352,15 @@ void renderBoundaries(Mesh* mesh, Mesh* textMesh) {
     float spacing = mapSize/100;
     float lowTide = getDesign(1)->lowTide;
     for (float i = spacing*.5f; i < mapSize; i += spacing) {
-      vec3 loc = vec3(lowTide, i-mapSize*.5f, 0);
-      insertMesh(mesh, import->mesh, loc, 0, 0, vec3(1,1,1));
+      glm::vec3 loc = glm::vec3(lowTide, i-mapSize*.5f, 0);
+      insertMesh(mesh, import->mesh, loc, 0, 0, glm::vec3(1,1,1));
     }
   }
 }
 
 void setupHandles() {
   float angle = 0;
-  vec3 location(0,0,c(CSuperflatHeight)+100);
+  glm::vec3 location(0,0,c(CSuperflatHeight)+100);
   if (getGameMode() == ModeBuildingDesigner) {
     Building* building = getBuilding(1);
     location = building->location;
@@ -1421,20 +1421,20 @@ void renderHandles() {
 
     Structure* structure = &design->structures[i];
 
-    vec3 size = structure->size;
+    glm::vec3 size = structure->size;
     float cangle = cos(structure->angle);
     float sangle = sin(structure->angle);
-    vec3 right = vec3(-cangle, sangle, 0) * size.x * .5f;
-    vec3 along = vec3(sangle, cangle, 0) * size.y;
-    vec3 uright = normalize(right)*handleSize.x;
-    vec3 ualong = normalize(along)*handleSize.y;
-    vec3 loc = structure->location - uright*.5f - ualong*.5f - up*.5f;
+    glm::vec3 right = glm::vec3(-cangle, sangle, 0) * size.x * .5f;
+    glm::vec3 along = glm::vec3(sangle, cangle, 0) * size.y;
+    glm::vec3 uright = normalize(right)*handleSize.x;
+    glm::vec3 ualong = normalize(along)*handleSize.y;
+    glm::vec3 loc = structure->location - uright*.5f - ualong*.5f - up*.5f;
 
     bool gray = getSelectionType() == SelectionStructure &&
       i != getSelection();
-    vec3 cRed = gray ? colorDarkGray : colorRed;
-    vec3 cGreen = gray ? colorDarkGray : colorBrightGreen;
-    vec3 cBlue = gray ? colorDarkGray : colorBlue;
+    glm::vec3 cRed = gray ? colorDarkGray : colorRed;
+    glm::vec3 cGreen = gray ? colorDarkGray : colorBrightGreen;
+    glm::vec3 cBlue = gray ? colorDarkGray : colorBlue;
 
     makeAngledCube(mesh, loc, uright, ualong, up, true, colorRed);
 
@@ -1442,12 +1442,12 @@ void renderHandles() {
     makeAngledCube(mesh, loc+uright*.375f+ualong,
         uright*.25f, along-ualong, up*.25f, true, cBlue);
 
-    makeAngledCube(mesh, loc+right+vec3(0,0,size.z),
+    makeAngledCube(mesh, loc+right+glm::vec3(0,0,size.z),
       uright, ualong, up, true, colorBrightGreen);
     makeAngledCube(mesh, loc+up+uright*.375f+ualong*.375f,
-      uright*.25f, ualong*.25f, vec3(0,0,size.z-up.z),
+      uright*.25f, ualong*.25f, glm::vec3(0,0,size.z-up.z),
       false, cGreen);
-    makeAngledCube(mesh, loc+ualong*.375f+uright*.375f+vec3(0,0,size.z),
+    makeAngledCube(mesh, loc+ualong*.375f+uright*.375f+glm::vec3(0,0,size.z),
       right-uright*.25f, ualong*.25f, up*.25f, true, cGreen);
 
     if (size.z >= 10*sectionLength) {
@@ -1456,12 +1456,12 @@ void renderHandles() {
       char* heightStr = startFloor == 0 ?
         sprintf_o("%d", floors) :
         sprintf_o("%d - %d", startFloor, startFloor+floors);
-      vec3 topLoc = structure->location +
-        vec3(0,0,size.z - sectionLength);
+      glm::vec3 topLoc = structure->location +
+        glm::vec3(0,0,size.z - sectionLength);
       float fontSize = 10.f;
-      vec3 ualong = normalize(along) * fontSize;
-      vec3 uright = normalize(right) * fontSize;
-      vec3 hdown = vec3(0,0,-fontSize);
+      glm::vec3 ualong = normalize(along) * fontSize;
+      glm::vec3 uright = normalize(right) * fontSize;
+      glm::vec3 hdown = glm::vec3(0,0,-fontSize);
       renderStringCentered(textMesh, heightStr,
           topLoc-right*1.1f+along*.5f,
           -ualong, hdown);
@@ -1497,20 +1497,20 @@ void renderDecoHandles() {
 
     float cangle = cos(deco->yaw);
     float sangle = sin(deco->yaw);
-    vec3 ualong = vec3(cangle, sangle, 0);
-    vec3 uright = vec3(-sangle, cangle, 0);
-    vec3 up = vec3(0, 0, 1);
-    vec3 loc = deco->location - uright*.5f - ualong*.5f - up*.5f;
+    glm::vec3 ualong = glm::vec3(cangle, sangle, 0);
+    glm::vec3 uright = glm::vec3(-sangle, cangle, 0);
+    glm::vec3 up = glm::vec3(0, 0, 1);
+    glm::vec3 loc = deco->location - uright*.5f - ualong*.5f - up*.5f;
 
     bool gray = getSelectionType() == SelectionDeco &&
       i != getSelection();
-    vec3 cRed = gray ? colorDarkGray : colorRed;
-    vec3 cGreen = gray ? colorDarkGray : colorBrightGreen;
+    glm::vec3 cRed = gray ? colorDarkGray : colorRed;
+    glm::vec3 cGreen = gray ? colorDarkGray : colorBrightGreen;
 
     makeAngledCube(mesh, loc, uright, ualong, up, true, colorRed);
 
     if (deco->decoType >= numLegacyDecoTypes) {
-      vec3 along = ualong * deco->scale * 10.f;
+      glm::vec3 along = ualong * deco->scale * 10.f;
       makeAngledCube(mesh, loc-along,
           uright, ualong, up, true, colorBrightGreen);
       makeAngledCube(mesh, loc+uright*.625f,
@@ -1547,8 +1547,8 @@ void designOrganizerRender() {
 
   //if (c(CObjectViewer)) return;
   Mesh* textMesh = getMeshForEntity(designTextEntity);
-  vec3 uright = vec3(1, 0, 0);
-  vec3 ualong = vec3(0, 1, 0);
+  glm::vec3 uright = glm::vec3(1, 0, 0);
+  glm::vec3 ualong = glm::vec3(0, 1, 0);
   float spacing = getChunkSize()*tileSize;
   float fontSize = tileSize*5;
   float z = 10;
@@ -1561,26 +1561,26 @@ void designOrganizerRender() {
     float u1 = spacing*(i+.5f)+w;
     float v = -fontSize;
     renderString(textMesh, digitStr,
-      vec3(u1,v,z), -uright*fontSize);
+      glm::vec3(u1,v,z), -uright*fontSize);
     renderString(textMesh, digitStr,
-      vec3(v,u0,z), ualong*fontSize);
+      glm::vec3(v,u0,z), ualong*fontSize);
     renderString(textMesh, digitStr,
-      vec3(u0,step-v,z), uright*fontSize);
+      glm::vec3(u0,step-v,z), uright*fontSize);
     renderString(textMesh, digitStr,
-      vec3(step-v,u1,z), -ualong*fontSize);
+      glm::vec3(step-v,u1,z), -ualong*fontSize);
     free(digitStr);
   }
 
   float dw = stringWidth("Density")*fontSize*.5f;
   float vw = stringWidth("Value")*fontSize*.5f;
   renderString(textMesh, "Density",
-    vec3(-fontSize*3,spacing-dw,z), ualong*fontSize);
+    glm::vec3(-fontSize*3,spacing-dw,z), ualong*fontSize);
   renderString(textMesh, "Value",
-    vec3(spacing+vw,-fontSize*3,z), -uright*fontSize);
+    glm::vec3(spacing+vw,-fontSize*3,z), -uright*fontSize);
   renderString(textMesh, "Density",
-    vec3(step+fontSize*3,step-spacing+dw,z), -ualong*fontSize);
+    glm::vec3(step+fontSize*3,step-spacing+dw,z), -ualong*fontSize);
   renderString(textMesh, "Value",
-    vec3(step-spacing-vw,step+fontSize*3,z), uright*fontSize);
+    glm::vec3(step-spacing-vw,step+fontSize*3,z), uright*fontSize);
 
   bufferMesh(getEntity(designTextEntity)->mesh);
   setDesignRender(true);

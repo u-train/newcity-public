@@ -4,8 +4,8 @@
 #include "person.hpp"
 #include "serialize.hpp"
 
+#include <glm/glm.hpp>
 #include <vector>
-using namespace std;
 
 const int _businessExists = 1 << 0;
 //const int _businessIsRetail = 1 << 1;
@@ -33,7 +33,7 @@ struct Business {
   float lastFreightTime;
   float lastCustomerTime;
   char* name;
-  vector<Position> positions;
+  std::vector<Position> positions;
 };
 
 item addBusiness(item buildingNdx, BusinessType type);
@@ -56,7 +56,7 @@ float getBusinessTypeDemand(item econ, BusinessType type);
 float getBusinessTypeGrowth(item econ, BusinessType type);
 const char* getBusinessTypeName(BusinessType type);
 
-void updateBusiness(item ndx, float duration, vec3 loc);
+void updateBusiness(item ndx, float duration, glm::vec3 loc);
 void removeBusiness(item businessNdx);
 void updateBusinesses(double duration);
 void resetBusinesses();

@@ -3,15 +3,13 @@
 #include "model.hpp"
 #include "renderVehicle.hpp"
 #include "travelGroup.hpp"
-#include "physics.hpp"
 #include "update.hpp"
 
-#include "../building/building.hpp"
 #include "../draw/entity.hpp"
 #include "../draw/texture.hpp"
 #include "../economy.hpp"
 #include "../game/game.hpp"
-#include "../graph.hpp"
+#include "../game/constants.hpp"
 #include "../graph/transit.hpp"
 #include "../graph/stop.hpp"
 #include "../heatmap.hpp"
@@ -24,9 +22,12 @@
 #include "../sound.hpp"
 #include "../util.hpp"
 #include "../time.hpp"
+#include "../main.hpp"
 
+#include "../error.hpp"
 #include "../parts/messageBoard.hpp"
 
+#include <spdlog/spdlog.h>
 #include <algorithm>
 #include <boost/dynamic_bitset.hpp>
 
@@ -110,9 +111,9 @@ void setVehicleActive_g(item ndx) {
   vehicleActive_g[ndx] = active;
 }
 
-vec3 getVehicleCenter_g(item ndx) {
+glm::vec3 getVehicleCenter_g(item ndx) {
   Vehicle* v = getVehicle(ndx);
-  vec3 loc = v->location;
+  glm::vec3 loc = v->location;
   float num = 1;
   //while (v->trailer) {
     //v = getVehicle(v->trailer);
@@ -149,8 +150,8 @@ void placeVehicleEntity(Vehicle* vehicle, item ndx) {
   }
 
   if (vehicle->numberEntity != 0 && isTransitVisible()) {
-    vec3 loc = getVehicleCenter_g(ndx);
-    placeEntity(vehicle->numberEntity, loc + vec3(0,0,20), 0, 0);
+    glm::vec3 loc = getVehicleCenter_g(ndx);
+    placeEntity(vehicle->numberEntity, loc + glm::vec3(0,0,20), 0, 0);
     copyEntityPlacement(vehicle->numberEntity, vehicle->numberShadowEntity);
   }
 }
@@ -190,7 +191,7 @@ item addTestVehicle_g(GraphLocation start, GraphLocation dest) {
     //((rand()%2==0) ? BoxTruck : VhSemiTractor) : randItem(numCarStyles);
   //item styleType = Train;
 
-  vector<item> ndxes;
+  std::vector<item> ndxes;
   int numNdxes = 1; //styleType == VhSemiTractor ? 2 : styleType == Train ? 8 : 1;
   for (int i = 0; i < numNdxes; i++) {
     ndxes.push_back(vehicles->create());
@@ -215,8 +216,8 @@ item addTestVehicle_g(GraphLocation start, GraphLocation dest) {
   vehicle->vehicleAhead[0] = 0;
   vehicle->vehicleAhead[1] = 0;
   vehicle->location = getLocation(start);
-  vehicle->velocity = vec3(0, 0, 0);
-  vehicle->acceleration = vec2(0, 0);
+  vehicle->velocity = glm::vec3(0, 0, 0);
+  vehicle->acceleration = glm::vec2(0, 0);
   vehicle->pitch = 0;
   vehicle->distanceSinceMerge = 0;
   vehicle->aggressiveness = randFloat(0.8, 1.2);
@@ -270,8 +271,8 @@ item addTrailer(item ndx, item trailingNdx) {
   vehicle->destination = trailing->destination;
   vehicle->vehicleAhead[0] = 0;
   vehicle->vehicleAhead[1] = 0;
-  vehicle->velocity = vec3(0, 0, 0);
-  vehicle->acceleration = vec2(0, 0);
+  vehicle->velocity = glm::vec3(0, 0, 0);
+  vehicle->acceleration = glm::vec2(0, 0);
   vehicle->pitch = 0;
   vehicle->distanceSinceMerge = 0;
   vehicle->aggressiveness = trailing->aggressiveness;
@@ -291,7 +292,7 @@ item addTrailer(item ndx, item trailingNdx) {
   vehicle->location = getLocation(vehicle->laneLoc);
   if (getGameMode() == ModeGame) {
     Lane* lane = getLane(vehicle->laneLoc);
-    vec3 alongLane = lane->ends[1] - lane->ends[0];
+    glm::vec3 alongLane = lane->ends[1] - lane->ends[0];
     vehicle->location -= uzNormal(alongLane)*c(CLaneWidth);
   }
 
@@ -330,8 +331,8 @@ item addVehicle_g(item ndx, item style, Route* route, item startLane) {
   //vehicle->pilotEntity = 0;
   vehicle->vehicleAhead[0] = 0;
   vehicle->vehicleAhead[1] = 0;
-  vehicle->velocity = vec3(0, 0, 0);
-  vehicle->acceleration = vec2(0, 0);
+  vehicle->velocity = glm::vec3(0, 0, 0);
+  vehicle->acceleration = glm::vec2(0, 0);
   vehicle->pitch = 0;
   vehicle->distanceSinceMerge = 0;
   vehicle->aggressiveness = randFloat(0.8, 1.2);
@@ -352,7 +353,7 @@ item addVehicle_g(item ndx, item style, Route* route, item startLane) {
   } else {
     vehicle->location = getLocation(vehicle->pilot);
     Lane* lane = getLane(vehicle->pilot.lane);
-    vec3 alongLane = lane->ends[1] - lane->ends[0];
+    glm::vec3 alongLane = lane->ends[1] - lane->ends[0];
     vehicle->yaw = atan2(alongLane.x, alongLane.y);
     vehicle->location -= uzNormal(alongLane)*c(CLaneWidth);
   }
@@ -425,8 +426,8 @@ item addTransitVehicle_g(item lineNdx, Route* route) {
   item startLane = stop->graphLoc.lane;
   if (startLane == 0) return 0;
 
-  vector<item> ndxes;
-  int numNdxes = clamp(float(line->maxCars), 1.f, c(CMaxCarsPerVehicle));
+  std::vector<item> ndxes;
+  int numNdxes = glm::clamp(float(line->maxCars), 1.f, c(CMaxCarsPerVehicle));
   for (int i = 0; i < numNdxes; i++) {
     ndxes.push_back(vehicles->create());
   }
@@ -459,7 +460,7 @@ item addTransitVehicle_g(item lineNdx, Route* route) {
   return ndxes[0];
 }
 
-item addWanderer_g(item modelNdx, vec3 loc, float yaw) {
+item addWanderer_g(item modelNdx, glm::vec3 loc, float yaw) {
   item ndx = vehicles->create();
   Vehicle* vehicle = getVehicle(ndx);
   vehicle->flags = _vehicleExists | _vehiclePlaced | _vehicleHasRoute |
@@ -478,8 +479,8 @@ item addWanderer_g(item modelNdx, vec3 loc, float yaw) {
   //vehicle->pilotEntity = 0;
   vehicle->vehicleAhead[0] = 0;
   vehicle->vehicleAhead[1] = 0;
-  vehicle->velocity = vec3(0, 0, 0);
-  vehicle->acceleration = vec2(0, 0);
+  vehicle->velocity = glm::vec3(0, 0, 0);
+  vehicle->acceleration = glm::vec2(0, 0);
   vehicle->location = loc;
   vehicle->pitch = 0;
   vehicle->yaw = yaw;
@@ -647,14 +648,14 @@ float getEffectiveTrafficRate() {
     return c(CTrafficRate1M);
 
   } else if (pop > 100000) {
-    float popFactor = clamp((pop-100000.f)/900000.f, 0.f, 1.f);
+    float popFactor = glm::clamp((pop-100000.f)/900000.f, 0.f, 1.f);
     popFactor = 1-pow(1-popFactor, 4);
-    return mix(c(CTrafficRate100K), c(CTrafficRate1M), popFactor);
+    return glm::mix(c(CTrafficRate100K), c(CTrafficRate1M), popFactor);
 
   } else {
-    float popFactor = clamp(pop/100000.f, 0.f, 1.f);
+    float popFactor = glm::clamp(pop/100000.f, 0.f, 1.f);
     popFactor = 1-pow(1-popFactor, 4);
-    return mix(c(CTrafficRate0), c(CTrafficRate100K), popFactor);
+    return glm::mix(c(CTrafficRate0), c(CTrafficRate100K), popFactor);
   }
 }
 
@@ -966,7 +967,7 @@ void readVehicle(FileBuffer* file, int version, item ndx) {
   if (version >= 22) {
     vehicle->acceleration = fread_vec2(file);
   } else {
-    vehicle->acceleration = vec2(0,0);
+    vehicle->acceleration = glm::vec2(0,0);
   }
   vehicle->vehicleAhead[0] = fread_item(file, version);
   vehicle->vehicleAhead[1] = 0;
@@ -983,7 +984,7 @@ void readVehicle(FileBuffer* file, int version, item ndx) {
   vehicle->destination = fread_graph_location(file, version);
 
   if (version < 51) {
-    vector<Location> routeSteps;
+    std::vector<Location> routeSteps;
     fread_location_vector(file, &routeSteps, version);
     reverse(routeSteps.begin(), routeSteps.end());
     vehicle->route.steps.fromVector(routeSteps);
@@ -1092,7 +1093,7 @@ void writeVehicles(FileBuffer* file) {
 void vehiclePassengersToTravelGroups51_g() {
   for (int i = 1; i <= vehicles->size(); i++) {
     Vehicle* vehicle = getVehicle(i);
-    vector<item> passengers = vehicle->travelGroups;
+    std::vector<item> passengers = vehicle->travelGroups;
     vehicle->travelGroups.clear();
 
     item groupNdx = addTravelGroup_g();

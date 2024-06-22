@@ -5,8 +5,8 @@
 #include "../platform/lua.hpp"
 #include "../pool.hpp"
 #include "../util.hpp"
+#include "../error.hpp"
 
-#include "spdlog/spdlog.h"
 #include <unordered_map>
 #include <string>
 #include <boost/tokenizer.hpp>
@@ -15,7 +15,7 @@
 typedef boost::tokenizer<boost::char_separator<char> > tokenizer;
 
 Pool<TreeType> treeTypes;
-unordered_map<string, item> treeTypesByCode;
+std::unordered_map<std::string, item> treeTypesByCode;
 float totalTreeWeight = 0;
 
 int addTreeType(lua_State* L) {
@@ -50,7 +50,7 @@ int addTreeType(lua_State* L) {
     type->flags |= _treeForAlpine | _treeForDesert;
   } else {
     boost::char_separator<char> sep(",", "");
-    string str(biomes);
+    std::string str(biomes);
     tokenizer tokens(str, sep);
     BOOST_FOREACH(std::string const& token, tokens) {
       if (token == "alpine") type->flags |= _treeForAlpine;

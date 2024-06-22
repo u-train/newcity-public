@@ -1,9 +1,8 @@
-#ifndef PART_PANEL_H
-#define PART_PANEL_H
+#pragma once
 
 #include "part.hpp"
 
-Part* panel(vec2 start, vec2 size);
+Part* panel(glm::vec2 start, glm::vec2 size);
 Part* panel(Line dim);
 
-#endif
+

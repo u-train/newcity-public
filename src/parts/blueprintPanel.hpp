@@ -5,6 +5,6 @@
 
 #include "../blueprint.hpp"
 
-Part* blueprintPanel(vec2 start, vec2 size, Blueprint* bp,
+Part* blueprintPanel(glm::vec2 start, glm::vec2 size, Blueprint* bp,
     TextBoxState* tb, item ndx);
 

@@ -1,8 +1,9 @@
-#ifndef PLAN_H
-#define PLAN_H
+#pragma once
 
 #include "serialize.hpp"
 #include "configuration.hpp"
+#include "money.hpp"
+#include <glm/glm.hpp>
 
 enum PlanType {
   GraphElementPlan,
@@ -28,7 +29,7 @@ struct Plan {
   item iconEntity[numPlanIconEntities];
   money cost;
   Configuration config;
-  vec3 location;
+  glm::vec3 location;
   const char* legalMessage;
 };
 
@@ -39,22 +40,22 @@ const int _planForceDemolish = 1 << 4;
 
 const float planCull = 10000;
 const float boxScale = 1.5;
-const vec3 planCompleteBoxCenter = vec3(40,-30,0) * boxScale;
-const vec3 planDiscardBoxCenter = vec3(10,-30,0) *boxScale;
-const vec3 planBoxSize = vec3(10,10,0) * boxScale;
+const glm::vec3 planCompleteBoxCenter = glm::vec3(40,-30,0) * boxScale;
+const glm::vec3 planDiscardBoxCenter = glm::vec3(10,-30,0) *boxScale;
+const glm::vec3 planBoxSize = glm::vec3(10,10,0) * boxScale;
 const Line planCompleteBox = line(planCompleteBoxCenter - planBoxSize,
       planCompleteBoxCenter + planBoxSize);
 const Line planDiscardBox = line(planDiscardBoxCenter - planBoxSize,
       planDiscardBoxCenter + planBoxSize);
-const vec3 planStringLoc = vec3(-10, -30, 0)*boxScale;
-const vec3 planWSUIIconCenter = vec3(-10,0,0) *boxScale;
+const glm::vec3 planStringLoc = glm::vec3(-10, -30, 0)*boxScale;
+const glm::vec3 planWSUIIconCenter = glm::vec3(-10,0,0) *boxScale;
 const Line planWSUIIconBox = line(planWSUIIconCenter - planBoxSize*2.f,
       planWSUIIconCenter + planBoxSize*2.f);
   /*
 const Line bigPlanCompleteBox =
-  line(vec3(-40, -10, -1) * boxScale, vec3(0, 30, -1) * boxScale);
+  line(glm::vec3(-40, -10, -1) * boxScale, glm::vec3(0, 30, -1) * boxScale);
 const Line bigPlanDiscardBox =
-  line(vec3(0, -10, -2) * boxScale, vec3(40, 30, -2) * boxScale);
+  line(glm::vec3(0, -10, -2) * boxScale, glm::vec3(40, 30, -2) * boxScale);
   */
 
 item addPlan(item planType, item element);
@@ -101,5 +102,3 @@ bool handlePlanClick(Line mouseLine);
 bool handlePlanMouseMove(Line mouseLine);
 void writePlans(FileBuffer* file);
 void readPlans(FileBuffer* file, int version);
-
-#endif

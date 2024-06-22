@@ -1,13 +1,13 @@
 #include "laneLoc.hpp"
 
-#include "vehicle.hpp"
 #include "physics.hpp"
 #include "update.hpp"
 #include "../cup.hpp"
-#include "../game/game.hpp"
 #include "../option.hpp"
+#include "../error.hpp"
 
 #include "spdlog/spdlog.h"
+
 
 struct LaneLoc {
   GraphLocation loc;

@@ -30,6 +30,7 @@
 
 const float toolPad = 0.1;
 
+// TODO: refactor these into their own interfaces correctly.
 #include "../tools/tool.hpp"
 #include "../tools/blueprint.hpp"
 #include "../tools/road.hpp"
@@ -251,7 +252,7 @@ int getCurrentTool() {
   return currentTool;
 }
 
-Part* toolbarButton(vec2 loc, vec3 ico, std::string text, InputCallback callback, InputAction action, item itemData, bool highlight, bool blink) {
+Part* toolbarButton(glm::vec2 loc, glm::vec3 ico, std::string text, InputCallback callback, InputAction action, item itemData, bool highlight, bool blink) {
 
   Part* butt;
   float toolBarSizeInnerX = 1;
@@ -261,7 +262,7 @@ Part* toolbarButton(vec2 loc, vec3 ico, std::string text, InputCallback callback
     toolBarSizeInnerX = stringWidth(str)*0.7 + 1.1;
   }
 
-  butt = superButton(loc, vec2(toolBarSizeInnerX, 1), ico, str, callback, itemData, action, highlight);
+  butt = superButton(loc, glm::vec2(toolBarSizeInnerX, 1), ico, str, callback, itemData, action, highlight);
   if (currentTool == 0 && getHeatMap() == TransitHeatMap) butt->contents[1]->foregroundColor = PickerPalette::Black;
 
   if (blink) {
@@ -284,8 +285,8 @@ Part* toolbar() {
   float toolBarY = uiGridSizeX - toolBarSizeY - toolPad*3;
   if (!designer) toolBarY -= 1 + toolPad;
 
-  Part* toolbar = panel(vec2(toolBarX, toolBarY),
-      vec2(toolBarSizeX, toolBarSizeY));
+  Part* toolbar = panel(glm::vec2(toolBarX, toolBarY),
+      glm::vec2(toolBarSizeX, toolBarSizeY));
   toolbar->padding = toolPad;
 
   for (int i = 1; i <= numTools; i++) {
@@ -316,18 +317,18 @@ Part* toolbar() {
 
     InputAction action = (InputAction)(((int)InputAction::ActTool1)+(i-1));
     float buttY = (i-1)*(1+toolPad);
-    Part* butt = toolbarButton(vec2(0, buttY), tool->icon, tools[i]->name(), setTool, action, i, i == currentTool, blink);
+    Part* butt = toolbarButton(glm::vec2(0, buttY), tool->icon, tools[i]->name(), setTool, action, i, i == currentTool, blink);
 
     /*
     if (currentTool) {
-      butt = button(vec2(0,(i-1)*(1+toolPad)), tool->icon, setTool);
+      butt = button(glm::vec2(0,(i-1)*(1+toolPad)), tool->icon, setTool);
       butt->inputAction = action;
       butt->itemData = i;
       if (i == currentTool) {
         butt->flags |= _partHighlight;
       }
     } else {
-      butt = superButton(vec2(0,(i-1)*(1+toolPad)), vec2(toolBarSizeInnerX, 1), tool->icon, tools[i]->name, setTool, i, action, i == currentTool);
+      butt = superButton(glm::vec2(0,(i-1)*(1+toolPad)), glm::vec2(toolBarSizeInnerX, 1), tool->icon, tools[i]->name, setTool, i, action, i == currentTool);
     }
     */
     setPartTooltipValues(butt,
@@ -349,17 +350,17 @@ Part* toolbar() {
 
   if (currentTool) {
     Line toolMenuSize =
-      line(vec3(toolPanelX, toolPanelY, 0),
-          vec3(toolPanelSizeX, toolPanelSizeY, 0));
+      line(glm::vec3(toolPanelX, toolPanelY, 0),
+          glm::vec3(toolPanelSizeX, toolPanelSizeY, 0));
     Part* toolMenu = tools[currentTool]->render(toolMenuSize);
     toolMenu->padding = toolPad;
-    Part* closeButt = button(vec2(9,0), iconX, setTool);
+    Part* closeButt = button(glm::vec2(9,0), iconX, setTool);
     closeButt->itemData = 0;
     r(toolMenu, closeButt);
     r(toolbar, toolMenu);
 
     if (allowClose) {
-      Part* iButt = button(vec2(8,0), iconI, toggleInstructions);
+      Part* iButt = button(glm::vec2(8,0), iconI, toggleInstructions);
       r(toolMenu, iButt);
       setPartTooltipValues(iButt,
         TooltipType::GenInfo);
@@ -375,13 +376,13 @@ Part* toolbar() {
   if (showInstructionPanel) {
     float instructionPosition = (currentTool ? toolPanelSizeX + toolPanelX : 7) + toolPad*2;
     Part* instructions = panel(
-      vec2(instructionPosition, toolPanelY),
-      vec2(14,toolPanelSizeY));
+      glm::vec2(instructionPosition, toolPanelY),
+      glm::vec2(14,toolPanelSizeY));
     instructions->padding = 0.25;
     r(toolbar, instructions);
 
     if (allowClose) {
-      r(instructions, button(vec2(12.5,0), iconX, toggleInstructions));
+      r(instructions, button(glm::vec2(12.5,0), iconX, toggleInstructions));
     }
 
     if (currentTool && showInstructionPanel) {
@@ -391,7 +392,7 @@ Part* toolbar() {
       tools[1]->instructionPanel(instructions);
 
     } else if (designer) {
-      r(instructions, label(vec2(0,1), .85, strdup_s(
+      r(instructions, label(glm::vec2(0,1), .85, strdup_s(
         "Use Structure Tool (2),\n"
         "Decoration Tool (3).\n"
         "Set zone on left panel.\n"
@@ -400,7 +401,7 @@ Part* toolbar() {
         "Press escape to access Main Menu.")));
 
     } else {
-      r(instructions, label(vec2(0,1), 0.85f, strdup_s(
+      r(instructions, label(glm::vec2(0,1), 0.85f, strdup_s(
         "Use WASD keys to move camera.\n"
         "Use scroll wheel to zoom in and out.\n"
         "Press and hold wheel to rotate\n"
@@ -411,32 +412,32 @@ Part* toolbar() {
   }
 
   if (!designer) {
-    Part* tutorialButt = r(toolbar, toolbarButton(vec2(0, toolBarSizeY-2-toolPad*3), iconQuestion, "Tutorial", openTutorialPanel, ActNone, 0, isTutorialPanelOpen(), false));
-    Part* citipediaButt = r(toolbar, toolbarButton(vec2(0, toolBarSizeY-1-toolPad*2), iconCitipedia, "Citipedia", openCitipediaPanel, ActNone, 0, getLeftPanel() == CitipediaPanel, false));
+    Part* tutorialButt = r(toolbar, toolbarButton(glm::vec2(0, toolBarSizeY-2-toolPad*3), iconQuestion, "Tutorial", openTutorialPanel, ActNone, 0, isTutorialPanelOpen(), false));
+    Part* citipediaButt = r(toolbar, toolbarButton(glm::vec2(0, toolBarSizeY-1-toolPad*2), iconCitipedia, "Citipedia", openCitipediaPanel, ActNone, 0, getLeftPanel() == CitipediaPanel, false));
   }
 
   if (designer) {
     float buttWidth = toolPad+1;
 
     if (getSelectionType() != NoSelection) {
-      Part* delButt = r(toolbar, toolbarButton(vec2(0,(numTools-2)*buttWidth),
+      Part* delButt = r(toolbar, toolbarButton(glm::vec2(0,(numTools-2)*buttWidth),
             iconTrash, "Delete", deleteSelected, ActDesignDelete, 0, false, false));
       setPartTooltipValues(delButt, TooltipType::DesignerDelete);
     }
 
-    Part* undoButt = r(toolbar, toolbarButton(vec2(0,(numTools+0)*buttWidth), iconUndo, "Undo", shiftDesignerUndoHistory, ActDesignUndo, -1, false, false));
+    Part* undoButt = r(toolbar, toolbarButton(glm::vec2(0,(numTools+0)*buttWidth), iconUndo, "Undo", shiftDesignerUndoHistory, ActDesignUndo, -1, false, false));
     if (!hasDesignerUndoHistory()) {
       undoButt->foregroundColor = PickerPalette::GrayDark;
     }
     setPartTooltipValues(undoButt, TooltipType::DesignerUndo);
 
-    Part* redoButt = r(toolbar, toolbarButton(vec2(0,(numTools+1)*buttWidth), iconRedo, "Redo", shiftDesignerUndoHistory, ActDesignRedo, 1, false, false));
+    Part* redoButt = r(toolbar, toolbarButton(glm::vec2(0,(numTools+1)*buttWidth), iconRedo, "Redo", shiftDesignerUndoHistory, ActDesignRedo, 1, false, false));
     if (!hasDesignerRedoHistory()) {
       redoButt->foregroundColor = PickerPalette::GrayDark;
     }
     setPartTooltipValues(redoButt, TooltipType::DesignerRedo);
 
-    Part* underButt = r(toolbar, toolbarButton(vec2(0,(numTools+2)*buttWidth), iconUnderground, "Underground", toggleUndergroundView, ActNone, 0, undergroundViewSelected, false));
+    Part* underButt = r(toolbar, toolbarButton(glm::vec2(0,(numTools+2)*buttWidth), iconUnderground, "Underground", toggleUndergroundView, ActNone, 0, undergroundViewSelected, false));
     setPartTooltipValues(underButt,TooltipType::InfUnder);
 
     return toolbar;
@@ -445,17 +446,17 @@ Part* toolbar() {
   if (!isFeatureEnabled(FHeatmaps) ||
       getGameMode() == ModeDesignOrganizer) return toolbar;
 
-  Part* infoviewPanel = panel(vec2(-toolPad, toolBarSizeY+toolPad),
-      vec2(numHeatMaps+6+toolPad*2, 1+toolPad*2));
+  Part* infoviewPanel = panel(glm::vec2(-toolPad, toolBarSizeY+toolPad),
+      glm::vec2(numHeatMaps+6+toolPad*2, 1+toolPad*2));
   infoviewPanel->padding = toolPad;
   r(toolbar, infoviewPanel);
   for (int i = 0; i <= numHeatMaps; i++) {
     int hm = heatmapOrder[i];
     int hmn = hm < 0 ? numHeatMaps : hm;
     if (!isFeatureEnabled(featureForHeatmap(hm))) continue;
-    vec3 hmIcon = hm == TrafficHeatMap ? iconCar : iconHeatmap[hm];
+    glm::vec3 hmIcon = hm == TrafficHeatMap ? iconCar : iconHeatmap[hm];
 
-    Part* hmButt = r(infoviewPanel, button(vec2(i,0), hmIcon, setHeatMap));
+    Part* hmButt = r(infoviewPanel, button(glm::vec2(i,0), hmIcon, setHeatMap));
     hmButt->itemData = hm;
     hmButt->inputAction = (InputAction)(((int)InputAction::ActHeatmapPollution)+i);
     setPartTooltipValues(hmButt, TooltipType::QuePollu+i);
@@ -470,7 +471,7 @@ Part* toolbar() {
 
   if (isFeatureEnabled(featureForHeatmap(RoadHeatMap))) {
     Part* roadButt = r(infoviewPanel,
-        button(vec2(numHeatMaps+1,0), iconRoad, setHeatMap));
+        button(glm::vec2(numHeatMaps+1,0), iconRoad, setHeatMap));
     roadButt->itemData = RoadHeatMap;
     roadButt->inputAction = InputAction::ActHeatmapRoad;
     setPartTooltipValues(roadButt,TooltipType::InfRoad);
@@ -479,7 +480,7 @@ Part* toolbar() {
 
   if (isFeatureEnabled(featureForHeatmap(TransitHeatMap))) {
     Part* transitButt = r(infoviewPanel,
-        button(vec2(numHeatMaps+2,0), iconBus, setHeatMap));
+        button(glm::vec2(numHeatMaps+2,0), iconBus, setHeatMap));
     transitButt->itemData = TransitHeatMap;
     transitButt->inputAction = InputAction::ActHeatmapTransit;
     setPartTooltipValues(transitButt,TooltipType::InfTransit);
@@ -488,7 +489,7 @@ Part* toolbar() {
 
   if (isFeatureEnabled(featureForHeatmap(ZoneHeatMap))) {
     Part* zoneButt = r(infoviewPanel,
-        button(vec2(numHeatMaps+3,0), iconHouse, setHeatMap));
+        button(glm::vec2(numHeatMaps+3,0), iconHouse, setHeatMap));
     zoneButt->itemData = ZoneHeatMap;
     zoneButt->inputAction = InputAction::ActHeatmapZone;
     setPartTooltipValues(zoneButt,TooltipType::InfZone);
@@ -497,14 +498,14 @@ Part* toolbar() {
 
   if (isFeatureEnabled(FObserveUnderground)) {
     Part* underButt = r(infoviewPanel,
-        button(vec2(numHeatMaps+4,0), iconUnderground, toggleUndergroundView));
+        button(glm::vec2(numHeatMaps+4,0), iconUnderground, toggleUndergroundView));
     setPartTooltipValues(underButt,TooltipType::InfUnder);
     if (undergroundViewSelected) underButt->flags |= _partHighlight;
   }
 
   if (isFeatureEnabled(FLabel)) {
     Part* labelsButt = r(infoviewPanel,
-        button(vec2(numHeatMaps+5,0), iconMessage, setLabelsVisible));
+        button(glm::vec2(numHeatMaps+5,0), iconMessage, setLabelsVisible));
     setPartTooltipValues(labelsButt,TooltipType::InfLabels);
     if (areLabelsVisible()) labelsButt->flags |= _partHighlight;
   }

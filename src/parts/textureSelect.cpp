@@ -57,34 +57,34 @@ static bool showHoverText(Part* part, InputEvent event) {
   return true;
 }
 
-Part* textureSelectPanel(vec2 loc, vec2 size, item state) {
+Part* textureSelectPanel(glm::vec2 loc, glm::vec2 size, item state) {
   bool illumination = state == TSSIllumination;
   isTSPIllum = illumination;
   Part* result = panel(loc, size);
   result->padding = tspPadding;
-  r(result, label(vec2(0,0), 1, strdup_s(!illumination ? "Select Texture" : "Select Illumination")));
-  size -= vec2(tspPadding*2, tspPadding*2);
-  r(result, button(vec2(size.x-1,0), iconX, vec2(1, 1), closeTextureSelect, 0));
-  //r(result, hr(vec2(0,1), size.x));
+  r(result, label(glm::vec2(0,0), 1, strdup_s(!illumination ? "Select Texture" : "Select Illumination")));
+  size -= glm::vec2(tspPadding*2, tspPadding*2);
+  r(result, button(glm::vec2(size.x-1,0), iconX, glm::vec2(1, 1), closeTextureSelect, 0));
+  //r(result, hr(glm::vec2(0,1), size.x));
 
   tspSearchTB.text = &tspSearchText;
   float searchBoxX = 8.5f;
   float scale = 1.f;
-  r(result, icon(vec2(searchBoxX-scale, 0),
-        vec2(scale, scale), iconQuery));
-  Part* tb = r(result, textBox(vec2(searchBoxX,0),
-        vec2(size.x-searchBoxX-1-tspPadding, scale), &tspSearchTB));
+  r(result, icon(glm::vec2(searchBoxX-scale, 0),
+        glm::vec2(scale, scale), iconQuery));
+  Part* tb = r(result, textBox(glm::vec2(searchBoxX,0),
+        glm::vec2(size.x-searchBoxX-1-tspPadding, scale), &tspSearchTB));
   tb->onClick = focusSearchBox;
   tb->onCustom = unfocusSearchBox;
   bool search = tspSearchText != 0 && strlength(tspSearchText) > 0;
   if (!search) {
-    Part* lbl = r(result, label(vec2(searchBoxX,0), scale, strdup_s("Search")));
+    Part* lbl = r(result, label(glm::vec2(searchBoxX,0), scale, strdup_s("Search")));
     lbl->foregroundColor = PickerPalette::GrayDark;
   }
 
   float scrollBoxY = 1 + tspPadding;
   float scrollSize = size.y-scrollBoxY;
-  Part* scroll = scrollbox(vec2(0,0), vec2(size.x,scrollSize));
+  Part* scroll = scrollbox(glm::vec2(0,0), glm::vec2(size.x,scrollSize));
 
   float x = 0;
   float y = 0;
@@ -98,7 +98,7 @@ Part* textureSelectPanel(vec2 loc, vec2 size, item state) {
 
   float scrollShowMax = tspScroll.amount + tspScroll.maxTarget + scrollSize;
 
-  vector<item> textures;
+  std::vector<item> textures;
   for (int i = 1; i <= numBuildingTextures(); i++) {
     if (isBuildingTextureIllumination(i) != illumination) continue;
     item textureNdx = getDrawTextureForBuildingTexture(i);
@@ -106,7 +106,7 @@ Part* textureSelectPanel(vec2 loc, vec2 size, item state) {
     textures.push_back(textureNdx);
   }
 
-  vector<item> packageTexs = getAllPackageTextures(illumination);
+  std::vector<item> packageTexs = getAllPackageTextures(illumination);
   for (int i = 0; i < packageTexs.size(); i++) {
     item textureNdx = packageTexs[i];
     if (textureNdx == 0) continue;
@@ -116,7 +116,7 @@ Part* textureSelectPanel(vec2 loc, vec2 size, item state) {
   for (int i = 0; i < textures.size(); i++) {
     float trash;
     item textureNdx = textures[i];
-    Part* img = image(vec2(x, y), imgWidth-tspPadding, textureNdx, &trash);
+    Part* img = image(glm::vec2(x, y), imgWidth-tspPadding, textureNdx, &trash);
 
     // Filter on search
     if (search) {
@@ -150,10 +150,10 @@ Part* textureSelectPanel(vec2 loc, vec2 size, item state) {
 
     // Show filename on hover
     if (textureNdx == hoverNdx) {
-      vec2 pos = vec2(x-imgWidth*.5f, img->dim.start.y + img->dim.end.y + tspPadding*2);
+      glm::vec2 pos = glm::vec2(x-imgWidth*.5f, img->dim.start.y + img->dim.end.y + tspPadding*2);
       float txtWidth = stringWidth(img->text)*(hoverTextScale-0.25f) + 0.25f;
-      Part* ttTxt = label(vec2(0,0), hoverTextScale, strdup_s(img->text));
-      ttPanel = panel(pos, vec2(txtWidth, hoverTextScale));
+      Part* ttTxt = label(glm::vec2(0,0), hoverTextScale, strdup_s(img->text));
+      ttPanel = panel(pos, glm::vec2(txtWidth, hoverTextScale));
       ttPanel->dim.start.z += 10;
       ttPanel->renderMode = RenderDarkBox;
       r(ttPanel, ttTxt);
@@ -168,7 +168,7 @@ Part* textureSelectPanel(vec2 loc, vec2 size, item state) {
     if(y >= scrollShowMax) break;
   }
 
-  r(result, scrollboxFrame(vec2(0, scrollBoxY), vec2(size.x,scrollSize), &tspScroll, scroll));
+  r(result, scrollboxFrame(glm::vec2(0, scrollBoxY), glm::vec2(size.x,scrollSize), &tspScroll, scroll));
 
   if (ttPanel != 0) {
     float tty = ttPanel->dim.start.y;

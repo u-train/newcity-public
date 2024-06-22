@@ -18,16 +18,16 @@
 
 Part* rootPart = NULL;
 Part* focusedPart = NULL;
-vec2 lastMouseLoc;
+glm::vec2 lastMouseLoc;
 
-Part* part(vec2 loc) {
-  return part(line(vec3(loc, 0), vec3(0,0,0)));
+Part* part(glm::vec2 loc) {
+  return part(line(glm::vec3(loc, 0), glm::vec3(0,0,0)));
 }
 
 Part* part(Line dim) {
   Part* part = (Part*) malloc(sizeof(Part));
   part->dim = dim;
-  part->texture = line(vec3(0,0,0), vec3(0,0,0));
+  part->texture = line(glm::vec3(0,0,0), glm::vec3(0,0,0));
   part->text = NULL;
   part->ttType = 0;
   part->ttText = "";
@@ -45,7 +45,7 @@ Part* part(Line dim) {
   part->foregroundColor = PickerPalette::Transparent;
   part->padding = 0;
   part->itemData = 0;
-  part->vecData = vec3(0,0,0);
+  part->vecData = glm::vec3(0,0,0);
   part->ptrData = NULL;
   part->lineHeight = 0;
   return part;
@@ -92,7 +92,7 @@ void resetParts() {
   }
 }
 
-bool testInput(Part* part, InputEvent event, vec2 offset) {
+bool testInput(Part* part, InputEvent event, glm::vec2 offset) {
   if (!event.isMouse) {
     return false;
   }
@@ -104,7 +104,7 @@ bool testInput(Part* part, InputEvent event, vec2 offset) {
   } else if (dimClip || !(part->flags & _partClip)) {
     for (int i = 0; i < part->numContents; i++) {
       if (testInput(part->contents[i], event,
-        offset + vec2(part->dim.start) + vec2(part->padding, part->padding))) {
+        offset + glm::vec2(part->dim.start) + glm::vec2(part->padding, part->padding))) {
         return true;
       }
     }
@@ -112,10 +112,10 @@ bool testInput(Part* part, InputEvent event, vec2 offset) {
   return false;
 }
 
-bool isInDim(Part* part, vec2 offset) {
+bool isInDim(Part* part, glm::vec2 offset) {
   if (part->renderMode == RenderSpan) {
-    vec2 subOff = offset + vec2(part->dim.start) +
-      vec2(part->padding, part->padding);
+    glm::vec2 subOff = offset + glm::vec2(part->dim.start) +
+      glm::vec2(part->padding, part->padding);
     for (int i = 0; i < part->numContents; i++) {
       if (isInDim(part->contents[i], subOff)) {
         return true;
@@ -129,7 +129,7 @@ bool isInDim(Part* part, vec2 offset) {
 }
 
 
-bool acceptInput(Part* part, InputEvent event, vec2 offset) {
+bool acceptInput(Part* part, InputEvent event, glm::vec2 offset) {
   if (event.isMouse && part->renderMode == RenderHidden) {
     return false;
   }
@@ -139,7 +139,7 @@ bool acceptInput(Part* part, InputEvent event, vec2 offset) {
   if (dimClip || !(part->flags & _partClip)) {
     for (int i = 0; i < part->numContents; i++) {
       bool result = acceptInput(part->contents[i], event,
-        offset + vec2(part->dim.start) + vec2(part->padding, part->padding));
+        offset + glm::vec2(part->dim.start) + glm::vec2(part->padding, part->padding));
       if (result) {
         return true;
       }
@@ -148,7 +148,7 @@ bool acceptInput(Part* part, InputEvent event, vec2 offset) {
 
   if (dimClip) {
     InputEvent transformedEvent = event;
-    transformedEvent.mouseLoc -= offset + vec2(part->dim.start);
+    transformedEvent.mouseLoc -= offset + glm::vec2(part->dim.start);
     if ((event.isMouse && event.action == GLFW_PRESS && part->onClick != NULL) || inputActionValid(part->inputAction, event) && inputActionPressed(part->inputAction)) {
       bool result = part->onClick(part, transformedEvent);
       if (result) {
@@ -202,12 +202,12 @@ bool acceptInput(Part* part, InputEvent event, vec2 offset) {
 bool acceptInput(InputEvent event) {
   if (rootPart == NULL) {
     return false;
-  } else if (focusedPart != 0 && acceptInput(focusedPart, event, vec2(0,0))) {
+  } else if (focusedPart != 0 && acceptInput(focusedPart, event, glm::vec2(0,0))) {
     return true;
-  } else if (acceptInput(rootPart, event, vec2(0,0))) {
+  } else if (acceptInput(rootPart, event, glm::vec2(0,0))) {
     return true;
   } else {
-    return testInput(rootPart, event, vec2(0,0));
+    return testInput(rootPart, event, glm::vec2(0,0));
   }
 }
 
@@ -243,9 +243,9 @@ void renderErrorLoadPanel() {
   renderPart(rootPart, lastMouseLoc);
 }
 
-vec2 transformMouseLoc(vec2 mouseLoc) {
-  mat4 matrix = inverse(getUICamera().projection);
-  lastMouseLoc = vec2(matrix * vec4(mouseLoc, 0, 1));
+glm::vec2 transformMouseLoc(glm::vec2 mouseLoc) {
+  glm::mat4 matrix = inverse(getUICamera().projection);
+  lastMouseLoc = glm::vec2(matrix * glm::vec4(mouseLoc, 0, 1));
   return lastMouseLoc;
 }
 

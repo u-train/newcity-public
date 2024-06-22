@@ -1,5 +1,8 @@
 #include "../parts/scrollbox.hpp"
 #include "../sound.hpp"
+#include "../game/constants.hpp"
+
+#include <glm/glm.hpp>
 
 static item decoType = 0;
 static item decoGroup = -1;
@@ -37,12 +40,12 @@ void deco_mouse_button_callback(InputEvent event) {
         continue;
       }
 
-      vec3 loc = s->location;
+      glm::vec3 loc = s->location;
 
-      float cangle = cos(s->yaw);
-      float sangle = sin(s->yaw);
-      vec3 ualong = vec3(cangle, sangle, 0);
-      vec3 along = ualong * s->scale * 10.f;
+      float cangle = glm::cos(s->yaw);
+      float sangle = glm::sin(s->yaw);
+      glm::vec3 ualong = glm::vec3(cangle, sangle, 0);
+      glm::vec3 along = ualong * s->scale * 10.f;
 
       {
         float dist = pointLineDistance(loc, l);
@@ -111,13 +114,13 @@ void deco_mouse_move_callback(InputEvent event) {
       if (shift) {
         s->location.z = designIntersectZ(event.mouseLine, s->location);
       } else {
-        vec3 ml = designIntersect(event.mouseLine, s->location.z);
-        s->location = vec3(vec2(ml), s->location.z);
+        glm::vec3 ml = designIntersect(event.mouseLine, s->location.z);
+        s->location = glm::vec3(glm::vec2(ml), s->location.z);
       }
 
     } else if (currentHandleType == 2) {
-      vec3 ml = designIntersect(event.mouseLine, s->location.z);
-      vec3 sa = ml - s->location;
+      glm::vec3 ml = designIntersect(event.mouseLine, s->location.z);
+      glm::vec3 sa = ml - s->location;
       float len = length(sa);
 
       if (len > maxDist) {
@@ -126,8 +129,8 @@ void deco_mouse_move_callback(InputEvent event) {
       }
 
       if (len > 0) {
-        double yaw = atan(-sa.y, -sa.x);
-        yaw = yaw - 2*pi_o * floor(yaw/(2*pi_o));
+        double yaw = glm::atan(-sa.y, -sa.x);
+        yaw = yaw - 2*pi_o * glm::atan(yaw/(2*pi_o));
         double yawDiff = abs(yaw-startYaw);
         if (yawDiff > pi_o) yawDiff = 2*pi_o - yawDiff;
         float lenDiff = abs(startScale*10 - len);
@@ -233,8 +236,8 @@ static bool toggleGroupVisible(Part* part, InputEvent event) {
   return true;
 }
 
-Part* decoTypeButton(vec2 loc, item type) {
-  Part* butt = button(loc, vec2(8,0.75),
+Part* decoTypeButton(glm::vec2 loc, item type) {
+  Part* butt = button(loc, glm::vec2(8,0.75),
     strdup_s(getDecoTypeName(type)), setDecoType);
   butt->itemData = type;
   butt->flags |= _partIsPanel;
@@ -243,7 +246,7 @@ Part* decoTypeButton(vec2 loc, item type) {
   }
 
   if (getSelectionType() == SelectionDeco) {
-    r(butt, button(vec2(8.25,0), iconPointer, vec2(0.75,0.75),
+    r(butt, button(glm::vec2(8.25,0), iconPointer, glm::vec2(0.75,0.75),
       setSelectedDecoType, type));
   }
 
@@ -257,11 +260,11 @@ Part* deco_render(Line dim) {
 
   if (isDecoSearching) {
     decoSearchTB.text = &decoSearchText;
-    Part* tb = r(result, textBox(vec2(0,0), vec2(5,1), &decoSearchTB));
+    Part* tb = r(result, textBox(glm::vec2(0,0), glm::vec2(5,1), &decoSearchTB));
     tb->onCustom = stopDecoSearch;
 
   } else {
-    r(result, label(vec2(0,0), 1, strdup_s("Decorations")));
+    r(result, label(glm::vec2(0,0), 1, strdup_s("Decorations")));
   }
 
   if (!isDecoReallySearching) {
@@ -269,26 +272,26 @@ Part* deco_render(Line dim) {
       scrollSize = 5;
       const char* groupName = decoGroup > 0 ? getDecoGroup(decoGroup)->name :
         "Legacy Decorations";
-      r(result, button(vec2(0,1), iconLeft, vec2(10,0.75),
+      r(result, button(glm::vec2(0,1), iconLeft, glm::vec2(10,0.75),
         strdup_s(groupName), setDecoGroup, -1));
     }
   }
 
-  Part* gridButt = r(result, button(vec2(7, 0),
-        iconGrid, vec2(1,1),
+  Part* gridButt = r(result, button(glm::vec2(7, 0),
+        iconGrid, glm::vec2(1,1),
         toggleDesignerGridMode, 0));
   gridButt->inputAction = ActDesignGridMode;
   setPartTooltipValues(gridButt,
     TooltipType::DesignerGrid);
   if (designerGridMode) gridButt->flags |= _partHighlight;
 
-  Part* searchButt = r(result, button(vec2(5, 0),
-        iconQuery, vec2(1,1), toggleDecoSearch, 0));
+  Part* searchButt = r(result, button(glm::vec2(5, 0),
+        iconQuery, glm::vec2(1,1), toggleDecoSearch, 0));
   searchButt->inputAction = ActDesignSearch;
 
   if (getSelectionType() == SelectionDeco) {
-    Part* grabButt = r(result, button(vec2(6, 0),
-          iconHand, vec2(1,1),
+    Part* grabButt = r(result, button(glm::vec2(6, 0),
+          iconHand, glm::vec2(1,1),
           toggleDecoGrab, 0));
     grabButt->inputAction = ActDesignGrab;
     setPartTooltipValues(grabButt,
@@ -296,7 +299,7 @@ Part* deco_render(Line dim) {
     if (decoGrab || mouseDown) grabButt->flags |= _partHighlight;
   }
 
-  Part* scroll = scrollbox(vec2(0,0), vec2(10,scrollSize));
+  Part* scroll = scrollbox(glm::vec2(0,0), glm::vec2(10,scrollSize));
 
   if (isDecoReallySearching) {
     float y = 0;
@@ -304,7 +307,7 @@ Part* deco_render(Line dim) {
       std::string name = getDecoTypeName(i);
       if (!stringContainsCaseInsensitive(name, decoSearchText)) continue;
 
-      r(scroll, decoTypeButton(vec2(0, y), i));
+      r(scroll, decoTypeButton(glm::vec2(0, y), i));
       y ++;
     }
 
@@ -312,14 +315,14 @@ Part* deco_render(Line dim) {
     for (int i=0; i <= sizeDecoGroups(); i++) {
       const char* groupName = i > 0 ? getDecoGroup(i)->name :
         "Legacy Decorations";
-      Part* butt = button(vec2(0,i), vec2(8,0.75),
+      Part* butt = button(glm::vec2(0,i), glm::vec2(8,0.75),
         strdup_s(groupName), setDecoGroup);
       butt->itemData = i;
       r(scroll, butt);
 
       bool viz = isDecoGroupVisible(i);
-      Part* vizButt = r(scroll, button(vec2(8.25, i),
-            viz ? iconEye : iconEyeClosed, vec2(.75,.75),
+      Part* vizButt = r(scroll, button(glm::vec2(8.25, i),
+            viz ? iconEye : iconEyeClosed, glm::vec2(.75,.75),
             toggleGroupVisible, i));
       setPartTooltipValues(vizButt,
         TooltipType::DesignerDecoGroupVisible);
@@ -338,19 +341,19 @@ Part* deco_render(Line dim) {
         if (type->group != decoGroup) continue;
       }
 
-      r(scroll, decoTypeButton(vec2(0,y), i));
+      r(scroll, decoTypeButton(glm::vec2(0,y), i));
       y ++;
     }
   }
 
-  r(result, scrollboxFrame(vec2(0, (isDecoReallySearching || decoGroup < 0) ? 1 : 2),
-        vec2(10,scrollSize), &decoScroll, scroll));
+  r(result, scrollboxFrame(glm::vec2(0, (isDecoReallySearching || decoGroup < 0) ? 1 : 2),
+        glm::vec2(10,scrollSize), &decoScroll, scroll));
 
   return result;
 }
 
 void decoInstructionPanel(Part* panel) {
-  r(panel, label(vec2(0,0), 1,
+  r(panel, label(glm::vec2(0,0), 1,
     strdup_s("Use left click to place\n"
     "a decorative object.\n"
     "Use scrollbox to choose between\n"

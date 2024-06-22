@@ -29,13 +29,15 @@
 #include "parts/root.hpp"
 #include "parts/selectionPanel.hpp"
 
+#include "draw/camera.hpp"
+
 #include "tools/query.hpp"
 
 #include "spdlog/spdlog.h"
 
 item selected, selectionType;
 item selectionEntity;
-vector<item> lastSelectionLanes;
+std::vector<item> lastSelectionLanes;
 bool followingSelection = false;
 
 void resetSelection() {
@@ -269,7 +271,7 @@ void updateSelection(double duration) {
   renderSelection();
 
   if (followingSelection) {
-    vec3 loc = getSelectionLocation();
+    glm::vec3 loc = getSelectionLocation();
     if (loc.x != 0 || loc.y != 0 || loc.z != 0) {
       setCameraTarget(getSelectionLocation());
     }
@@ -295,7 +297,7 @@ bool isMonitored(item st, item element) {
   return hasMessage(mt, element);
 }
 
-vec3 getSelectionLocation() {
+glm::vec3 getSelectionLocation() {
   if (selectionType == SelectionVehicle) {
     return getVehicleCenter_g(selected);
   } else if (selectionType == SelectionBuilding) {
@@ -306,7 +308,7 @@ vec3 getSelectionLocation() {
   } else if (selectionType == SelectionPerson) {
     Person* person = getPerson(selected);
     if (person->location == 0) {
-      return vec3(0,0,0);
+      return glm::vec3(0,0,0);
     } else if (person->flags & _personTraveling) {
       return locationToWorldspace_g(person->location);
     } else {
@@ -316,7 +318,7 @@ vec3 getSelectionLocation() {
   } else if (selectionType == SelectionFamily) {
     item home = getFamily(selected)->home;
     if (home == 0) {
-      return vec3(0,0,0);
+      return glm::vec3(0,0,0);
     } else {
       return getBuildingTop(home);
     }
@@ -324,7 +326,7 @@ vec3 getSelectionLocation() {
   } else if (selectionType == SelectionBusiness) {
     item building = getBusiness(selected)->building;
     if (building == 0) {
-      return vec3(0,0,0);
+      return glm::vec3(0,0,0);
     } else {
       return getBuildingTop(building);
     }
@@ -334,7 +336,7 @@ vec3 getSelectionLocation() {
     return stop->location;
 
   } else if (selectionType == SelectionLaneBlock) {
-    vec3 loc(0,0,0);
+    glm::vec3 loc(0,0,0);
     LaneBlock* blk = getLaneBlock(selected);
     if (blk->numLanes > 0) {
       for (int i = 0; i < blk->numLanes; i++) {
@@ -357,6 +359,6 @@ vec3 getSelectionLocation() {
     return getDecoHandleLocation(selected, SelectionPointHandle);
 
   } else {
-    return vec3(-1, -1, -1);
+    return glm::vec3(-1, -1, -1);
   }
 }

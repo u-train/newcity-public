@@ -1,8 +1,8 @@
 #include "city.hpp"
 
-#include "building/building.hpp"
 #include "configuration.hpp"
 #include "draw/entity.hpp"
+#include "building/building.hpp"
 #include "draw/texture.hpp"
 #include "economy.hpp"
 #include "game/game.hpp"
@@ -10,15 +10,12 @@
 #include "land.hpp"
 #include "label.hpp"
 #include "name.hpp"
-#include "plan.hpp"
 #include "pool.hpp"
 #include "string.hpp"
-#include "string_proxy.hpp"
 #include "util.hpp"
 #include "zone.hpp"
 
-#include "spdlog/spdlog.h"
-
+#include <glm/glm.hpp>
 #include <algorithm>
 
 const item citiesWavelength = 25;
@@ -55,15 +52,15 @@ void renderCity(item ndx) {
   setEntityBringToFront(city->entity, true);
   setEntityTransparent(city->entity, true);
   setEntityVisible(city->entity, areLabelsVisible());
-  placeEntity(city->entity, city->visualCenter+vec3(0,0,400), 0.f, 0.f);
+  placeEntity(city->entity, city->visualCenter+glm::vec3(0,0,400), 0.f, 0.f);
   createMeshForEntity(city->entity);
   Mesh* textMesh = getMeshForEntity(city->entity);
 
   float fontSize = 200 + city->buildings.size()*.25f;
   textEntity->maxCameraDistance = fontSize * 200;
-  vec3 normal = vec3(0,-1,0);
+  glm::vec3 normal = glm::vec3(0,-1,0);
   renderStringCentered(textMesh, city->name,
-    vec3(0,-fontSize*.5f, 0), -zNormal(normal)*fontSize, -normal*fontSize);
+    glm::vec3(0,-fontSize*.5f, 0), -zNormal(normal)*fontSize, -normal*fontSize);
 
   bufferMesh(textEntity->mesh);
 }
@@ -76,7 +73,7 @@ void setCitiesVisible(bool viz) {
   }
 }
 
-item addCityNode(vec3 loc, Configuration config) {
+item addCityNode(glm::vec3 loc, Configuration config) {
   item result = addNode(loc, config);
   Node* node = getNode(result);
   node->spawnProbability = 0.f; //0.5f;
@@ -94,18 +91,18 @@ item addCityEdge(item n0, item n1, Configuration config) {
   return result;
 }
 
-item addCityEdge(item n0, vec3 loc1, Configuration config) {
+item addCityEdge(item n0, glm::vec3 loc1, Configuration config) {
   item n1 = addCityNode(loc1, config);
   return addCityEdge(n0, n1, config);
 }
 
-item addCityEdge(vec3 loc0, vec3 loc1, Configuration config) {
+item addCityEdge(glm::vec3 loc0, glm::vec3 loc1, Configuration config) {
   item n0 = addCityNode(loc0, config);
   item n1 = addCityNode(loc1, config);
   return addCityEdge(n0, n1, config);
 }
 
-item addCity(vec3 location, vec3 dir, item backNode) {
+item addCity(glm::vec3 location, glm::vec3 dir, item backNode) {
   if (location.z < 0) return 0;
 
   item cityIndex = cities->create();
@@ -114,7 +111,7 @@ item addCity(vec3 location, vec3 dir, item backNode) {
   city->name = randomName(CityName);
   city->buildings.clear();
 
-  city->nodeCenter = vec3(0,0,0); //location;
+  city->nodeCenter = glm::vec3(0,0,0); //location;
   city->visualCenter = location; // + normalize(dir)*c(CCityDistance);
   city->normal = dir;
   city->entity = 0;
@@ -130,7 +127,7 @@ item addCity(vec3 location, vec3 dir, item backNode) {
   return cityIndex;
 }
 
-item addCityWithBuildings(vec3 location, vec3 dir, item backNode,
+item addCityWithBuildings(glm::vec3 location, glm::vec3 dir, item backNode,
     item citySize) {
 
   item cityNdx = addCity(location, dir, backNode);
@@ -165,11 +162,11 @@ item addCityWithBuildings(vec3 location, vec3 dir, item backNode,
   return cityNdx;
 }
 
-item addCitySmall(vec3 location, vec3 dir, item backNode) {
+item addCitySmall(glm::vec3 location, glm::vec3 dir, item backNode) {
   return addCityWithBuildings(location, dir, backNode, randItem(10));
 }
 
-item addCityLarge(vec3 location, vec3 dir, item backNode) {
+item addCityLarge(glm::vec3 location, glm::vec3 dir, item backNode) {
   item cityNdx = addCityWithBuildings(location, dir, backNode,
       randItem(800)+100);
   if (cityNdx != 0) {
@@ -179,7 +176,7 @@ item addCityLarge(vec3 location, vec3 dir, item backNode) {
   return cityNdx;
 }
 
-item nearestCity(vec3 loc) {
+item nearestCity(glm::vec3 loc) {
   float best = 0;
   float bestDist = FLT_MAX;
   for (int i = 1; i <= cities->size(); i ++) {
@@ -317,10 +314,10 @@ void addCityBuilding(item cityNdx, bool update) {
   distance += .25f * (1-d);
   distance *= 1.2-d;
   distance *= c(CCityExtent);
-  vec3 offset = vec3(sin(angle), cos(angle), 0) * distance;
+  glm::vec3 offset = glm::vec3(sin(angle), cos(angle), 0) * distance;
   offset.z = randFloat(-20,-10);
-  vec3 normal = vec3(sin(yaw), cos(yaw), 0);
-  vec3 loc = city->visualCenter + offset;
+  glm::vec3 normal = glm::vec3(sin(yaw), cos(yaw), 0);
+  glm::vec3 loc = city->visualCenter + offset;
 
   item buildingNdx =
     addCityBuilding(cityNdx, loc, normal, zone, d, lv, update);
@@ -339,16 +336,16 @@ void updateCities(double duration) {
   }
 }
 
-item addCityStructure(vec3 loc, vec3 dir) {
+item addCityStructure(glm::vec3 loc, glm::vec3 dir) {
   float distance = randFloat(1,3) * c(CCityDistance);
   dir = normalize(dir);
-  vec3 cityLoc = loc + dir * distance;
-  vec3 backLoc = cityLoc + dir * c(CCityDistance);
+  glm::vec3 cityLoc = loc + dir * distance;
+  glm::vec3 backLoc = cityLoc + dir * c(CCityDistance);
   item backNode = addCityNode(backLoc, cityConfig);
   item smallCityNdx = addCitySmall(cityLoc, dir, backNode);
   item bigCityNdx = 0;
-  vec3 dirNorm = zNormal(dir);
-  vec3 otherCityLoc;
+  glm::vec3 dirNorm = zNormal(dir);
+  glm::vec3 otherCityLoc;
 
   if (randFloat() < 0.5) {
     distance = randFloat(3,10) * c(CCityDistance);
@@ -356,17 +353,17 @@ item addCityStructure(vec3 loc, vec3 dir) {
     otherCityLoc = backLoc + dir * distance + dirNorm*offset;
     bigCityNdx = addCityLarge(otherCityLoc, dir, backNode);
   } else {
-    vec3 superBackLoc = backLoc + dir*200.f;
+    glm::vec3 superBackLoc = backLoc + dir*200.f;
     addCityEdge(backNode, addCityNode(superBackLoc, cityConfig), cityConfig);
   }
 
   if (smallCityNdx != 0) {
-    vec3 railBackLoc1 = cityLoc + dir*200.f + dirNorm*100.f + vec3(0,0,10);
+    glm::vec3 railBackLoc1 = cityLoc + dir*200.f + dirNorm*100.f + glm::vec3(0,0,10);
     item railBackNode1 = addCityNode(railBackLoc1, railConfig);
     addCityEdge(getCity(smallCityNdx)->node, railBackNode1, stationConfig);
     if (bigCityNdx != 0) {
-      vec3 railBackLoc2 = otherCityLoc - dir*200.f + dirNorm*100.f
-        + vec3(0,0,10);
+      glm::vec3 railBackLoc2 = otherCityLoc - dir*200.f + dirNorm*100.f
+        + glm::vec3(0,0,10);
       item railBackNode2 = addCityNode(railBackLoc2, railConfig);
       addCityEdge(getCity(bigCityNdx)->node, railBackNode2, stationConfig);
       addCityEdge(railBackNode1, railBackNode2, railConfig);
@@ -378,8 +375,8 @@ item addCityStructure(vec3 loc, vec3 dir) {
 
 void makeCorner(int x, int y, item n0, item n1) {
   float mapSize = getMapSize();
-  vec3 cornerLoc = vec3(x*mapSize, y*mapSize, 100);
-  cornerLoc += vec3(x*2-1, y*2-1, 0) * (c(CCityDistance)*2.f);
+  glm::vec3 cornerLoc = glm::vec3(x*mapSize, y*mapSize, 100);
+  cornerLoc += glm::vec3(x*2-1, y*2-1, 0) * (c(CCityDistance)*2.f);
   item corner = addCityNode(cornerLoc, cityConfig);
   addCityEdge(corner, n0, cityConfig);
   addCityEdge(corner, n1, cityConfig);
@@ -387,7 +384,7 @@ void makeCorner(int x, int y, item n0, item n1) {
 
 void generateCities() {
   float mapSize = getMapSize();
-  vec3 center = vec3(mapSize/2, mapSize/2, 0);
+  glm::vec3 center = glm::vec3(mapSize/2, mapSize/2, 0);
   int wl = std::min(getLandSize(), citiesWavelength);
   int chunkSize = getChunkSize();
   item corners[8];
@@ -398,12 +395,12 @@ void generateCities() {
     for (int j = 0; j < 2; j++) {
       for (int k = wl/2; k < getLandSize(); k+=wl) {
 
-        vec3 xLoc = vec3(mapSize*i-(i*2-1)*k*chunkSize*tileSize, mapSize*j, 0);
-        vec3 yLoc = vec3(mapSize*j, mapSize*i-(i*2-1)*k*chunkSize*tileSize, 0);
+        glm::vec3 xLoc = glm::vec3(mapSize*i-(i*2-1)*k*chunkSize*tileSize, mapSize*j, 0);
+        glm::vec3 yLoc = glm::vec3(mapSize*j, mapSize*i-(i*2-1)*k*chunkSize*tileSize, 0);
         xLoc = pointOnLand(xLoc);
         yLoc = pointOnLand(yLoc);
-        vec3 xDir = normalize(vec3(0,j*2-1,0));
-        vec3 yDir = normalize(vec3(j*2-1,0,0));
+        glm::vec3 xDir = normalize(glm::vec3(0,j*2-1,0));
+        glm::vec3 yDir = normalize(glm::vec3(j*2-1,0,0));
 
         item xBackNode = addCityStructure(xLoc, xDir);
         item yBackNode = addCityStructure(yLoc, yDir);

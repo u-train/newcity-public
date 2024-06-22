@@ -17,7 +17,7 @@ TEST_CASE( "Factorials are computed", "[factorial]" ) {
 
 /* SCENARIO( "graphs can be ", "[vector]" ) {
 
-    GIVEN( "A vector with some items" ) {
+    GIVEN( "A std::vector with some items" ) {
         std::vector<int> v( 5 );
 
         REQUIRE( v.size() == 5 );

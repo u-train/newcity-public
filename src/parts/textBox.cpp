@@ -8,6 +8,7 @@
 #include "../icons.hpp"
 #include "../string.hpp"
 #include "../string_proxy.hpp"
+#include "../main.hpp"
 
 #include "spdlog/spdlog.h"
 
@@ -84,7 +85,7 @@ bool setTBEditing(Part* part, InputEvent event) {
   return true;
 }
 
-Part* textBox(vec2 start, vec2 size, char* text) {
+Part* textBox(glm::vec2 start, glm::vec2 size, char* text) {
   Part* result = panel(start, size);
   result->flags |= _partHighlight | _partClip;
   result->padding = textBoxPadding;
@@ -94,22 +95,22 @@ Part* textBox(vec2 start, vec2 size, char* text) {
   float xoff = std::min(size.x-width - cursorWidth -
       cursorPadding*2 - textBoxPadding*2, 0.f);
 
-  Part* textBox = part(vec2(xoff, 0));
-  textBox->dim.end = vec3(0, innerY, 0);
+  Part* textBox = part(glm::vec2(xoff, 0));
+  textBox->dim.end = glm::vec3(0, innerY, 0);
   textBox->renderMode = RenderText;
   textBox->text = text;
   r(result, textBox);
 
   //Cursor
   if (int(getCameraTime()*2) % 2 == 0) {
-    r(result, block(vec2(width+xoff+cursorPadding, 0),
-          vec2(cursorWidth, innerY)));
+    r(result, block(glm::vec2(width+xoff+cursorPadding, 0),
+          glm::vec2(cursorWidth, innerY)));
   }
 
   return result;
 }
 
-Part* textBox(vec2 start, vec2 size, char* text, uint32_t cursorPos) {
+Part* textBox(glm::vec2 start, glm::vec2 size, char* text, uint32_t cursorPos) {
   Part* result = panel(start,size);
   result->flags |= _partHighlight | _partClip;
   result->padding = textBoxPadding;
@@ -126,22 +127,22 @@ Part* textBox(vec2 start, vec2 size, char* text, uint32_t cursorPos) {
 
   float innerY = size.y - textBoxPadding*2;
 
-  Part* textBox = part(vec2(0,0));
-  textBox->dim.end = vec3(strWidth,innerY,0);
+  Part* textBox = part(glm::vec2(0,0));
+  textBox->dim.end = glm::vec3(strWidth,innerY,0);
   textBox->renderMode = RenderText;
   textBox->text = text;
   r(result,textBox);
 
   // Render blinking cursor
   if(int(getCameraTime()*2) % 2 == 0) {
-    r(result,block(vec2((cursorPosOffset)*innerY,0),
-      vec2(cursorWidth*0.5f,innerY)));
+    r(result,block(glm::vec2((cursorPosOffset)*innerY,0),
+      glm::vec2(cursorWidth*0.5f,innerY)));
   }
 
   return result;
 }
 
-Part* textBox(vec2 start, vec2 size, TextBoxState* state) {
+Part* textBox(glm::vec2 start, glm::vec2 size, TextBoxState* state) {
   if (*(state->text) == 0) *(state->text) = strdup_s("");
   Part* result = panel(start, size);
   result->flags |= _partHighlight | _partClip;
@@ -160,22 +161,22 @@ Part* textBox(vec2 start, vec2 size, TextBoxState* state) {
   float xoff = std::min(size.x-width - cursorWidth -
       cursorPadding*2 - textBoxPadding*2, 0.f);
 
-  Part* textBox = part(vec2(xoff, 0));
-  textBox->dim.end = vec3(0, innerY, 0);
+  Part* textBox = part(glm::vec2(xoff, 0));
+  textBox->dim.end = glm::vec3(0, innerY, 0);
   textBox->renderMode = RenderText;
   textBox->text = strdup_s(*(state->text));
   r(result, textBox);
 
   //Cursor
   if (state == focusedTB && int(getCameraTime()*2) % 2 == 0) {
-    r(result, block(vec2(width+xoff+cursorPadding, 0),
-          vec2(cursorWidth, innerY)));
+    r(result, block(glm::vec2(width+xoff+cursorPadding, 0),
+          glm::vec2(cursorWidth, innerY)));
   }
 
   return result;
 }
 
-Part* textBoxLabel(vec2 start, vec2 size, TextBoxState* state, vec3 ico,
+Part* textBoxLabel(glm::vec2 start, glm::vec2 size, TextBoxState* state, glm::vec3 ico,
     const char* altText) {
   if (*(state->text) == 0) *(state->text) = strdup_s("");
   float xs = size.x;
@@ -185,19 +186,19 @@ Part* textBoxLabel(vec2 start, vec2 size, TextBoxState* state, vec3 ico,
   bool editing = state->flags & _textBoxEditing;
 
   if (editing) {
-    Part* tb = textBox(vec2(0,0), vec2(xs-ys,ys), state);
+    Part* tb = textBox(glm::vec2(0,0), glm::vec2(xs-ys,ys), state);
     tb->onCustom = setTBEditing;
     tb->itemData = 0;
     r(result, tb);
   } else if (*(state->text) != 0 && strlength(*(state->text)) > 0) {
-    r(result, label(vec2(0,0), ys, strdup_s(*(state->text))));
+    r(result, label(glm::vec2(0,0), ys, strdup_s(*(state->text))));
   } else if (altText != 0) {
-    r(result, label(vec2(0,0), ys, strdup_s(altText)));
+    r(result, label(glm::vec2(0,0), ys, strdup_s(altText)));
   }
 
-  Part* butt = button(vec2(xs-ys,0),
+  Part* butt = button(glm::vec2(xs-ys,0),
       editing ? iconCheck : ico,
-      vec2(ys, ys), setTBEditing, !editing);
+      glm::vec2(ys, ys), setTBEditing, !editing);
   butt->ptrData = state;
   butt->flags &= ~_partFreePtr;
   r(result, butt);
@@ -205,7 +206,7 @@ Part* textBoxLabel(vec2 start, vec2 size, TextBoxState* state, vec3 ico,
   return result;
 }
 
-Part* textBoxLabel(vec2 start, vec2 size, TextBoxState* state) {
+Part* textBoxLabel(glm::vec2 start, glm::vec2 size, TextBoxState* state) {
   return textBoxLabel(start, size, state, iconPencil, 0);
 }
 

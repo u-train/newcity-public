@@ -1,7 +1,7 @@
 #include "line.hpp"
 #include "util.hpp"
 
-Line line(vec3 start, vec3 end) {
+Line line(glm::vec3 start, glm::vec3 end) {
   Line result;
   result.start = start;
   result.end = end;

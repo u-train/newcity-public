@@ -1,9 +1,7 @@
 #pragma once
 
 #include <lua.hpp>
-
-#include "../console/conDisplay.hpp"
-#include "../game/game.hpp"
+#include <glm/glm.hpp>
 #include "../money.hpp"
 
 int luaInterpreter();
@@ -29,7 +27,7 @@ int luaFieldType(lua_State* L, const char* key);
 char* luaFieldString(lua_State* L, const char* key);
 float luaFieldNumber(lua_State* L, const char* key);
 bool luaFieldBool(lua_State* L, const char* key);
-vec3 luaFieldVec3(lua_State* L, const char* key);
+glm::vec3 luaFieldVec3(lua_State* L, const char* key);
 int luaFieldFunction(lua_State* L, const char* key);
 bool luaSetCharNumFromField(lua_State* L, const char* key, char* set);
 bool luaSetFromField(lua_State* L, const char* key, char** set);

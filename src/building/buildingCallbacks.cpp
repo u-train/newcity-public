@@ -3,11 +3,11 @@
 #include "building.hpp"
 #include "design.hpp"
 #include "renderBuilding.hpp"
-#include "deco.hpp"
 
 #include "../business.hpp"
 #include "../platform/lua.hpp"
 #include "../zone.hpp"
+#include "spdlog/spdlog.h"
 
 int setDesign(lua_State* L) {
   int numArgs = lua_gettop(L);

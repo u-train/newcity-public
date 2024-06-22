@@ -10,8 +10,8 @@
 static Configuration config;
 
 void testSimpleAddRemove() {
-  item in0 = addNode(vec3(0,   0, 0), config);
-  item in1 = addNode(vec3(0, 200, 0), config);
+  item in0 = addNode(glm::vec3(0,   0, 0), config);
+  item in1 = addNode(glm::vec3(0, 200, 0), config);
   item ie = addEdge(in0, in1, config);
 
   Node* n0 = getNode(in0);
@@ -59,9 +59,9 @@ void testSimpleAddRemove() {
 
 void testConnect() {
   item in[3] = {
-    addNode(vec3(0,   0, 0), config),
-    addNode(vec3(0, 200, 0), config),
-    addNode(vec3(0, 400, 0), config),
+    addNode(glm::vec3(0,   0, 0), config),
+    addNode(glm::vec3(0, 200, 0), config),
+    addNode(glm::vec3(0, 400, 0), config),
   };
 
   Configuration edgeFourLaneConfig;
@@ -112,10 +112,10 @@ void testConnect() {
 void testSplit() {
   return;
   item in[] = {
-    addNode(vec3(100,   0, 10), config),
-    addNode(vec3(100, 200, 10), config),
-    addNode(vec3(  0, 100, 10), config),
-    addNode(vec3(200, 100, 10), config)
+    addNode(glm::vec3(100,   0, 10), config),
+    addNode(glm::vec3(100, 200, 10), config),
+    addNode(glm::vec3(  0, 100, 10), config),
+    addNode(glm::vec3(200, 100, 10), config)
   };
 
   item ie0 = addEdge(in[0], in[1], config);

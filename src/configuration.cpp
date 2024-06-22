@@ -1,5 +1,5 @@
 #include "configuration.hpp"
-
+#include "game/constants.hpp"
 #include "option.hpp"
 #include "string_proxy.hpp"
 

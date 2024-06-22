@@ -1,5 +1,4 @@
-#ifndef PART_TEXT_BOX_H
-#define PART_TEXT_BOX_H
+#pragma once
 
 #include "part.hpp"
 
@@ -11,13 +10,13 @@ struct TextBoxState {
   InputCallback onSubmit;
 };
 
-Part* textBox(vec2 loc, vec2 size, char* text);
-Part* textBox(vec2 loc, vec2 size, char* text, uint32_t cursorPos);
-Part* textBox(vec2 loc, vec2 size, TextBoxState* state);
-Part* textBoxLabel(vec2 loc, vec2 size, TextBoxState* state);
-Part* textBoxLabel(vec2 loc, vec2 size, TextBoxState* state, vec3 ico,
+Part* textBox(glm::vec2 loc, glm::vec2 size, char* text);
+Part* textBox(glm::vec2 loc, glm::vec2 size, char* text, uint32_t cursorPos);
+Part* textBox(glm::vec2 loc, glm::vec2 size, TextBoxState* state);
+Part* textBoxLabel(glm::vec2 loc, glm::vec2 size, TextBoxState* state);
+Part* textBoxLabel(glm::vec2 loc, glm::vec2 size, TextBoxState* state, glm::vec3 ico,
     const char* altText);
 
 void focusTextBox(TextBoxState* state);
 
-#endif
+

@@ -17,7 +17,7 @@ bool deleteBlueprint(Part* part, InputEvent event) {
   return true;
 }
 
-Part* blueprintPanel(vec2 start, vec2 size, Blueprint* bp,
+Part* blueprintPanel(glm::vec2 start, glm::vec2 size, Blueprint* bp,
     TextBoxState* tb, item ndx) {
   float pad = size.y*.1;
   float scal = size.y*.5f - pad;
@@ -30,9 +30,9 @@ Part* blueprintPanel(vec2 start, vec2 size, Blueprint* bp,
     result->texture = line(colorBlueGrad0, colorBlueGrad1);
   }
   tb->text = &bp->name;
-  r(result, textBoxLabel(vec2(0,0), vec2(size.x-pad*2, scal), tb));
+  r(result, textBoxLabel(glm::vec2(0,0), glm::vec2(size.x-pad*2, scal), tb));
   if (ndx >= 0) {
-    r(result, button(vec2(size.x-pad*2-scal,scal), iconTrash, vec2(scal,scal),
+    r(result, button(glm::vec2(size.x-pad*2-scal,scal), iconTrash, glm::vec2(scal,scal),
           deleteBlueprint, ndx));
   }
 
@@ -57,21 +57,21 @@ Part* blueprintPanel(vec2 start, vec2 size, Blueprint* bp,
     }
   }
 
-  r(result, label(vec2(x, scal), scal,
+  r(result, label(glm::vec2(x, scal), scal,
         printMoneyString(bp->cost * getInflation())));
   x += scal*2.5;
 
   if (numExpwy > 0) {
-    r(result, icon(vec2(x, scal), vec2(scal, scal), iconExpressway));
+    r(result, icon(glm::vec2(x, scal), glm::vec2(scal, scal), iconExpressway));
     x += scal;
-    r(result, label(vec2(x,scal), scal, sprintf_o("%d", numExpwy)));
+    r(result, label(glm::vec2(x,scal), scal, sprintf_o("%d", numExpwy)));
     x += scal*1.5;
   }
 
   if (numRoads > 0) {
-    r(result, icon(vec2(x, scal), vec2(scal, scal), iconRoad));
+    r(result, icon(glm::vec2(x, scal), glm::vec2(scal, scal), iconRoad));
     x += scal;
-    r(result, label(vec2(x,scal), scal, sprintf_o("%d", numRoads)));
+    r(result, label(glm::vec2(x,scal), scal, sprintf_o("%d", numRoads)));
     x += scal*1.5;
   }
 
@@ -80,8 +80,8 @@ Part* blueprintPanel(vec2 start, vec2 size, Blueprint* bp,
     int z = zoneOrder[i];
     if (!isFeatureEnabled(FZoneResidential+z-1)) continue;
     if (zones[z] > 0) {
-      r(result, icon(vec2(x+1-numZones*.5f, scal+.1f-numZones*.1f),
-            vec2(scal, scal), iconZone[z]));
+      r(result, icon(glm::vec2(x+1-numZones*.5f, scal+.1f-numZones*.1f),
+            glm::vec2(scal, scal), iconZone[z]));
       numZones ++;
     }
   }

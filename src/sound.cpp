@@ -14,6 +14,7 @@
 #include "util.hpp"
 #include "vorbis_proxy.hpp"
 #include "thread.hpp"
+#include "main.hpp"
 
 #include "spdlog/spdlog.h"
 #include <stdio.h>
@@ -32,9 +33,9 @@ struct SoundData {
   bool updateVolumes = true;
   item environmentSound = -1;
   bool paused = false;
-  vec3 envSoundLoc;
-  vec3 cameraLoc;
-  vec3 cameraLook;
+  glm::vec3 envSoundLoc;
+  glm::vec3 cameraLoc;
+  glm::vec3 cameraLook;
   float cameraDistance;
 };
 
@@ -57,11 +58,11 @@ std::queue<SoundData> toEnqueue;
 SoundData soundData, nextSoundData;
 static std::atomic<bool> shouldContinue(true);
 static std::atomic<bool> soundResetting(false);
-static vector<string> songFiles;
+static std::vector<std::string> songFiles;
 
 static ALuint soundBuffers[numSounds];
-static vector<ALuint> sources;
-static vector<uint8_t> sourceIsUiVector;
+static std::vector<ALuint> sources;
+static std::vector<uint8_t> sourceIsUiVector;
 static int numSources = 0;
 static int nextSource = 0;
 static ALuint errorSource;
@@ -227,7 +228,7 @@ void loadSound(ALuint buffer, char* filename) {
   int channels;
   int sampleRate;
   short* data;
-  string modFilename = lookupFile(filename, 0);
+  std::string modFilename = lookupFile(filename, 0);
   int numSamples = loadOgg(modFilename.c_str(), &channels, &sampleRate, &data);
   //SPDLOG_INFO("loadOgg {}: channels {}, rate {}, samples {}", filename,
       //channels, sampleRate, numSamples);
@@ -246,11 +247,11 @@ void loadSound(ALuint buffer, char* filename) {
   free(data);
 }
 
-void playSong(string songName) {
+void playSong(std::string songName) {
   if (!songsEnabled) return;
 
-  string songPath = "sound/music/" + songName + ".ogg";
-  string filename = lookupFile(songPath, 0);
+  std::string songPath = "sound/music/" + songName + ".ogg";
+  std::string filename = lookupFile(songPath, 0);
   SPDLOG_INFO("Playing song {} @ {}", songName, filename);
 
   int streamError = 0;
@@ -457,7 +458,7 @@ void playSoundInternal(ALuint buffer) {
   testSoundError("Error w/ alSourcePlay");
 }
 
-void playSoundEnvironment(int num, vec3 loc) {
+void playSoundEnvironment(int num, glm::vec3 loc) {
   EnvironmentSound e = environmentSounds[num];
   if (e.buffer == 0) {
     alGenBuffers((ALuint)1, &e.buffer);
@@ -494,7 +495,7 @@ void updateMusic() {
   alGetSourcei(musicSource, AL_BUFFERS_PROCESSED, &musicBuffersProcessed);
 
   if (musicBuffersProcessed > 0) {
-    vector<ALuint> processedBuffers;
+    std::vector<ALuint> processedBuffers;
     processedBuffers.resize(musicBuffersProcessed);
     alSourceUnqueueBuffers(musicSource, musicBuffersProcessed,
         processedBuffers.data());
@@ -596,10 +597,10 @@ void updateSound() {
     playSoundEnvironment(soundData.environmentSound, soundData.envSoundLoc);
   }
 
-  vec3 loc = soundData.cameraLoc;
+  glm::vec3 loc = soundData.cameraLoc;
   alListener3f(AL_POSITION, loc.x, loc.y, loc.z);
   testSoundError("Error w/ alListenerfv");
-  vec3 look = soundData.cameraLook;
+  glm::vec3 look = soundData.cameraLook;
   float orien[6] = {look.x, look.y, look.z, 0, 0, 1};
   alListenerfv(AL_ORIENTATION, &orien[0]);
   testSoundError("Error w/ alListenerfv");
@@ -611,10 +612,10 @@ void swapSound() {
   if (!c(CEnableSounds)) return;
 
   Camera camera = getMainCamera();
-  nextSoundData.cameraLoc = vec3(camera.target -
+  nextSoundData.cameraLoc = glm::vec3(camera.target -
     normalize(camera.direction) * soundDistance);
   if (!validate(nextSoundData.cameraLoc)) {
-    nextSoundData.cameraLoc = vec3(0,0,0);
+    nextSoundData.cameraLoc = glm::vec3(0,0,0);
   }
   nextSoundData.cameraLook = -camera.direction;
   nextSoundData.paused = isGamePaused();

@@ -1,5 +1,4 @@
-#ifndef PERSON_H
-#define PERSON_H
+#pragma once
 
 #include "building/building.hpp" // For IssueIcon
 #include "route/location.hpp"
@@ -28,7 +27,7 @@ const int _familyIsTourists = 1 << 2;
 
 struct Family {
   int flags;
-  vector<item> members;
+  std::vector<item> members;
   item home;
   item econ;
   float lastStoreTime;
@@ -84,7 +83,7 @@ IssueIcon getFamilyIssue(item ndx);
 char* getFamilyDescriptor(item ndx);
 char* getPersonDescriptor(item ndx);
 char* personName(item personNdx);
-vec3 getPersonIcon(Person* p);
+glm::vec3 getPersonIcon(Person* p);
 char* getActivityName(item personNdx);
 const char* getRawActivityName(item activity);
 void getJob(item personNdx);
@@ -123,4 +122,4 @@ void handleHome(item familyNdx);
 Family* getFamily(item familyNdx);
 int sizeFamilies();
 
-#endif
+

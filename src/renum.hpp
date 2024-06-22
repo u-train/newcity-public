@@ -11,9 +11,9 @@ struct Renum {
 };
 
 struct RenumTable {
-  vector<Renum> entries;
-  unordered_map<string, item> byCode;
-  vector<item> fromFileValue;
+  std::vector<Renum> entries;
+  std::unordered_map<std::string, item> byCode;
+  std::vector<item> fromFileValue;
 };
 
 void pushRenum(RenumTable* table, item val, const char* code);

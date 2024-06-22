@@ -1,5 +1,4 @@
-#ifndef PART_MENU_H
-#define PART_MENU_H
+#pragma once
 
 #include "part.hpp"
 
@@ -29,4 +28,4 @@ bool quitGame(Part* part, InputEvent event);
 bool rootKeyPressed(Part* part, InputEvent event);
 bool escapePressed(Part* part, InputEvent event);
 
-#endif
+

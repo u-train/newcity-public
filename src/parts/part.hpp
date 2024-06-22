@@ -1,5 +1,6 @@
 #pragma once
 
+#include "../item.hpp"
 #include "../color.hpp"
 #include "../input.hpp"
 #include "../line.hpp"
@@ -56,13 +57,13 @@ struct Part {
   item itemData;
   char foregroundColor = PickerPalette::Transparent;
   void* ptrData;
-  vec3 vecData;
+  glm::vec3 vecData;
   int flags;
   float padding;
   float lineHeight = 0;
 };
 
-Part* part(vec2 loc);
+Part* part(glm::vec2 loc);
 Part* part(Line dim);
 void freePart(Part* part);
 void focus(Part* part);
@@ -74,6 +75,6 @@ void setPartTooltipValues(Part* part, int type, const char* text);
 Part* r(Part* branch, Part* leaf);
 void renderUI();
 void renderErrorLoadPanel();
-vec2 transformMouseLoc(vec2 mouseLoc);
-bool isInDim(Part* part, vec2 offset);
+glm::vec2 transformMouseLoc(glm::vec2 mouseLoc);
+bool isInDim(Part* part, glm::vec2 offset);
 

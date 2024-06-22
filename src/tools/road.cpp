@@ -1,6 +1,6 @@
 #include "road.hpp"
 
-#include "../building/building.hpp"
+#include "../draw/camera.hpp"
 #include "../city.hpp"
 #include "../color.hpp"
 #include "../configuration.hpp"
@@ -12,20 +12,18 @@
 #include "../graph.hpp"
 #include "../icons.hpp"
 #include "../land.hpp"
-#include "../option.hpp"
 #include "../pillar.hpp"
 #include "../plan.hpp"
 #include "../renderGraph.hpp"
 #include "../renderUtils.hpp"
-#include "../selection.hpp"
 #include "../sound.hpp"
 #include "../string.hpp"
 #include "../string_proxy.hpp"
 #include "../tutorial.hpp"
 #include "../util.hpp"
+#include "../main.hpp"
 
 #include "../parts/button.hpp"
-#include "../parts/hr.hpp"
 #include "../parts/icon.hpp"
 #include "../parts/label.hpp"
 #include "../parts/panel.hpp"
@@ -34,8 +32,6 @@
 
 #include "elevation.hpp"
 #include "plansPanel.hpp"
-
-#include "spdlog/spdlog.h"
 
 const int roadSystem = 0;
 const int expresswaySystem = 1;
@@ -56,7 +52,7 @@ static bool raiseCursor = false;
 static bool suspension = false;
 static bool gridMode = true;
 static bool linkMode = true;
-static vec3 roadEnd[2];
+static glm::vec3 roadEnd[2];
 static item roadPillar[2];
 static item cityNode[2];
 
@@ -67,7 +63,7 @@ static item builderCursorEntity = 0;
 static item builderTextEntity = 0;
 static Elevation elevation = Elevation {true, 0};
 static double startClickTime = 0;
-static vec3 roadCursorLoc;
+static glm::vec3 roadCursorLoc;
 static double lastPillarTime = -100;
 
 void road_mouse_button_callback(InputEvent event);
@@ -221,7 +217,7 @@ const Configuration configs[4][5] = {
   }
 };
 
-const vec3 configIcons[4][5][2] = {
+const glm::vec3 configIcons[4][5][2] = {
   {
     {iconRoad2, iconIntersectionStrategy[0]},
     {iconRoad2x2, iconIntersectionStrategy[1]},
@@ -372,7 +368,7 @@ void renderRoadCursor() {
   float tx = fontSize;
   float ty = 0;
   float tz = 0; //fontSize*2;
-  vec3 tup = vec3(0,0,fontSize*2);
+  glm::vec3 tup = glm::vec3(0,0,fontSize*2);
 
   // Are we in planner mode?
   bool plannerMode = isPlansEnabled();
@@ -383,7 +379,7 @@ void renderRoadCursor() {
     const float cursorBaseX = 12;
     const float cursorBaseInner = 8;
 
-    vec3 tex = isPlacingEdge ? colorBrightGreen : colorWhite;
+    glm::vec3 tex = isPlacingEdge ? colorBrightGreen : colorWhite;
     float height = elevation.zOffset*c(CZTileSize);
     float baseZ = -height;
 
@@ -391,8 +387,8 @@ void renderRoadCursor() {
       baseZ += height;
     }
 
-    vec3 baseLoc = vec3(0,0,baseZ);
-    makePipe(mesh, baseLoc, vec3(0,0,abs(height)+2), cursorBaseX,
+    glm::vec3 baseLoc = glm::vec3(0,0,baseZ);
+    makePipe(mesh, baseLoc, glm::vec3(0,0,abs(height)+2), cursorBaseX,
       cursorBaseInner, 20, tex);
 
     bool isModify = !isPlansMade && highlightElement != 0 &&
@@ -446,10 +442,10 @@ void renderRoadCursor() {
         ExpwyBuildExpenses : RoadBuildExpenses, cost);
 
     if (resString != 0) {
-      renderString(textMesh, resString, vec3(tx,ty,tz), fontSize);
+      renderString(textMesh, resString, glm::vec3(tx,ty,tz), fontSize);
       free(resString);
       if (isModify && affordable) {
-        renderString(textMesh, "(Double Click)", vec3(tx,ty+fontSize,tz),
+        renderString(textMesh, "(Double Click)", glm::vec3(tx,ty+fontSize,tz),
             fontSize*.75);
       }
     }
@@ -488,7 +484,7 @@ void renderRoadCursor() {
         int(wear*100), speedString, moneyString);
 
       renderString(textMesh, resString,
-          vec3(tx-fontSize,ty-fontSize*.5,tz), fontSize);
+          glm::vec3(tx-fontSize,ty-fontSize*.5,tz), fontSize);
       if (cost > 1000) {
         free(moneyString);
       }
@@ -504,7 +500,7 @@ void renderRoadCursor() {
 
       char* resString = printMoneyString(cost);
       bool affordable = canBuy(PillarBuildExpenses, cost);
-      renderString(textMesh, resString, vec3(tx,ty,tz), fontSize);
+      renderString(textMesh, resString, glm::vec3(tx,ty,tz), fontSize);
       free(resString);
       setEntityRedHighlight(builderTextEntity, !affordable && !plannerMode);
     }
@@ -518,7 +514,7 @@ void renderRoadCursor() {
     if (cost > 0) {
       char* resString = printMoneyString(cost);
       bool affordable = canBuy(TransitBuildExpenses, cost);
-      renderString(textMesh, resString, vec3(tx,ty,tz), fontSize);
+      renderString(textMesh, resString, glm::vec3(tx,ty,tz), fontSize);
       free(resString);
       setEntityRedHighlight(builderTextEntity, !affordable && !plannerMode);
 
@@ -527,7 +523,7 @@ void renderRoadCursor() {
         // no-op
       } else {
         renderString(textMesh, "Add Stop To Line",
-            vec3(tx,ty,tz), fontSize);
+            glm::vec3(tx,ty,tz), fontSize);
         setEntityRedHighlight(builderTextEntity, false);
       }
     }
@@ -544,7 +540,7 @@ void renderRoadCursor() {
   bufferMesh(entity->mesh);
 }
 
-vec3 smartUnitize(vec3 loc) {
+glm::vec3 smartUnitize(glm::vec3 loc) {
   if (gridMode) {
     if (currentSystem == roadSystem) {
       loc = unitize(loc);
@@ -585,7 +581,7 @@ void findRoadLocation(Line mouseLine, item ndx, bool shift) {
 
     if (nearbyElem != 0) {
       Line l = getLine(nearbyElem);
-      vec3 elemLoc = pointOfIntersection(l, mouseLine);
+      glm::vec3 elemLoc = pointOfIntersection(l, mouseLine);
       elemLoc = smartUnitize(elemLoc);
       elemLoc = nearestPointOnLine(elemLoc, l);
 
@@ -815,10 +811,10 @@ void road_mouse_move_callback(InputEvent event) {
   //}
   //emDomBuildingsR.clear();
 
-  vec3 loc = landIntersect(event.mouseLine);
+  glm::vec3 loc = landIntersect(event.mouseLine);
   loc = smartUnitize(loc);
   roadCursorLoc = pointOnLandNatural(loc) +
-    vec3(0, 0, c(CZTileSize) * elevation.zOffset + c(CRoadRise)*2.f);
+    glm::vec3(0, 0, c(CZTileSize) * elevation.zOffset + c(CRoadRise)*2.f);
 
   if (highlightElement != 0) {
     setElementHighlight(highlightElement, false);
@@ -1005,7 +1001,7 @@ Part* road_render(Line dim) {
   Part* result = panel(dim);
 
   const char* systemName;
-  vec3 sysIco;
+  glm::vec3 sysIco;
   if (currentSystem == roadSystem) {
     systemName = "Roads";
     sysIco = iconRoad;
@@ -1021,9 +1017,9 @@ Part* road_render(Line dim) {
     sysIco = iconTransitLogos[system->logo];
   }
 
-  r(result, icon(vec2(0,0), sysIco));
-  r(result, label(vec2(1,0), 1, strdup_s(systemName)));
-  //r(result, hr(vec2(0,1), dim.end.x-.2));
+  r(result, icon(glm::vec2(0,0), sysIco));
+  r(result, label(glm::vec2(1,0), 1, strdup_s(systemName)));
+  //r(result, hr(glm::vec2(0,1), dim.end.x-.2));
 
   //bool builder = currentRoadTab < 2 ||
     //(currentRoadTab == transitTab && getCurrentTransitSystem() > 0);
@@ -1071,7 +1067,7 @@ Part* road_render(Line dim) {
     item numC = numConfigs[configNdx];
     for (int i=0; i < numC; i++) {
       if (configNdx == 0 && !isFeatureEnabled(FRoadStreet+i)) continue;
-      Part* configContain = panel(vec2(i*1.25+1.25, 1.25f), vec2(1, 2));
+      Part* configContain = panel(glm::vec2(i*1.25+1.25, 1.25f), glm::vec2(1, 2));
       configContain->renderMode = RenderTransparent;
       configContain->itemData = i;
       configContain->onClick = setConfig;
@@ -1083,11 +1079,11 @@ Part* road_render(Line dim) {
       }
       r(result, configContain);
 
-      Part* roadButt = icon(vec2(0,0), configIcons[configNdx][i][0]);
+      Part* roadButt = icon(glm::vec2(0,0), configIcons[configNdx][i][0]);
       roadButt->onClick = setConfig;
       roadButt->itemData = i;
       r(configContain, roadButt);
-      r(configContain, icon(vec2(0,1), configIcons[configNdx][i][1]));
+      r(configContain, icon(glm::vec2(0,1), configIcons[configNdx][i][1]));
 
       if (i == currentNdx) {
         configContain->flags |= _partHighlight;
@@ -1101,22 +1097,22 @@ Part* road_render(Line dim) {
     }
 
     if (isFeatureEnabled(FRoadAve) || isFeatureEnabled(FRoadBlvd)) {
-      r(result, labelCenter(vec2(1.25f, 3.5f),
-            vec2(6.5f, .8f), strdup_s(roadName[configNdx][currentNdx])));
+      r(result, labelCenter(glm::vec2(1.25f, 3.5f),
+            glm::vec2(6.5f, .8f), strdup_s(roadName[configNdx][currentNdx])));
     }
 
-    r(result, elevationWidget(vec2(7.5f, 1.25f), &elevation));
+    r(result, elevationWidget(glm::vec2(7.5f, 1.25f), &elevation));
 
     if (isFeatureEnabled(FGrid)) {
-      Part* gridButt = r(result, button(vec2(1.25f, 4.75f),
-            iconGrid, vec2(1,1),
+      Part* gridButt = r(result, button(glm::vec2(1.25f, 4.75f),
+            iconGrid, glm::vec2(1,1),
             toggleGridMode, 0));
       gridButt->inputAction = ActTTGridMode;
       setPartTooltipValues(gridButt, TooltipType::RoadGridMode);
       if (gridMode) gridButt->flags |= _partHighlight;
 
-      Part* linkButt = r(result, button(vec2(2.5f, 4.75f),
-            iconLink, vec2(1,1),
+      Part* linkButt = r(result, button(glm::vec2(2.5f, 4.75f),
+            iconLink, glm::vec2(1,1),
             toggleLinkMode, 0));
       linkButt->inputAction = ActTTLinkMode;
       setPartTooltipValues(linkButt, TooltipType::RoadLinkMode);
@@ -1127,10 +1123,10 @@ Part* road_render(Line dim) {
     transit_render(result);
 
   } else if (currentRoadTab == repairTab) {
-    r(result, icon(vec2(4.5f,2.5f), vec2(1,1), iconWrench));
+    r(result, icon(glm::vec2(4.5f,2.5f), glm::vec2(1,1), iconWrench));
 
   } else if (currentRoadTab == cutTab) {
-    r(result, icon(vec2(4.5f,2.5f), vec2(1,1), iconCut));
+    r(result, icon(glm::vec2(4.5f,2.5f), glm::vec2(1,1), iconCut));
 
   } else if (currentRoadTab == transitTab) {
     transit_render(result);
@@ -1138,21 +1134,21 @@ Part* road_render(Line dim) {
   } else if (currentRoadTab == pillarTab) {
     for (int i = 0; i < 2; i++) {
       if (i && !isFeatureEnabled(FRoadSuspensionBridge)) continue;
-      Part* pillarButt = r(result, button(vec2(3.5f+i*2,2.5f),
-            iconBridgePillar[i], vec2(1,1),
+      Part* pillarButt = r(result, button(glm::vec2(3.5f+i*2,2.5f),
+            iconBridgePillar[i], glm::vec2(1,1),
             toggleSuspension, i));
       pillarButt->inputAction = i ? ActTTSuspensionPillar : ActTTTrussPillar;
       if (i == suspension) pillarButt->flags |= _partLowered;
     }
   }
 
-  Part* systemsPanel = panel(vec2(0,6), vec2(10,1));
+  Part* systemsPanel = panel(glm::vec2(0,6), glm::vec2(10,1));
   systemsPanel->flags |= _partLowered;
   r(result, systemsPanel);
 
   for (int i = 0; i < 2 ; i++) {
     if (i == 1 && !isFeatureEnabled(FRoadExpressways)) continue;
-    Part* roadButt = button(vec2(i, 0.f),
+    Part* roadButt = button(glm::vec2(i, 0.f),
         i == 0 ? iconRoad : iconExpressway, setRoadSystem, i);
     roadButt->inputAction = i ? ActExpresswaySubtool : ActRoadSubtool;
     setPartTooltipValues(roadButt,
@@ -1172,7 +1168,7 @@ Part* road_render(Line dim) {
     if (!(system->flags & _transitExists)) continue;
     if (!(system->flags & _transitComplete)) continue;
 
-    Part* butt = r(systemsPanel, button(vec2(x, 0.f),
+    Part* butt = r(systemsPanel, button(glm::vec2(x, 0.f),
           iconTransitLogos[system->logo], setTransitSystem, i));
     if (currentSystem == transitSystems && getCurrentTransitSystem() == i) {
       butt->flags |= _partHighlight;
@@ -1184,14 +1180,14 @@ Part* road_render(Line dim) {
   }
 
   if (isFeatureEnabled(FTransitSystems)) {
-    Part* butt = r(systemsPanel, button(vec2(x, 0.f), iconPlus,
+    Part* butt = r(systemsPanel, button(glm::vec2(x, 0.f), iconPlus,
           newTransitSystemWithKey, 0));
     setPartTooltipValues(butt,
       TooltipType::RoadButtTransit);
   }
 
   if (isFeatureEnabled(FRoadPlanner)) {
-    Part* buttPlans = button(vec2(9.f, 0.f), iconCheck, togglePlanPanel);
+    Part* buttPlans = button(glm::vec2(9.f, 0.f), iconCheck, togglePlanPanel);
     buttPlans->inputAction = ActTTPlannerMode;
     setPartTooltipValues(buttPlans,
       TooltipType::RoadButtPlanner);
@@ -1210,16 +1206,16 @@ Part* road_render(Line dim) {
     !isFeatureEnabled(FRail) &&
     !isFeatureEnabled(FTransitSystems)) return result;
 
-  Part* tabPanel = panel(vec2(0,1.25), vec2(1,4.5));
+  Part* tabPanel = panel(glm::vec2(0,1.25), glm::vec2(1,4.5));
   tabPanel->flags |= _partLowered;
   r(result, tabPanel);
   float ty = 0;
   float tySpacing = 1.083333;
 
-  vec3 buildIcon = graphType == ConfigTypeHeavyRail ? iconRail2 :
+  glm::vec3 buildIcon = graphType == ConfigTypeHeavyRail ? iconRail2 :
     graphType == ConfigTypeExpressway ? iconExpressway : iconRoad;
 
-  Part* buildButt = button(vec2(0.f, ty), buildIcon,
+  Part* buildButt = button(glm::vec2(0.f, ty), buildIcon,
       setRoadTab, buildTab);
   buildButt->inputAction = ActTTBuildMode;
   setPartTooltipValues(buildButt,
@@ -1231,7 +1227,7 @@ Part* road_render(Line dim) {
   ty += tySpacing;
 
   if (currentSystem == transitSystems) {
-    Part* transitButt = button(vec2(0.f, ty), iconRoute,
+    Part* transitButt = button(glm::vec2(0.f, ty), iconRoute,
         setRoadTab, transitTab);
     transitButt->inputAction = ActTTTransitRouteMode;
     setPartTooltipValues(transitButt,
@@ -1249,7 +1245,7 @@ Part* road_render(Line dim) {
 
   /*
   if (isFeatureEnabled(FRoadRepair)) {
-    Part* repairButt = button(vec2(0.f, ty), iconWrench,
+    Part* repairButt = button(glm::vec2(0.f, ty), iconWrench,
         setRoadTab, repairTab);
     repairButt->onKeyDown = setRoadTab;
     repairButt->text = strdup_s(tabKeyNames[repairTab]);
@@ -1267,7 +1263,7 @@ Part* road_render(Line dim) {
   */
 
   if (c(CEnableCutTool) && isFeatureEnabled(FRoadCut)) {
-    Part* cutButt = button(vec2(0, ty), iconCut, setRoadTab, cutTab);
+    Part* cutButt = button(glm::vec2(0, ty), iconCut, setRoadTab, cutTab);
     cutButt->inputAction = ActTTCutMode;
     setPartTooltipValues(cutButt,
       TooltipType::RoadButtCut);
@@ -1282,7 +1278,7 @@ Part* road_render(Line dim) {
   }
 
   if (isFeatureEnabled(FRoadPillars)) {
-    Part* pillarButt = button(vec2(0.f, ty), iconBridgePillar[0],
+    Part* pillarButt = button(glm::vec2(0.f, ty), iconBridgePillar[0],
         setRoadTab, pillarTab);
     pillarButt->inputAction = ActTTPillarMode;
     setPartTooltipValues(pillarButt,
@@ -1319,8 +1315,8 @@ void roadInstructionPanel(Part* panel) {
     }
 
     float y = 0;
-    Part* info = multiline(vec2(0,0),
-        vec2(multilineWidth,multilineTextSize),
+    Part* info = multiline(glm::vec2(0,0),
+        glm::vec2(multilineWidth,multilineTextSize),
         strdup_s(helpText.c_str()), &y);
     info->dim.start.y = 3.5 - y*.5;
     r(panel, info);

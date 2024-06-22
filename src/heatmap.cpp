@@ -43,14 +43,14 @@ static HeatMapTile* spareBuffer;
 static float heatMapTotalValue[numHeatMaps] = {0};
 static bool heatMapUpdated[numHeatMaps] = {true};
 static bool shouldContinueHeatMaps = true;
-static atomic<bool> hmDrawn(false);
+static std::atomic<bool> hmDrawn(false);
 static bool resetHMDraw;
 static HeatMapIndex currentHeatMap = Pollution;
 static HeatMapIndex nextHeatMap = Pollution;
 
-static mutex heatMutex;
-static mutex heatSwapMutex;
-static condition_variable heatSwapCondition;
+static std::mutex heatMutex;
+static std::mutex heatSwapMutex;
+static std::condition_variable heatSwapCondition;
 static bool heatMapsReady = false;
 static GLuint heatMapTexture;
 static int hmUpdateNum = 0;
@@ -58,7 +58,7 @@ static bool hmIntense = false;
 static bool nextHMIntense = false;
 static float durationRemaining;
 static float nextDurationRemaining;
-static vec3 wind;
+static glm::vec3 wind;
 static int popForHM;
 static float hmAdjustment[numHeatMaps] = {1};
 static float nextHmAdjustment[numHeatMaps] = {1};
@@ -74,13 +74,13 @@ HeatMapTile* getHeatMapValue(HeatMapIndex heatMap, HeatMapBufferIndex buffer,
 }
 
 HeatMapTile* getHeatMapValue(HeatMapIndex heatMap, HeatMapBufferIndex buffer,
-    vec3 loc) {
+    glm::vec3 loc) {
   return getHeatMapValue(heatMap, buffer,
       loc.x/tileSize/stride, loc.y/tileSize/stride);
 }
 
 HeatMapTile interpolateHeatMapValue(HeatMapIndex heatMap,
-    HeatMapBufferIndex buffer, vec3 loc) {
+    HeatMapBufferIndex buffer, glm::vec3 loc) {
 
   HeatMapTile result = 0;
   float x = loc.x/tileSize/stride;
@@ -97,7 +97,7 @@ HeatMapTile interpolateHeatMapValue(HeatMapIndex heatMap,
   return result;
 }
 
-void heatMapAdd(HeatMapIndex ndx, vec3 loc, float amount) {
+void heatMapAdd(HeatMapIndex ndx, glm::vec3 loc, float amount) {
   if (amount != amount) {
     if (debugMode()) handleError("heatMapAdd(%d, ..., %f)", ndx, amount);
     return;
@@ -132,7 +132,7 @@ void heatMapAdd(HeatMapIndex ndx, vec3 loc, float amount) {
     amount * heatMapEffect[ndx] * hmAdjustment[ndx];
 }
 
-float heatMapGet(HeatMapIndex ndx, vec3 loc) {
+float heatMapGet(HeatMapIndex ndx, glm::vec3 loc) {
   //float result = *getHeatMapValue(ndx, HeatMapReadFront, loc);
   float result = interpolateHeatMapValue(ndx, HeatMapReadFront, loc);
   return pow(abs(result),0.5);
@@ -417,8 +417,8 @@ void applyElevationToPollution() {
 
 void capDensity() {
   float popRatio = popForHM / c(CPopForMaxDensity);
-  popRatio = clamp(popRatio, 0.f, 1.f);
-  const float globalCap = mix(0.1f, 1.f, pow(popRatio,0.5));
+  popRatio = glm::clamp(popRatio, 0.f, 1.f);
+  const float globalCap = glm::mix(0.1f, 1.f, pow(popRatio,0.5));
   HeatMapTile* densi = heatMaps[Density][HeatMapWrite];
   HeatMapTile* prosp = heatMaps[Prosperity][HeatMapWrite];
   HeatMapTile* crime = heatMaps[Crime][HeatMapWrite];
@@ -555,7 +555,7 @@ void computeHeatMapTotal(HeatMapIndex ndx, HeatMapBufferIndex buffer) {
   //const float standardDeviation =
     //clamp(pow(deviation / (numTiles-1), .5f), 0.001f, 1.0f);
   const float mean = total / count;
-  total = clamp(mean, 0.f, 1.f);
+  total = glm::clamp(mean, 0.f, 1.f);
   heatMapTotalValue[ndx] = total;
 }
 
@@ -664,7 +664,7 @@ void updateHeatMaps() {
     const HeatMapTile dissipated = source * dissipation +
       initDissipated;
     const HeatMapTile capped =
-      !isfinite(dissipated) ? init :
+      !std::isfinite(dissipated) ? init :
       dissipated < 0 ? 0 :
       dissipated > 1 ? 1 :
       dissipated;
@@ -677,7 +677,7 @@ void updateHeatMaps() {
       const float densiPrev = spareBuffer[i];
       const float densiT = write[i];
       const float res = densiT < 0.1 && densiPrev < 0.1 ? densiT :
-        mix(densiT, densiPrev, c(CDensityInertia));
+        glm::mix(densiT, densiPrev, c(CDensityInertia));
       blurBuffer[i] = res == res ? res : 0;
     }
     memcpy_s(write, blurBuffer, numTiles*sizeof(HeatMapTile));
@@ -695,7 +695,7 @@ void updateHeatMaps() {
 
 void heatMapLoop() {
   while(true) {
-    unique_lock<mutex> heatLock(heatSwapMutex);
+    std::unique_lock<std::mutex> heatLock(heatSwapMutex);
     heatSwapCondition.wait(heatLock, []{
       return !shouldContinueHeatMaps ||
         (!heatMapUpdated[hmUpdateNum] &&
@@ -818,7 +818,7 @@ void drawHeatMaps() {
 }
 
 void readHeatMaps(FileBuffer* file, int version) {
-  unique_lock<mutex> lock(heatMutex);
+  std::unique_lock<std::mutex> lock(heatMutex);
   int numHeatMapsInFile = fread_item(file, version);
   if (version < 46) {
     stride = 1;

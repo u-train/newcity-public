@@ -18,6 +18,7 @@
 #include "../icons.hpp"
 #include "../string.hpp"
 #include "../steam/steamws_core.hpp"
+#include "../error.hpp"
 
 enum wsExtEnum {
   ExtDesign = 0,
@@ -62,16 +63,16 @@ const float wsWidth = 40;
 const float wsHeight = 24;
 const float wsTitleSize = 1.25f;
 const float wsTxtSize = 0.85f;
-const vec2 wsSize = vec2(wsWidth+wsPad*2, wsHeight+wsPad*2);
-const vec2 wsFileBrowserLoc=vec2(-5, 5);
+const glm::vec2 wsSize = glm::vec2(wsWidth+wsPad*2, wsHeight+wsPad*2);
+const glm::vec2 wsFileBrowserLoc=glm::vec2(-5, 5);
 
 // Workshop status consts
 const std::string wsBusyStr = "Busy...";
-const vec2 wsStatusSize = vec2(16.0f, 9.0f);
+const glm::vec2 wsStatusSize = glm::vec2(16.0f, 9.0f);
 
 // Submission window consts
 const std::string wsDefDescStr = "Item for use with NewCity; refer to file extension for specific handling behavior";
-const vec2 wsSubSize = vec2(16.0f, 9.0f);
+const glm::vec2 wsSubSize = glm::vec2(16.0f, 9.0f);
 
 // File Browser modifiers
 //static bool wsBaseFiles = false; // Unchecked by default
@@ -83,7 +84,7 @@ static std::string wsFilePath = "";
 static steamws_itemTag wsActiveFileTag = steamws_itemTag::DesignLegacy;
 static std::array<std::string, wsExtEnum::Num_Exts> wsActiveFileExts = { steamws_extDesign, "", "", "", "", "", "", "" };
 static char* wsFileSearchTxt = 0;
-static vector<WSFile> files;
+static std::vector<WSFile> files;
 static ScrollState wsFileBrowserScroll;
 static TextBoxState wsFileBrowserTB;
 
@@ -174,7 +175,7 @@ void workshopSetBusyTxt(std::string txt) {
 }
 
 void workshopResetFileVector() {
-  SPDLOG_INFO("Resetting file vector ... ");
+  SPDLOG_INFO("Resetting file std::vector ... ");
   files.clear(); // Reset size to zero, leave capacity
 }
 
@@ -187,7 +188,7 @@ void workshopPopulateFileVector(steamws_itemTag tag, std::string ext) {
 
   // If we're working with mods
   if (isMods) {
-    vector<string> mods = listModpacks(0);
+    std::vector<std::string> mods = listModpacks(0);
     for(int b = 0; b < mods.size(); b++) {
       files.push_back(WSFile(dir, mods[b], ext, wsBaseStr, tag));
     }
@@ -198,15 +199,15 @@ void workshopPopulateFileVector(steamws_itemTag tag, std::string ext) {
 
   // For designs, iterate over design directories
   if (tag == steamws_itemTag::DesignLegacy || tag == steamws_itemTag::DesignPack) {
-    vector<string> designDirs = lookupSubDirectories(dir, _lookupOnlyMods);
+    std::vector<std::string> designDirs = lookupSubDirectories(dir, _lookupOnlyMods);
     std::string subdirs = "";
     for (int d = 0; d < designDirs.size(); d++) {
       subdirs += designDirs[d] + " ";
-      vector<string> filenames = lookupDirectory(dir + designDirs[d], ext, _lookupOnlyMods);
+      std::vector<std::string> filenames = lookupDirectory(dir + designDirs[d], ext, _lookupOnlyMods);
       for (int m = 0; m < filenames.size(); m++) {
-        string filePath = lookupFile(dir + designDirs[d] + "/" + filenames[m] + ext,
+        std::string filePath = lookupFile(dir + designDirs[d] + "/" + filenames[m] + ext,
           _lookupExcludeBase);
-        string parentDir = getParentDirectory(filePath) + "/";
+        std::string parentDir = getParentDirectory(filePath) + "/";
         files.push_back(WSFile(parentDir, designDirs[d],
           ext, "", tag));
         // SPDLOG_INFO("parentDir {} for file {}", parentDir, designDirs[d] + "/" + filenames[m]);
@@ -215,19 +216,19 @@ void workshopPopulateFileVector(steamws_itemTag tag, std::string ext) {
     SPDLOG_INFO("Found design dirs: {}", subdirs);
   } else {
     // For anything not Designs, just get files in dir
-    vector<string> filenames = lookupDirectory(dir, ext, _lookupOnlyMods);
+    std::vector<std::string> filenames = lookupDirectory(dir, ext, _lookupOnlyMods);
     for (int m = 0; m < filenames.size(); m++) {
-      string filePath = lookupFile(dir + filenames[m] + ext,
+      std::string filePath = lookupFile(dir + filenames[m] + ext,
         _lookupExcludeBase);
-      string parentDir = getParentDirectory(filePath) + "/";
+      std::string parentDir = getParentDirectory(filePath) + "/";
       files.push_back(WSFile(parentDir, filenames[m],
         ext, "", tag));
     }
   }
 
   /*
-  vector<string> baseFiles;
-  vector<string> modFiles;
+  std::vector<std::string> baseFiles;
+  std::vector<std::string> modFiles;
 
   // TODO: Search and read subdirectories as well
   if(wsBaseFiles && mods) {
@@ -238,7 +239,7 @@ void workshopPopulateFileVector(steamws_itemTag tag, std::string ext) {
     modFiles = lookupDirectory(dir, ext, _lookupOnlyMods);
   }
 
-  // Combine the char* vectors into the WSFile vector and sort
+  // Combine the char* std::vectors into the WSFile std::vector and sort
   for(int b = 0; b < baseFiles.size(); b++) {
     files.push_back(WSFile(dir, baseFiles[b], ext, wsBaseStr, tag));
   }
@@ -249,14 +250,14 @@ void workshopPopulateFileVector(steamws_itemTag tag, std::string ext) {
     sort(files.begin(), files.end(), compareStrings);
   }
 
-  SPDLOG_INFO("Populated file vector for ext {}, tag {}, from dir {}, files found: {}", ext, tag, dir, baseFiles.size() + modFiles.size());
+  SPDLOG_INFO("Populated file std::vector for ext {}, tag {}, from dir {}, files found: {}", ext, tag, dir, baseFiles.size() + modFiles.size());
   */
 }
 
 void workshopPopulateFileVector(steamws_itemTag tag, std::array<std::string, wsExtEnum::Num_Exts> exts) {
-  // Clear file vector
+  // Clear file std::vector
   workshopResetFileVector();
-  // Deselect any file, because we're repopulating the vector
+  // Deselect any file, because we're repopulating the std::vector
   workshopDeselectFile();
   for(int i = 0; i < exts.size(); i++) {
     if(exts[i].length() == 0) continue;
@@ -578,54 +579,54 @@ Part* steamWorkshopSubWindow(float uiX) {
   float yPos = 0.0f;
   float wsSubPanelHalf = wsSubSize.x/2.0f;
   float wsSubButtonX = 4.0f;
-  vec2 subStart = vec2(uiX, uiGridSizeY)*wsPanelCoeff - wsSubSize*wsPanelCoeff;
+  glm::vec2 subStart = glm::vec2(uiX, uiGridSizeY)*wsPanelCoeff - wsSubSize*wsPanelCoeff;
   Part* subPanel = panel(subStart, wsSubSize);
 
   // Title
-  r(subPanel, label(vec2(xPos, yPos), wsTitleSize, strdup_s("Submission Details:")));
+  r(subPanel, label(glm::vec2(xPos, yPos), wsTitleSize, strdup_s("Submission Details:")));
 
   yPos += 1.0f+wsPad;
 
   // Textboxes
-  r(subPanel, label(vec2(xPos, yPos), wsTxtSize, strdup_s("Name")));
+  r(subPanel, label(glm::vec2(xPos, yPos), wsTxtSize, strdup_s("Name")));
   yPos += 1.0f;
   wsSubNameTB.text = &wsSubNamePtr;
-  Part* tbName = r(subPanel, textBox(vec2(xPos+wsPad, yPos),
-    vec2(wsSubPanelHalf-(wsPad*2.0f), 1.0f), &wsSubNameTB));
+  Part* tbName = r(subPanel, textBox(glm::vec2(xPos+wsPad, yPos),
+    glm::vec2(wsSubPanelHalf-(wsPad*2.0f), 1.0f), &wsSubNameTB));
   tbName->onClick = workshopFocusNameBox;
   tbName->onCustom = workshopUnfocusTextBox;
   if(wsSubNamePtr == 0 || strlength(wsSubNamePtr) == 0) {
-    Part* searchName = r(subPanel, label(vec2(xPos+wsPad, yPos+0.1f), wsTxtSize, strdup_s("Enter name...")));
+    Part* searchName = r(subPanel, label(glm::vec2(xPos+wsPad, yPos+0.1f), wsTxtSize, strdup_s("Enter name...")));
     searchName->foregroundColor = PickerPalette::GrayDark;
   }
   yPos += 1.0f+wsPad;
-  r(subPanel, label(vec2(xPos, yPos), wsTxtSize, strdup_s("Description")));
+  r(subPanel, label(glm::vec2(xPos, yPos), wsTxtSize, strdup_s("Description")));
   yPos += 1.0f;
   wsSubDescTB.text = &wsSubDescPtr;
-  Part* tbDesc = r(subPanel, textBox(vec2(xPos+wsPad, yPos),
-    vec2(wsSubPanelHalf-(wsPad*2.0f), 1.0f), &wsSubDescTB));
+  Part* tbDesc = r(subPanel, textBox(glm::vec2(xPos+wsPad, yPos),
+    glm::vec2(wsSubPanelHalf-(wsPad*2.0f), 1.0f), &wsSubDescTB));
   tbDesc->onClick = workshopFocusDescBox;
   tbDesc->onCustom = workshopUnfocusTextBox;
   if(wsSubDescPtr == 0 || strlength(wsSubDescPtr) == 0) {
-    Part* searchDesc = r(subPanel, label(vec2(xPos+wsPad, yPos+0.1f), wsTxtSize, strdup_s("Enter description...")));
+    Part* searchDesc = r(subPanel, label(glm::vec2(xPos+wsPad, yPos+0.1f), wsTxtSize, strdup_s("Enter description...")));
     searchDesc->foregroundColor = PickerPalette::GrayDark;
   }
   yPos += 1.0f+wsPad;
-  r(subPanel, label(vec2(xPos, yPos), wsTxtSize, strdup_s("Change Text")));
+  r(subPanel, label(glm::vec2(xPos, yPos), wsTxtSize, strdup_s("Change Text")));
   yPos += 1.0f;
   wsSubChangeTB.text = &wsSubChangePtr;
-  Part* tbChange = r(subPanel, textBox(vec2(xPos+wsPad, yPos),
-    vec2(wsSubPanelHalf-(wsPad*2.0f), 1.0f), &wsSubChangeTB));
+  Part* tbChange = r(subPanel, textBox(glm::vec2(xPos+wsPad, yPos),
+    glm::vec2(wsSubPanelHalf-(wsPad*2.0f), 1.0f), &wsSubChangeTB));
   tbChange->onClick = workshopFocusChangeBox;
   tbChange->onCustom = workshopUnfocusTextBox;
   if(wsSubChangePtr == 0 || strlength(wsSubChangePtr) == 0) {
-    Part* searchChange = r(subPanel, label(vec2(xPos+wsPad, yPos+0.1f), wsTxtSize, strdup_s("Enter change...")));
+    Part* searchChange = r(subPanel, label(glm::vec2(xPos+wsPad, yPos+0.1f), wsTxtSize, strdup_s("Enter change...")));
     searchChange->foregroundColor = PickerPalette::GrayDark;
   }
 
   // Nav buttons
-  r(subPanel, buttonCenter(vec2(0.0f, wsSubSize.y-1.0f), vec2(wsSubButtonX, 1.0f), strdup_s(wsButtonBackStr.c_str()), workshopResetSubmissionWindow));
-  r(subPanel, buttonCenter(wsSubSize-vec2(wsSubButtonX, 1.0f), vec2(wsSubButtonX, 1.0f), strdup_s(wsButtonUploadStr.c_str()), workshopSendUpload));
+  r(subPanel, buttonCenter(glm::vec2(0.0f, wsSubSize.y-1.0f), glm::vec2(wsSubButtonX, 1.0f), strdup_s(wsButtonBackStr.c_str()), workshopResetSubmissionWindow));
+  r(subPanel, buttonCenter(wsSubSize-glm::vec2(wsSubButtonX, 1.0f), glm::vec2(wsSubButtonX, 1.0f), strdup_s(wsButtonUploadStr.c_str()), workshopSendUpload));
 
   return subPanel;
 }
@@ -667,9 +668,9 @@ Part* steamWorkshop(float aspectRatio) {
   // If we're actively doing something workshop related
   if(steamws_IsBusy()) {
     // Show status panel
-    vec2 statusStart = vec2(uiX, uiGridSizeY)*wsPanelCoeff - wsStatusSize*wsPanelCoeff;
+    glm::vec2 statusStart = glm::vec2(uiX, uiGridSizeY)*wsPanelCoeff - wsStatusSize*wsPanelCoeff;
     Part* statusPanel = panel(statusStart, wsStatusSize);
-    r(statusPanel, labelCenter(vec2(0.0f, (wsStatusSize.y*0.5f)-1.0f), vec2(wsStatusSize.x, 1.0f), strdup_s(wsStatusTxt.c_str())));
+    r(statusPanel, labelCenter(glm::vec2(0.0f, (wsStatusSize.y*0.5f)-1.0f), glm::vec2(wsStatusSize.x, 1.0f), strdup_s(wsStatusTxt.c_str())));
 
     return statusPanel;
   }
@@ -679,7 +680,7 @@ Part* steamWorkshop(float aspectRatio) {
     return steamWorkshopSubWindow(uiX);
   }
 
-  vec2 resultStart = vec2(uiX, uiGridSizeY)*wsPanelCoeff - wsSize*wsPanelCoeff;
+  glm::vec2 resultStart = glm::vec2(uiX, uiGridSizeY)*wsPanelCoeff - wsSize*wsPanelCoeff;
 
   // Main panel
   Part* result = panel(resultStart, wsSize);
@@ -687,17 +688,17 @@ Part* steamWorkshop(float aspectRatio) {
   result->flags |= _partLowered;
 
   // Title
-  r(result, label(vec2(0, 0), wsTitleSize, strdup_s("Steam Workshop")));
+  r(result, label(glm::vec2(0, 0), wsTitleSize, strdup_s("Steam Workshop")));
 
   // Close button
-  r(result, button(vec2(wsWidth-1, 0), iconX, workshopOpenMainMenu));
+  r(result, button(glm::vec2(wsWidth-1, 0), iconX, workshopOpenMainMenu));
 
   yPos += wsTitleSize + wsPad;
 
   // Tabs
   float tabBtnXSize = wsWidth / WSTab::NumTabs;
   for(int i = 0; i < WSTab::NumTabs; i++) {
-    Part* tabBtn = button(vec2(xPos+wsPad, yPos), vec2(tabBtnXSize-(wsPad*2.0f), 1.5f), strdup_s(workshopGetStringForTab((WSTab)i).c_str()), workshopSetActiveTab);
+    Part* tabBtn = button(glm::vec2(xPos+wsPad, yPos), glm::vec2(tabBtnXSize-(wsPad*2.0f), 1.5f), strdup_s(workshopGetStringForTab((WSTab)i).c_str()), workshopSetActiveTab);
     tabBtn->itemData = i;
     tabBtn->flags |= _partAlignCenter;
     if(i == wsActiveTab) {
@@ -711,8 +712,8 @@ Part* steamWorkshop(float aspectRatio) {
   yPos += 1.5f;
   //yPos += (1.0f + wsPad)*2.0f;
 
-  vec2 browserSize = vec2(wsSize.x - (wsPad*2.0f), wsSize.y - yPos - (wsPad*2.0f));
-  Part* browserPanel = panel(vec2(xPos, yPos), browserSize);
+  glm::vec2 browserSize = glm::vec2(wsSize.x - (wsPad*2.0f), wsSize.y - yPos - (wsPad*2.0f));
+  Part* browserPanel = panel(glm::vec2(xPos, yPos), browserSize);
   browserPanel->padding = 0.5f;
   r(result, browserPanel);
 
@@ -720,7 +721,7 @@ Part* steamWorkshop(float aspectRatio) {
     float eleSizeX = browserSize.x - 1;
     float top;
 
-    r(browserPanel, labelCenter(vec2(0, 0), vec2(eleSizeX, wsTitleSize),
+    r(browserPanel, labelCenter(glm::vec2(0, 0), glm::vec2(eleSizeX, wsTitleSize),
       strdup_s("Select File to Upload")));
     top = 4.0f;
 
@@ -735,17 +736,17 @@ Part* steamWorkshop(float aspectRatio) {
 
     // Which directory to look in
     /*
-    r(browserPanel, label(vec2(0.0f, 4.125f), sclTitle,
+    r(browserPanel, label(glm::vec2(0.0f, 4.125f), sclTitle,
       strdup_s("Reading files from")));
-    Part* btnBase = button(vec2(eleWidth*rowCoeff, 3.75f), wsBaseFiles ? iconCheck : iconNull,
-      vec2(eleWidth, sclTxt), strdup_s(wsBaseStr.c_str()), workshopToggleBaseFiles, 0);
+    Part* btnBase = button(glm::vec2(eleWidth*rowCoeff, 3.75f), wsBaseFiles ? iconCheck : iconNull,
+      glm::vec2(eleWidth, sclTxt), strdup_s(wsBaseStr.c_str()), workshopToggleBaseFiles, 0);
     btnBase->flags |= _partHighlight;
     r(browserPanel, btnBase);
     if(wsActiveFileTag != steamws_itemTag::Mod) { // Can mods even have sub mods as of yet? - 10/29/2020 supersoup
       const char* modName = getMod();
       if(modName != NULL) { // Don't show mod file toggle if no mod loaded
-        Part* btnMod = button(vec2(eleWidth*rowCoeff, 4.5f), wsModFiles ? iconCheck : iconNull,
-          vec2(eleWidth, sclTxt), strdup_s(wsModStr.c_str()), workshopToggleModFiles, 0);
+        Part* btnMod = button(glm::vec2(eleWidth*rowCoeff, 4.5f), wsModFiles ? iconCheck : iconNull,
+          glm::vec2(eleWidth, sclTxt), strdup_s(wsModStr.c_str()), workshopToggleModFiles, 0);
         btnMod->flags |= _partHighlight;
         r(browserPanel, btnMod);
       }
@@ -754,30 +755,30 @@ Part* steamWorkshop(float aspectRatio) {
 
     // Which file types to consider
     rowCoeff = 2.0f;
-    r(browserPanel, button(vec2(0, 2.f),
+    r(browserPanel, button(glm::vec2(0, 2.f),
       wsActiveFileTag == steamws_itemTag::DesignLegacy ? iconCheck : iconNull,
-      vec2(eleWidth, wsTxtSize), strdup_s("Designs"),
+      glm::vec2(eleWidth, wsTxtSize), strdup_s("Designs"),
       workshopToggleDesigns, 0));
-    r(browserPanel, button(vec2(eleWidth+1, 2.f),
+    r(browserPanel, button(glm::vec2(eleWidth+1, 2.f),
       wsActiveFileTag == steamws_itemTag::Mod ? iconCheck : iconNull,
-      vec2(eleWidth, wsTxtSize), strdup_s("Modpacks"),
+      glm::vec2(eleWidth, wsTxtSize), strdup_s("Modpacks"),
       workshopToggleModpacks, 0));
 
     //top += 1.75;
 
     wsFileBrowserTB.text = &wsFileSearchTxt;
     float searchX = eleSizeX*.5f;
-    Part* tb = r(browserPanel, textBox(vec2(searchX, 2),
-      vec2(eleSizeX*.5f, 1.5), &wsFileBrowserTB));
+    Part* tb = r(browserPanel, textBox(glm::vec2(searchX, 2),
+      glm::vec2(eleSizeX*.5f, 1.5), &wsFileBrowserTB));
     tb->onClick = workshopFocusSearchBox;
     tb->onCustom = workshopUnfocusTextBox;
     if(wsFileSearchTxt == 0 || strlength(wsFileSearchTxt) == 0) {
-      Part* search = r(browserPanel, label(vec2(searchX + 0.25, 2.25), 1, strdup_s("Search")));
+      Part* search = r(browserPanel, label(glm::vec2(searchX + 0.25, 2.25), 1, strdup_s("Search")));
       search->foregroundColor = PickerPalette::GrayDark;
     }
 
-    vec2 scrollSize = browserSize - vec2(1, top+2.5);
-    Part* scroll = scrollbox(vec2(0, 0), scrollSize);
+    glm::vec2 scrollSize = browserSize - glm::vec2(1, top+2.5);
+    Part* scroll = scrollbox(glm::vec2(0, 0), scrollSize);
     float sy = 0;
 
     for(int f = 0; f < files.size(); f++) {
@@ -798,7 +799,7 @@ Part* steamWorkshop(float aspectRatio) {
       }
 
 
-      Part* fileButt = button(vec2(0, sy), vec2(eleSizeX*.5f-1, 1),
+      Part* fileButt = button(glm::vec2(0, sy), glm::vec2(eleSizeX*.5f-1, 1),
           strdup_s(files[f].name.c_str()),
           /*
           wsActiveFileTag != steamws_itemTag::Mod 
@@ -815,41 +816,41 @@ Part* steamWorkshop(float aspectRatio) {
     }
 
     float bottomButtonX = 4.0f;
-    Part* scrollFrame = scrollboxFrame(vec2(0, top), scrollSize,
+    Part* scrollFrame = scrollboxFrame(glm::vec2(0, top), scrollSize,
       &wsFileBrowserScroll, scroll);
     r(browserPanel, scrollFrame);
 
     /*
     Part* backButt = r(browserPanel, button(
-      vec2(0.0f, browserSize.y-2.0f),
-      vec2(4.0f, 1.0f),
+      glm::vec2(0.0f, browserSize.y-2.0f),
+      glm::vec2(4.0f, 1.0f),
       strdup_s(wsButtonBackStr.c_str()), workshopResetFileBrowser));
     backButt->flags |= _partAlignCenter;
     */
 
     if(wsFilePath.length() > 0) {
       Part* uploadButt = r(browserPanel, button(
-        vec2(browserSize.x-bottomButtonX-(wsPad*4.0f), browserSize.y-2.0f),
-        vec2(bottomButtonX, 1.0f),
+        glm::vec2(browserSize.x-bottomButtonX-(wsPad*4.0f), browserSize.y-2.0f),
+        glm::vec2(bottomButtonX, 1.0f),
         strdup_s(wsButtonUploadStr.c_str()), workshopStartUpload));
       uploadButt->flags |= _partAlignCenter;
 
       std::string previewImgPath = steamws_getImageForItem(files[wsFileIndex]);
       float y;
       Part* img = r(browserPanel, image(
-            vec2(scrollSize.x*.5f, top+1),
+            glm::vec2(scrollSize.x*.5f, top+1),
             scrollSize.x*.5f-1, sprintf_o(previewImgPath.c_str()), &y));
     }
 
   } else {
-    r(browserPanel, labelCenter(vec2(xPos, yPos), vec2(wsWidth, wsTxtSize),
+    r(browserPanel, labelCenter(glm::vec2(xPos, yPos), glm::vec2(wsWidth, wsTxtSize),
           strdup_s(wsBrowseStr.c_str())));
     yPos += 2.0f + wsPad;
 
     float buttWidth = 12;
     float buttCenter = xPos + .5f*(wsWidth-buttWidth-wsPad*2);
-    Part* butt = r(browserPanel, button(vec2(buttCenter, yPos),
-          vec2(buttWidth+wsPad*2, wsTxtSize*3+wsPad*2),
+    Part* butt = r(browserPanel, button(glm::vec2(buttCenter, yPos),
+          glm::vec2(buttWidth+wsPad*2, wsTxtSize*3+wsPad*2),
           strdup_s(""), workshopOpenOverlay));
     butt->flags |= _partIsPanel;
     butt->padding = wsPad;
@@ -857,21 +858,21 @@ Part* steamWorkshop(float aspectRatio) {
 
     float by = 0;
     float icoCenter = .5f*(buttWidth-wsTxtSize);
-    r(butt, icon(vec2(icoCenter,by), vec2(wsTxtSize, wsTxtSize), iconSteam));
+    r(butt, icon(glm::vec2(icoCenter,by), glm::vec2(wsTxtSize, wsTxtSize), iconSteam));
     by += wsTxtSize;
-    r(butt, labelCenter(vec2(0.5,by), vec2(buttWidth-1, wsTxtSize),
+    r(butt, labelCenter(glm::vec2(0.5,by), glm::vec2(buttWidth-1, wsTxtSize),
           strdup_s(wsClickBrowseStr1.c_str())));
     by += wsTxtSize;
-    r(butt, labelCenter(vec2(0.5,by), vec2(buttWidth-1, wsTxtSize),
+    r(butt, labelCenter(glm::vec2(0.5,by), glm::vec2(buttWidth-1, wsTxtSize),
           strdup_s(wsClickBrowseStr2.c_str())));
     by += wsTxtSize;
     yPos += 1.0f + wsTxtSize + wsPad;
 
-    Part* buttClearAll = button(vec2(buttCenter, yPos),
-      vec2(buttWidth+1.15f, wsTxtSize),
+    Part* buttClearAll = button(glm::vec2(buttCenter, yPos),
+      glm::vec2(buttWidth+1.15f, wsTxtSize),
       strdup_s("  Clear local NewCity Workshop files"), workshopClearFiles);
-    Part* buttClearXLeft = r(buttClearAll, icon(vec2(buttCenter, yPos), vec2(wsTxtSize, wsTxtSize), iconNo));
-    Part* buttClearXRight = r(buttClearAll, icon(vec2(buttCenter+buttWidth+wsPad, yPos), vec2(wsTxtSize, wsTxtSize), iconNo));
+    Part* buttClearXLeft = r(buttClearAll, icon(glm::vec2(buttCenter, yPos), glm::vec2(wsTxtSize, wsTxtSize), iconNo));
+    Part* buttClearXRight = r(buttClearAll, icon(glm::vec2(buttCenter+buttWidth+wsPad, yPos), glm::vec2(wsTxtSize, wsTxtSize), iconNo));
     r(browserPanel, buttClearAll);
   }
 

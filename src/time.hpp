@@ -1,14 +1,13 @@
-#ifndef TIME_H
-#define TIME_H
+#pragma once
 
 #include "serialize.hpp"
 
 struct LightInformation {
   double level;
-  vec3 direction;
-  vec3 cameraSpace;
-  vec3 color;
-  vec3 skyColor = vec3(1,1,1);
+  glm::vec3 direction;
+  glm::vec3 cameraSpace;
+  glm::vec3 color;
+  glm::vec3 skyColor = glm::vec3(1,1,1);
 };
 
 const double oneHour = 1.f/24;
@@ -64,4 +63,4 @@ void setSkyVisible();
 void writeTime(FileBuffer* file);
 void readTime(FileBuffer* file, int version);
 
-#endif
+

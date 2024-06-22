@@ -49,13 +49,13 @@ Part* changelogPanel() {
   bool closed = isChangelogClosed();
   float panelHeight = closed ? clTxtTitleSize + (clPadding*2) : clHeight;
   float clInnerWidth = clWidth - clPadding*2;
-  Part* result = panel(vec2(clStartX, clStartY), vec2(clWidth, panelHeight));
+  Part* result = panel(glm::vec2(clStartX, clStartY), glm::vec2(clWidth, panelHeight));
   result->padding = clPadding;
 
   // Title (Always show, even when minimized)
-  r(result, button(vec2(0, y), vec2(clInnerWidth,clTxtTitleSize),
+  r(result, button(glm::vec2(0, y), glm::vec2(clInnerWidth,clTxtTitleSize),
     strdup_s("Changelog"), toggleChangelog));
-  r(result, icon(vec2(clInnerWidth-1, y), closed ? iconPlus : iconMinus));
+  r(result, icon(glm::vec2(clInnerWidth-1, y), closed ? iconPlus : iconMinus));
   y += 1;
 
   if(closed) {
@@ -64,23 +64,23 @@ Part* changelogPanel() {
 
   // Horizontal rule
   //y += clHrOffset;
-  //r(result, hr(vec2(clPadding, y), clWidth - (clPadding * 4)));
+  //r(result, hr(glm::vec2(clPadding, y), clWidth - (clPadding * 4)));
   //y += clEleSpace;
   y += clPadding;
 
   // Scrollbox and changelog content
   float scrlY = 0.0f;
   float clPanelWidth = clInnerWidth-2;
-  Part* clScrollbox = scrollbox(vec2(0, 0),
-    vec2(clInnerWidth, clHeight - y));
+  Part* clScrollbox = scrollbox(glm::vec2(0, 0),
+    glm::vec2(clInnerWidth, clHeight - y));
 
   for(int i = 0; i < *(&changelogs+1)-changelogs; i++) {
     float panelY = 0;
-    Part* clPanel = panel(vec2(0, scrlY), vec2(clPanelWidth, 1));
+    Part* clPanel = panel(glm::vec2(0, scrlY), glm::vec2(clPanelWidth, 1));
     clPanel->renderMode = RenderTransparent;
-    Part* clVersionButt = button(vec2(0, panelY),
+    Part* clVersionButt = button(glm::vec2(0, panelY),
       i == openVersion ? iconMinus : iconPlus,
-      vec2(clPanelWidth, clTxtSize),
+      glm::vec2(clPanelWidth, clTxtSize),
       strdup_s(changelogs[i].version), changeOpenVersion, i);
     //clVersionButt->padding = clPadding;
     r(clPanel, clVersionButt);
@@ -88,8 +88,8 @@ Part* changelogPanel() {
 
     if(i == openVersion) { // Render full text
       float multiY = 0.0f;
-      r(clPanel, multiline(vec2(clTxtSize, clTxtSize+clPadding),
-        vec2(clPanelWidth, clSubTxtSize),
+      r(clPanel, multiline(glm::vec2(clTxtSize, clTxtSize+clPadding),
+        glm::vec2(clPanelWidth, clSubTxtSize),
         strdup_s(changelogs[i].text), &multiY));
       panelY += multiY;
     }
@@ -99,8 +99,8 @@ Part* changelogPanel() {
     scrlY += panelY;
   }
 
-  Part* clScrollboxFrame = scrollboxFrame(vec2(0, y), 
-    vec2(clWidth - (clPadding * 2), clHeight - (y + (clPadding * 2))), 
+  Part* clScrollboxFrame = scrollboxFrame(glm::vec2(0, y), 
+    glm::vec2(clWidth - (clPadding * 2), clHeight - (y + (clPadding * 2))), 
     &scrollState, clScrollbox);
 
   r(result, clScrollboxFrame);

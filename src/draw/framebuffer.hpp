@@ -1,7 +1,6 @@
 #pragma once
 
-#include "../main.hpp"
-
+#include <glm/vec2.hpp>
 #include <string>
 
 enum Framebuffer {
@@ -16,6 +15,6 @@ unsigned int getMapTexture();
 void generateMapMipMap();
 void captureFramebuffer(Framebuffer f, std::string filename);
 void captureFramebuffer();
-vec2 getCaptureDimensions();
+glm::vec2 getCaptureDimensions();
 void swapFramebuffers();
 

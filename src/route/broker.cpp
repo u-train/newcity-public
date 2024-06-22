@@ -4,9 +4,11 @@
 #include "../game/constants.hpp"
 #include "../land.hpp"
 #include "../util.hpp"
+#include "../error.hpp"
+#include "../line.hpp"
 
-#include "spdlog/spdlog.h"
-
+#include <glm/glm.hpp>
+#include <spdlog/spdlog.h>
 #include <algorithm>
 
 Cup<item> supplyTable_p;
@@ -45,7 +47,7 @@ void resetRouteBroker_g() {
   chunkSizeInv = 1;
 }
 
-item locToChunk(vec3 loc) {
+item locToChunk(glm::vec3 loc) {
   float x = loc.x * chunkSizeInv;
   float y = loc.y * chunkSizeInv;
   item landSize = getLandSize();
@@ -53,13 +55,13 @@ item locToChunk(vec3 loc) {
   if (y < 0) y = -1;
   if (x > landSize) x = landSize;
   if (y > landSize) y = landSize;
-  item chunkNdx = floor(x)+1 + (floor(y)+1)*(landSize+2) + 1;
+  item chunkNdx = glm::floor(x)+1 + (glm::floor(y)+1)*(landSize+2) + 1;
   if (chunkNdx > numBrokerChunks) handleError("chunkNdx out of bounds");
   if (chunkNdx < 0) handleError("chunkNdx out of bounds");
   return chunkNdx;
 }
 
-struct compareDistance : binary_function <ChunkDistance, ChunkDistance, bool> {
+struct compareDistance : std::binary_function <ChunkDistance, ChunkDistance, bool> {
   bool operator() (ChunkDistance const& x, ChunkDistance const& y) const {
     return x.distance < y.distance;
   }
@@ -77,14 +79,14 @@ void initRouteBroker_g() {
   }
 
   float mapSize = getMapSize();
-  vec3 mapCenter = vec3(mapSize*.5f, mapSize*.5f, 0);
+  glm::vec3 mapCenter = glm::vec3(mapSize*.5f, mapSize*.5f, 0);
   item centerNdx = locToChunk(mapCenter);
 
-  vector<ChunkDistance> distances;
+  std::vector<ChunkDistance> distances;
   for (int x = -c(CBrokerSearchDistance); x <= c(CBrokerSearchDistance); x++) {
     for (int y = -c(CBrokerSearchDistance);
         y <= c(CBrokerSearchDistance); y++) {
-      vec3 loc = mapCenter + vec3(x*chunkSize, y*chunkSize, 0);
+      glm::vec3 loc = mapCenter + glm::vec3(x*chunkSize, y*chunkSize, 0);
       ChunkDistance distance = {
         locToChunk(loc),
         length(loc - mapCenter)
@@ -201,7 +203,7 @@ void knownRouteErase_g(item source, item dest) {
   return;
 }
 
-void broker_addLaneBlock_g(item blkNdx, vec3 loc) {
+void broker_addLaneBlock_g(item blkNdx, glm::vec3 loc) {
   blkNdx /= 10;
   item chunkNdx = locToChunk(loc);
   laneBlkToChunk_p.ensureSize(blkNdx+1);

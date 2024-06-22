@@ -1,11 +1,8 @@
 #pragma once
 
-#include "../item.hpp"
-#include "../main.hpp"
-
 #include <cstdint>
-#include <vector>
-using namespace std;
+#include <glm/vec3.hpp>
+#include "../item.hpp"
 
 enum LocationType {
   LocLaneBlock = 0, LocPathBlock, LocDap, LocTransitLeg, LocTransitStop,
@@ -34,6 +31,6 @@ item locationLineNdx(Location location);
 item locationLegNdx(Location location);
 item getStopForLeg_g(Location location);
 
-vec3 locationToWorldspace_g(Location loc);
+glm::vec3 locationToWorldspace_g(Location loc);
 char* format(const Location& loc);
 

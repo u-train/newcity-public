@@ -1,6 +1,7 @@
 #pragma once
 
 #include "serialize.hpp"
+#include <glm/vec3.hpp>
 
 typedef double money;
 
@@ -104,7 +105,7 @@ double getInterestRate();
 int getNumHistoricalBudgets();
 const char* getBudgetLineName(BudgetLine l);
 const char* getBudgetLineCode(BudgetLine l);
-vec3 getBudgetLineIcon(BudgetLine l);
+glm::vec3 getBudgetLineIcon(BudgetLine l);
 float getBudgetControl(BudgetLine l);
 void setBudgetControl(BudgetLine l, float val);
 float getBudgetControlEffect(BudgetLine l);

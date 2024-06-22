@@ -912,7 +912,7 @@ std::string steamws_getStringForTag(steamws_itemTag type) {
 }
 
 std::string WSFile::fullPath() {
-  string result;
+  std::string result;
   if (tag == steamws_itemTag::DesignLegacy || tag == steamws_itemTag::DesignPack) {
     result = fixDesignerPath(name);
   } else {

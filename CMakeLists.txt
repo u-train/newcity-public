@@ -14,6 +14,13 @@ endif()
 #  LIB_VERSION
 #)
 
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+find_program(CCACHE "ccache")
+if(CCACHE)
+    set(CMAKE_C_COMPILER_LAUNCHER ${CCACHE})
+    set(CMAKE_CXX_COMPILER_LAUNCHER ${CCACHE})
+endif(CCACHE)
+
 set(OPENAL_LIBRARY lib)
 set(OPENAL_INCLUDE_DIR external/openal-soft/include)
 
@@ -166,6 +173,7 @@ set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -DLP_DEBUG")
 #set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -ffast-math")
 #set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -fsanitize=address")
 set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -fno-omit-frame-pointer")
+set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -w")
 
 if (UNIX)
   set(CMAKE_LINKER_FLAGS "${CMAKE_LINKER_FLAGS} -static")
@@ -327,8 +335,6 @@ SET(ALL_FILES
   src/platform/lookup.cpp
   src/platform/lua.cpp
   src/platform/mod.cpp
-
-  src/pool.cpp
 
   src/renderGraph.cpp
   src/renderLot.cpp
@@ -495,3 +501,26 @@ message("CMAKE_BUILD_TYPE = ${CMAKE_BUILD_TYPE}")
 message("CMAKE_CXX_FLAGS: ${CMAKE_CXX_FLAGS}")
 message("CMAKE_LINKER_FLAGS: ${CMAKE_CXX_LINKER_FLAGS}")
 message("CMAKE_EXE_LINKER_FLAGS: ${CMAKE_EXE_LINKER_FLAGS}")
+
+# Copy assets to binary directory
+if (WIN32)
+  set(COPY_CMD xcopy /E /H)
+else ()
+  set(COPY_CMD cp -r)
+endif ()
+add_custom_command(
+  TARGET newcity POST_BUILD
+  COMMAND ${COPY_CMD} "${CMAKE_CURRENT_SOURCE_DIR}/src/shaders/" "${CMAKE_CURRENT_BINARY_DIR}/shaders/"
+  COMMAND ${COPY_CMD} "${CMAKE_CURRENT_SOURCE_DIR}/src/textures/" "${CMAKE_CURRENT_BINARY_DIR}/textures/"
+  COMMAND ${COPY_CMD} "${CMAKE_CURRENT_SOURCE_DIR}/src/fonts/" "${CMAKE_CURRENT_BINARY_DIR}/fonts/"
+  COMMAND ${COPY_CMD} "${CMAKE_CURRENT_SOURCE_DIR}/src/models/" "${CMAKE_CURRENT_BINARY_DIR}/models/"
+  COMMAND ${COPY_CMD} "${CMAKE_CURRENT_SOURCE_DIR}/src/sound/" "${CMAKE_CURRENT_BINARY_DIR}/sound/"
+  COMMAND ${COPY_CMD} "${CMAKE_CURRENT_SOURCE_DIR}/src/locale/" "${CMAKE_CURRENT_BINARY_DIR}/locale/"
+  COMMAND ${COPY_CMD} "${CMAKE_CURRENT_SOURCE_DIR}/src/newspaper/" "${CMAKE_CURRENT_BINARY_DIR}/newspaper/"
+  COMMAND ${COPY_CMD} "${CMAKE_CURRENT_SOURCE_DIR}/src/designs/" "${CMAKE_CURRENT_BINARY_DIR}/designs/"
+  COMMAND ${COPY_CMD} "${CMAKE_CURRENT_SOURCE_DIR}/src/saves/" "${CMAKE_CURRENT_BINARY_DIR}/saves/"
+  COMMAND ${COPY_CMD} "${CMAKE_CURRENT_SOURCE_DIR}/src/contributors/" "${CMAKE_CURRENT_BINARY_DIR}/contributors/"
+  COMMAND ${COPY_CMD} "${CMAKE_CURRENT_SOURCE_DIR}/src/data/" "${CMAKE_CURRENT_BINARY_DIR}/data/"
+  COMMAND ${COPY_CMD} "${CMAKE_CURRENT_SOURCE_DIR}/src/docs/" "${CMAKE_CURRENT_BINARY_DIR}/docs/"
+  COMMAND ${COPY_CMD} "${CMAKE_CURRENT_SOURCE_DIR}/src/modpacks/" "${CMAKE_CURRENT_BINARY_DIR}/modpacks/"
+)

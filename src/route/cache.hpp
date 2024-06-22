@@ -5,7 +5,6 @@
 #include "../util.hpp"
 
 #include <unordered_map>
-using namespace std;
 
 template <typename V>
 struct CacheEntry {
@@ -35,8 +34,8 @@ class Cache {
   private:
     bool ageCheck(CacheEntry<V> e, K k, bool drop);
     uint64_t cap, ndx = 0;
-    unordered_map<K, CacheEntry<V>> map;
-    vector<K> array;
+    std::unordered_map<K, CacheEntry<V>> map;
+    std::vector<K> array;
     K (*key)(V proto);
 };
 

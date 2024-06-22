@@ -1,6 +1,5 @@
 #include "update.hpp"
 
-#include "achievement.hpp"
 #include "game.hpp"
 #include "task.hpp"
 
@@ -10,19 +9,17 @@
 #include "../draw/buffer.hpp"
 #include "../draw/camera.hpp"
 #include "../economy.hpp"
-#include "../heatmap.hpp"
-#include "../input.hpp"
 #include "../money.hpp"
-#include "../option.hpp"
 #include "../parts/part.hpp"
 #include "../person.hpp"
 #include "../platform/event.hpp"
 #include "../route/router.hpp"
 #include "../thread.hpp"
-#include "../tutorial.hpp"
 #include "../vehicle/travelGroup.hpp"
 #include "../vehicle/update.hpp"
 #include "../weather.hpp"
+#include "constants.hpp"
+#include "../main.hpp"
 
 #include "spdlog/spdlog.h"
 
@@ -128,7 +125,7 @@ void updateGameInner_g() {
           (log(smoothedGameSpeedup) + d*log(targetSpeedup))/(1+d));
 
       // Aritmetic mean
-      //smoothedGameSpeedup = mix(smoothedGameSpeedup, targetSpeedup,
+      //smoothedGameSpeedup = glm::mix(smoothedGameSpeedup, targetSpeedup,
           //duration / c(CGameSpeedSmoothing));
     }
 

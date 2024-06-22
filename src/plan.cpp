@@ -1,5 +1,6 @@
 #include "plan.hpp"
 
+#include "item.hpp"
 #include "building/building.hpp"
 #include "building/design.hpp"
 #include "draw/camera.hpp"
@@ -13,21 +14,22 @@
 #include "renderPlan.hpp"
 #include "tools/road.hpp"
 #include "tools/blueprint.hpp"
-#include "tutorial.hpp"
 #include "util.hpp"
 #include "zone.hpp"
+#include "game/constants.hpp"
 
 #include <set>
+#include <unordered_map>
 #include <glm/gtx/rotate_vector.hpp>
 
-vec3 planHeight = vec3(0, 0, 20);
+glm::vec3 planHeight = glm::vec3(0, 0, 20);
 const float boxClickSize = 8;
 
 Pool<Plan>* plans = Pool<Plan>::newPool(2000);
-set<item> unsetPlans;
-static set<item> toUpdateCosts;
-static set<item> toRender;
-static vector<item> toFree;
+std::set<item> unsetPlans;
+static std::set<item> toUpdateCosts;
+static std::set<item> toRender;
+static std::vector<item> toFree;
 static bool plansEnabled = false;
 static bool showPlans = true;
 static bool plansVisible = false;
@@ -81,7 +83,7 @@ item getNumGraphPlans() {
 
 item numUnsetPillarPlans() {
   int result = 0;
-  vector<item> s(unsetPlans.begin(), unsetPlans.end());
+  std::vector<item> s(unsetPlans.begin(), unsetPlans.end());
   for (int i = 0; i < s.size(); i++) {
     item pNdx = s[i];
     Plan* p = getPlan(pNdx);
@@ -130,7 +132,7 @@ void discardAllPlans() {
 }
 
 void setAllPlans() {
-  vector<item> s(unsetPlans.begin(), unsetPlans.end());
+  std::vector<item> s(unsetPlans.begin(), unsetPlans.end());
   for (int i = 0; i < s.size(); i++) {
     item pNdx = s[i];
     setPlan(pNdx);
@@ -138,7 +140,7 @@ void setAllPlans() {
 }
 
 void splitAllUnsetPlans() {
-  vector<item> s(unsetPlans.begin(), unsetPlans.end());
+  std::vector<item> s(unsetPlans.begin(), unsetPlans.end());
   for (int i = 0; i < s.size(); i++) {
     item pNdx = s[i];
     Plan* plan = getPlan(pNdx);
@@ -152,18 +154,18 @@ void splitAllUnsetPlans() {
 }
 
 void discardAllUnsetPlans() {
-  vector<item> s(unsetPlans.begin(), unsetPlans.end());
+  std::vector<item> s(unsetPlans.begin(), unsetPlans.end());
   for (int i = 0; i < s.size(); i++) {
     item pNdx = s[i];
     discardPlan(pNdx);
   }
 }
 
-unordered_map<BudgetLine, money> getTotalPlansCostTable(bool isSet) {
+std::unordered_map<BudgetLine, money> getTotalPlansCostTable(bool isSet) {
   updatePlanCosts();
-  unordered_map<BudgetLine, money> result;
-  set<item> newNodes;
-  unordered_map<item, Configuration> reconfiguredNodes;
+  std::unordered_map<BudgetLine, money> result;
+  std::set<item> newNodes;
+  std::unordered_map<item, Configuration> reconfiguredNodes;
   for (int i = 1; i <= plans->size(); i++) {
     Plan* p = getPlan(i);
     if ((p->flags & _planExists) && p->legalMessage == 0 &&
@@ -244,7 +246,7 @@ money getTotalUnsetPlansCost() {
 }
 
 bool buyAllPlans(bool isSet, bool discardAfter) {
-  unordered_map<BudgetLine, money> costs = getTotalPlansCostTable(isSet);
+  std::unordered_map<BudgetLine, money> costs = getTotalPlansCostTable(isSet);
   if (!canBuy(RoadBuildExpenses, costs[NullBudget])) return false;
 
   for (std::pair<BudgetLine, money> m : costs) {
@@ -436,7 +438,7 @@ void updatePlanCost(item ndx) {
     plan->cost = stopCost(plan->element);
 
   } else if (plan->planType == BuildingPlan) {
-    vector<item> collisions = collideBuilding(plan->element);
+    std::vector<item> collisions = collideBuilding(plan->element);
     money valueDestroyed = 0;
     for (int i = 0; i < collisions.size(); i++) {
       Building* b = getBuilding(collisions[i]);
@@ -613,20 +615,20 @@ bool handlePlanMouseMove(Line mouseLine) {
 
   float angle = getHorizontalCameraAngle() - pi_o/2;
   float pitch = -getVerticalCameraAngle();
-  vec3 completeBoxRot = rotate(rotate(planCompleteBoxCenter,
-    pitch, vec3(1,0,0)),
-    angle, vec3(0,0,1));
-  vec3 discardBoxRot = rotate(rotate(planDiscardBoxCenter,
-    pitch, vec3(1,0,0)),
-    angle, vec3(0,0,1));
+  glm::vec3 completeBoxRot = rotate(rotate(planCompleteBoxCenter,
+    pitch, glm::vec3(1,0,0)),
+    angle, glm::vec3(0,0,1));
+  glm::vec3 discardBoxRot = rotate(rotate(planDiscardBoxCenter,
+    pitch, glm::vec3(1,0,0)),
+    angle, glm::vec3(0,0,1));
 
   for (int i = 1; i <= plans->size(); i++) {
     Plan* plan = getPlan(i);
     if (!plansVisible && plan->legalMessage == 0) continue;
 
     if (plan->flags & _planSet) {
-      vec3 cb = plan->location + completeBoxRot;
-      vec3 db = plan->location + discardBoxRot;
+      glm::vec3 cb = plan->location + completeBoxRot;
+      glm::vec3 db = plan->location + discardBoxRot;
 
       if (plan->legalMessage == 0 && plan->flags & _planAffordable &&
           pointLineDistance(cb, mouseLine) < boxClickSize) {

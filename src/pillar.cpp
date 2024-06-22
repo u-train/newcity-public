@@ -19,13 +19,13 @@ item sizePillars() {
   return pillars->size();
 }
 
-item addPillar(vec3 loc, bool suspension) {
+item addPillar(glm::vec3 loc, bool suspension) {
   //loc = unitize(loc);
   item ndx = pillars->create();
   Pillar* pillar = getPillar(ndx);
   pillar->entity = 0;
   float landHeight = pointOnLand(loc).z;
-  pillar->location = vec3(loc.x, loc.y,
+  pillar->location = glm::vec3(loc.x, loc.y,
     c(CPillarHeight) + std::max(0.f, landHeight));
   pillar->flags = _pillarExists;
   if (suspension) pillar->flags |= _pillarSuspension;
@@ -68,7 +68,7 @@ item intersectPillar(Line mouseLine) {
     Pillar* pillar = getPillar(i);
     if (!(pillar->flags & _pillarExists)) continue;
 
-    vec3 pillarWaterline = pillar->location;
+    glm::vec3 pillarWaterline = pillar->location;
     pillarWaterline.z = 0;
     Line pillarLine = line(pillar->location, pillarWaterline);
     float dist = lineDistance(mouseLine, pillarLine);

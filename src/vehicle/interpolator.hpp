@@ -1,7 +1,6 @@
 #pragma once
 
 #include "../item.hpp"
-#include "../main.hpp"
 
 const int numKeyframes = 40;
 

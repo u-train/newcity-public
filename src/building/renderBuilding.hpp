@@ -14,5 +14,5 @@ void designRender();
 void resetDesignRender();
 void setBuildingHighlight(item ndx, bool highlight);
 void setBuildingRedHighlight(item ndx, bool highlight);
-vec3 maxPoint(Design* d);
+glm::vec3 maxPoint(Design* d);
 

@@ -33,12 +33,12 @@ struct EnvironmentSound {
   float traffic;
   float rain;
   float lastPlayTime;
-  vector<item> vehicleModels;
-  vector<item> vehicleModelMins;
+  std::vector<item> vehicleModels;
+  std::vector<item> vehicleModelMins;
 };
 
-vector<EnvironmentSound> environmentSounds;
-vector<item> audibleVehicleModels_g;
+std::vector<EnvironmentSound> environmentSounds;
+std::vector<item> audibleVehicleModels_g;
 float lastSoundTime = -200;
 const float minTimeBetweenPlays = oneHour/2;
 const double soundDistance = 1000;
@@ -63,8 +63,8 @@ void updateSoundEnvironment() {
 
   float ang = randFloat(0, pi_o*2);
   float mag = pow(randFloat(0, 1), 0.5) * soundDistance;
-  vec3 loc = pointOnLand(getCameraTarget() +
-      vec3(sin(ang)*mag, cos(ang)*mag, 0));
+  glm::vec3 loc = pointOnLand(getCameraTarget() +
+      glm::vec3(sin(ang)*mag, cos(ang)*mag, 0));
   if (!validate(loc)) return;
   float prosperity = heatMapGet(Prosperity, loc)*10-4.9;
   float crime = heatMapGet(Crime, loc)*10+.1;
@@ -78,8 +78,8 @@ void updateSoundEnvironment() {
   bool summer = w.temp > 30;
   bool snow = w.snow > 0.2;
 
-  Box b = box(vec2(loc), 10);
-  vector<item> buildings = collideBuilding(b, 0);
+  Box b = box(glm::vec2(loc), 10);
+  std::vector<item> buildings = collideBuilding(b, 0);
   item zone = 0;
   const char* designName = 0;
   bool upgraded = false;
@@ -97,8 +97,8 @@ void updateSoundEnvironment() {
 
   float traffic = 0;
   int numCars = 0;
-  Box gb = box(vec2(loc), tileSize*getChunkSize()*2.f);
-  vector<item> elems = getGraphCollisions(gb);
+  Box gb = box(glm::vec2(loc), tileSize*getChunkSize()*2.f);
+  std::vector<item> elems = getGraphCollisions(gb);
   int numElems = elems.size();
   for (int i = 0; i < numElems && i < 100; i++) {
     item elem = elems[numElems - i - 1];
@@ -168,7 +168,7 @@ void updateSoundEnvironment() {
 }
 
 void loadEnvironmentSounds() {
-  vector<string> files = lookupDirectory("sound/environment", ".ogg", 0);
+  std::vector<std::string> files = lookupDirectory("sound/environment", ".ogg", 0);
   for (int i = 0; i < files.size(); i ++) {
     EnvironmentSound e;
     e.file = strdup_s(files[i].c_str());

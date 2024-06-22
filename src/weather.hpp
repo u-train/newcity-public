@@ -20,15 +20,15 @@ struct Weather {
   float percipitation;
   float snow;
   float drought;
-  vec3 wind;
+  glm::vec3 wind;
 };
 
 const float snowTemp = 3;
 
 Weather getWeather();
 WeatherIcon getWeatherIcon();
-vec3 getWeatherIconVec3(item ico);
-vec3 getWeatherIconVec3();
+glm::vec3 getWeatherIconVec3(item ico);
+glm::vec3 getWeatherIconVec3();
 void setWeather(Weather nW);
 void setStrobeClouds(bool strobe);
 void resetWeather();
@@ -36,8 +36,8 @@ void updateWeather(double duration);
 void renderWeather();
 void renderWeatherBox();
 void initWeatherEntities();
-void moveRain(vec2 amount);
-vec3 getRainPos();
+void moveRain(glm::vec2 amount);
+glm::vec3 getRainPos();
 float getCurrentRain();
 float getLightning();
 float getWaterTime();

@@ -6,25 +6,23 @@
 #include "../amenity.hpp"
 #include "../building/building.hpp"
 #include "../building/design.hpp"
-#include "../console/conDisplay.hpp"
 #include "../economy.hpp"
 #include "../error.hpp"
 #include "../game/game.hpp"
 #include "../graph.hpp"
 #include "../graph/transit.hpp"
 #include "../money.hpp"
-#include "../option.hpp"
 #include "../parts/messageBoard.hpp"
 #include "../person.hpp"
-#include "../plan.hpp"
 #include "../platform/lua.hpp"
 #include "../pool.hpp"
 #include "../renum.hpp"
 #include "../string_proxy.hpp"
 #include "../time.hpp"
-#include "../tools/road.hpp"
 #include "../weather.hpp"
 #include "../zone.hpp"
+#include "constants.hpp"
+#include "../item.hpp"
 
 #include "spdlog/spdlog.h"
 #include <string.h>
@@ -38,8 +36,8 @@ static float achTime = 0;
 
 RenumTable achRenum;
 Pool<Achievement> achievements;
-unordered_map<string, item> achievementsByCode;
-unordered_map<item, item> amenityForAchievement;
+std::unordered_map<std::string, item> achievementsByCode;
+std::unordered_map<item, item> amenityForAchievement;
 
 item getNumAchievements() { return achievements.size(); }
 Achievement getAchievement(item ndx) { return *achievements.get(ndx); }
@@ -247,7 +245,7 @@ bool testCondition(item ndx) {
       free(paramDup);
 
     } else if (streql(type, "amenity_built")) {
-      vector<item> dNdxs = getDesignsByName(param);
+      std::vector<item> dNdxs = getDesignsByName(param);
       bool matched = false;
       for (int i = 0; i < dNdxs.size(); i++) {
         if (getGovBuildingsPlaced(dNdxs[i]) > 0) {
@@ -334,7 +332,7 @@ void applyEffects(item ndx, bool blink) {
       }
 
       if (!found) {
-        vector<item> dNdxs = getDesignsByName(effect);
+        std::vector<item> dNdxs = getDesignsByName(effect);
         for (int i = 0; i < dNdxs.size(); i++) {
           item designNdx = dNdxs[i];
           Design* d = getDesign(designNdx);

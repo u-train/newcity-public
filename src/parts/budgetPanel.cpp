@@ -7,10 +7,8 @@
 #include "../money.hpp"
 #include "../string_proxy.hpp"
 #include "../tutorial.hpp"
-#include "../zone.hpp"
 
 #include "article.hpp"
-#include "blank.hpp"
 #include "block.hpp"
 #include "button.hpp"
 #include "icon.hpp"
@@ -22,7 +20,7 @@
 #include "scrollbox.hpp"
 #include "tooltip.hpp"
 
-#include "spdlog/spdlog.h"
+#include "../game/constants.hpp"
 
 static bool bpExpanded = false;
 static bool groupCollapsed[3];
@@ -100,7 +98,7 @@ bool toggleBudgetMessage(Part* part, InputEvent event) {
 
 bool openCitipediaBudgetPage(Part* part, InputEvent event) {
   BudgetLine line = (BudgetLine)part->itemData;
-  string article = getBudgetLineCode(line);
+  std::string article = getBudgetLineCode(line);
   article = "budget/" + article;
   followLink(strdup_s(article.c_str()));
   return true;
@@ -115,18 +113,18 @@ Part* budgetAlternation(item* lineNum, float* lineStart, float bpWidth, float sf
 
 
     /*
-const vec3 colorPanelGrad0 = vec3(3/paletteSize,31/paletteSize, 0);
-const vec3 colorPanelGrad1 = vec3(3/paletteSize,29/paletteSize, 0);
-const vec3 colorTransparentBlack = vec3(1/paletteSize,31/paletteSize, 0);
-const vec3 colorTransparent0 = vec3(17/paletteSize,29/paletteSize, 0);
-const vec3 colorTransparent1 = vec3(17/paletteSize,31/paletteSize, 0);
-const vec3 colorDarkGrad0 = vec3(9/paletteSize,31/paletteSize, 0);
-const vec3 colorDarkGrad1 = vec3(9/paletteSize,29/paletteSize, 0);
-const vec3 colorRaisedGrad0 = vec3(7/paletteSize,31/paletteSize, 0);
-const vec3 colorRaisedGrad1 = vec3(7/paletteSize,29/paletteSize, 0);
+const glm::vec3 colorPanelGrad0 = glm::vec3(3/paletteSize,31/paletteSize, 0);
+const glm::vec3 colorPanelGrad1 = glm::vec3(3/paletteSize,29/paletteSize, 0);
+const glm::vec3 colorTransparentBlack = glm::vec3(1/paletteSize,31/paletteSize, 0);
+const glm::vec3 colorTransparent0 = glm::vec3(17/paletteSize,29/paletteSize, 0);
+const glm::vec3 colorTransparent1 = glm::vec3(17/paletteSize,31/paletteSize, 0);
+const glm::vec3 colorDarkGrad0 = glm::vec3(9/paletteSize,31/paletteSize, 0);
+const glm::vec3 colorDarkGrad1 = glm::vec3(9/paletteSize,29/paletteSize, 0);
+const glm::vec3 colorRaisedGrad0 = glm::vec3(7/paletteSize,31/paletteSize, 0);
+const glm::vec3 colorRaisedGrad1 = glm::vec3(7/paletteSize,29/paletteSize, 0);
 */
 
-    blk = gradientBlock(vec2(0.f, *lineStart), vec2(bpWidth-1.f, sfy-*lineStart), colorTransparent0, colorTransparent0);
+    blk = gradientBlock(glm::vec2(0.f, *lineStart), glm::vec2(bpWidth-1.f, sfy-*lineStart), colorTransparent0, colorTransparent0);
     blk->dim.start.z -= 0.3;
   }
 
@@ -141,9 +139,9 @@ Part* budgetPanel() {
   int numBudgets = bpExpanded ? 10 : 3;
   if (getAspectRatio() < 1.4 && numBudgets > 7) numBudgets = 7;
   Budget b[10];
-  numBudgets = clamp(numBudgets, 0, 3+getNumHistoricalBudgets());
-  budgetPage = clamp(budgetPage, -getNumHistoricalBudgets(), 1);
-  int firstBudget = clamp(budgetPage-numBudgets+3,
+  numBudgets = glm::clamp(numBudgets, 0, 3+getNumHistoricalBudgets());
+  budgetPage = glm::clamp(budgetPage, -getNumHistoricalBudgets(), 1);
+  int firstBudget = glm::clamp(budgetPage-numBudgets+3,
       -getNumHistoricalBudgets(), 3-numBudgets);
 
   float tableX = 8;
@@ -156,10 +154,10 @@ Part* budgetPanel() {
   float sliderSize = 0.5;
   float sliderOffset = subScale/2 - sliderSize/2;
   float scrollStart = 1.25;
-  vec2 iconS = vec2(scale, scale);
+  glm::vec2 iconS = glm::vec2(scale, scale);
 
-  vec2 bpLoc = vec2(0.0, 1.5);
-  vec2 bpSize = vec2(bpWidth+bpPadding*2, bpHeight+bpPadding*2);
+  glm::vec2 bpLoc = glm::vec2(0.0, 1.5);
+  glm::vec2 bpSize = glm::vec2(bpWidth+bpPadding*2, bpHeight+bpPadding*2);
   Part* result = panel(bpLoc, bpSize);
   result->padding = bpPadding;
   result->renderMode = RenderPanelGradient;
@@ -167,10 +165,10 @@ Part* budgetPanel() {
   result->foregroundColor = PickerPalette::Black;
   result->flags |= _partTextured;
 
-  r(result, label(vec2(0.125,0.125), 1, strdup_s("Budget")));
-  r(result, button(vec2(bpWidth-1,0), iconX, toggleBudgetPanel));
+  r(result, label(glm::vec2(0.125,0.125), 1, strdup_s("Budget")));
+  r(result, button(glm::vec2(bpWidth-1,0), iconX, toggleBudgetPanel));
 
-  Part* expandButt = button(vec2(tableX-scale+bpPadding-2,0.125),
+  Part* expandButt = button(glm::vec2(tableX-scale+bpPadding-2,0.125),
       iconPlus, iconS, toggleBPExpanded, 0);
   if (bpExpanded) {
     expandButt->flags |= _partHighlight;
@@ -178,14 +176,14 @@ Part* budgetPanel() {
   r(result, expandButt);
 
   if (firstBudget > -getNumHistoricalBudgets()) {
-    Part* pastButt = button(vec2(tableX-scale+bpPadding-1,0.125),
-        iconLeft, iconS, moveBudgetPage, -clamp(numBudgets, 2, 5));
+    Part* pastButt = button(glm::vec2(tableX-scale+bpPadding-1,0.125),
+        iconLeft, iconS, moveBudgetPage, -glm::clamp(numBudgets, 2, 5));
     r(result, pastButt);
   }
 
   if (budgetPage < 0) {
-    Part* futureButt = button(vec2(tableX-scale+bpPadding,0.125),
-        iconRight, iconS, moveBudgetPage, clamp(numBudgets, 2, 5));
+    Part* futureButt = button(glm::vec2(tableX-scale+bpPadding,0.125),
+        iconRight, iconS, moveBudgetPage, glm::clamp(numBudgets, 2, 5));
     r(result, futureButt);
   }
 
@@ -195,11 +193,11 @@ Part* budgetPanel() {
     int year = b[j].year + c(CStartYear);
     const char* affix = flags & _budgetIsYTD ? "YTD" :
       flags & _budgetIsEstimate ? "Est." : "Actual";
-    r(result, label(vec2(tableX+j*columnX+1.,-0.125), 0.75,
+    r(result, label(glm::vec2(tableX+j*columnX+1.,-0.125), 0.75,
           sprintf_o("%d\n%s", year, affix)));
   }
 
-  Part* scroll = scrollbox(vec2(0,0), vec2(bpWidth, bpHeight-scrollStart));
+  Part* scroll = scrollbox(glm::vec2(0,0), glm::vec2(bpWidth, bpHeight-scrollStart));
   float sfy = 0;
   item lineNum = 0;
   float lineStart = sfy;
@@ -235,12 +233,12 @@ Part* budgetPanel() {
 
       for (int y = 0; y < numBudgets; y++) {
         money amount = b[y].line[groupSum[g]];
-        r(scroll, label(vec2(tableX + y*columnX,sfy), scale,
+        r(scroll, label(glm::vec2(tableX + y*columnX,sfy), scale,
               printPaddedMoneyString(amount), amount < 0));
       }
 
       if (isFeatureEnabled(FNoteBudget)) {
-        Part* gNoteButt = button(vec2(tableX - scale, sfy), iconPin, iconS,
+        Part* gNoteButt = button(glm::vec2(tableX - scale, sfy), iconPin, iconS,
             toggleBudgetMessage, groupSum[g]);
         setPartTooltipValues(gNoteButt,
           TooltipType::GenMsg);
@@ -255,20 +253,20 @@ Part* budgetPanel() {
     TooltipType groupTooltip = (TooltipType)(
         TooltipType::BudNullBudget+groupSum[g]);
     if (g <= 2) {
-      Part* collapseButt = r(scroll, button(vec2(0, sfy),
+      Part* collapseButt = r(scroll, button(glm::vec2(0, sfy),
           groupCollapsed[g] ? iconPlus : iconMinus,
-          vec2(tableX-scale, scale),
+          glm::vec2(tableX-scale, scale),
           strdup_s(groupName[g]), toggleGroupCollapsed, g));
       setPartTooltipValues(collapseButt, groupTooltip);
 
     } else {
-      Part* groupLbl = r(scroll, label(vec2(0,sfy),
-            vec2(tableX-scale, scale), strdup_s(groupName[g])));
+      Part* groupLbl = r(scroll, label(glm::vec2(0,sfy),
+            glm::vec2(tableX-scale, scale), strdup_s(groupName[g])));
       setPartTooltipValues(groupLbl, groupTooltip);
     }
 
     sfy += scale;
-    r(scroll, blackBlock(vec2(0,sfy), vec2(bpWidth-1, 0.1)));
+    r(scroll, blackBlock(glm::vec2(0,sfy), glm::vec2(bpWidth-1, 0.1)));
     lineStart = sfy;
     r(scroll, budgetAlternation(&lineNum, &lineStart, bpWidth, sfy));
     sfy += 0.5;
@@ -277,7 +275,7 @@ Part* budgetPanel() {
     if (g <= 2 && groupCollapsed[g]) continue;
 
     // Make RepairExpenses a mandatory expense
-    vector<int> linesInGroup;
+    std::vector<int> linesInGroup;
     for (int l = groups[g*2]; l <= groups[g*2+1]; l += 1) {
       if (l == RepairExpenses) continue;
       linesInGroup.push_back(l);
@@ -293,7 +291,7 @@ Part* budgetPanel() {
         if (abs(amount) > 0 ||
             (l >= PropertyTax && l <= FinesAndFeesIncome && isTaxEnabled(l))) {
           show = true;
-          r(scroll, label(vec2(tableX + y*columnX,sfy), scale,
+          r(scroll, label(glm::vec2(tableX + y*columnX,sfy), scale,
                 printPaddedMoneyString(amount), amount < 0));
         }
       }
@@ -303,13 +301,13 @@ Part* budgetPanel() {
       }
 
       if (show) {
-        Part* lineIco = r(scroll, icon(vec2(0,sfy), vec2(scale, scale),
+        Part* lineIco = r(scroll, icon(glm::vec2(0,sfy), glm::vec2(scale, scale),
               getBudgetLineIcon((BudgetLine) l)));
         lineIco->foregroundColor = PickerPalette::GrayDark;
-        Part* lineLbl = r(scroll, label(vec2(scale,sfy),
-              vec2(tableX-scale*3,scale),
+        Part* lineLbl = r(scroll, label(glm::vec2(scale,sfy),
+              glm::vec2(tableX-scale*3,scale),
               strdup_s(getBudgetLineName((BudgetLine) l))));
-        Part* lineInfo = r(scroll, button(vec2(tableX - scale*2, sfy),
+        Part* lineInfo = r(scroll, button(glm::vec2(tableX - scale*2, sfy),
               iconCitipedia, iconS, openCitipediaBudgetPage, l));
         lineInfo->foregroundColor = PickerPalette::White;
         TooltipType tooltip = (TooltipType)(TooltipType::BudNullBudget+l);
@@ -318,7 +316,7 @@ Part* budgetPanel() {
         setPartTooltipValues(lineInfo, TooltipType::DocsCitipedia);
 
         if (isFeatureEnabled(FNoteBudget)) {
-          Part* noteButt = button(vec2(tableX - scale, sfy), iconPin, iconS,
+          Part* noteButt = button(glm::vec2(tableX - scale, sfy), iconPin, iconS,
               toggleBudgetMessage, l);
           setPartTooltipValues(noteButt,
             TooltipType::GenMsg);
@@ -338,12 +336,12 @@ Part* budgetPanel() {
       if (l >= PropertyTax && l <= FuelTaxIncome
           && isTaxEnabled(l) && !isTaxLocked(l)) {
         float tax = getTaxRate((BudgetLine)l);
-        Part* sliderContainer = panel(vec2(0,sfy), vec2(3+bpPadding*2,subScale));
+        Part* sliderContainer = panel(glm::vec2(0,sfy), glm::vec2(3+bpPadding*2,subScale));
         sliderContainer->renderMode = RenderTransparent;
         sliderContainer->padding = 0.05;
         r(scroll, sliderContainer);
-        Part* taxSlider = slider(vec2(0,sliderOffset-0.05),
-            vec2(3,sliderSize), tax/maxTaxRate[l], setTaxRate);
+        Part* taxSlider = slider(glm::vec2(0,sliderOffset-0.05),
+            glm::vec2(3,sliderSize), tax/maxTaxRate[l], setTaxRate);
         if (lineNum % 2 == 1) taxSlider->flags = RenderPanelGradient;
         taxSlider->itemData = l;
         if (blinkFeature(FPropertyTax+l-PropertyTax)) {
@@ -367,24 +365,24 @@ Part* budgetPanel() {
         } else {
           str = sprintf_o("%1.1f%%", tax*100);
         }
-        r(sliderContainer, label(vec2(3.25,0), subScale, str));
+        r(sliderContainer, label(glm::vec2(3.25,0), subScale, str));
         sfy += subScale;
 
       } else if (l == LineOfCredit) {
         if (isFeatureEnabled(FLoanTerm)) {
           float time = getLoanRepaymentTime();
-          Part* sliderContainer = panel(vec2(0,sfy), vec2(3+bpPadding*2,subScale));
+          Part* sliderContainer = panel(glm::vec2(0,sfy), glm::vec2(3+bpPadding*2,subScale));
           sliderContainer->renderMode = RenderTransparent;
           sliderContainer->padding = 0.05;
           r(scroll, sliderContainer);
-          Part* loanSlider = slider(vec2(0,sliderOffset-0.05),
-              vec2(3,sliderSize), time/maxLoanTime, setLoanTime);
+          Part* loanSlider = slider(glm::vec2(0,sliderOffset-0.05),
+              glm::vec2(3,sliderSize), time/maxLoanTime, setLoanTime);
           if (blinkFeature(FLoanTerm)) {
             sliderContainer->flags |= _partBlink;
           }
           r(sliderContainer, loanSlider);
           if (time > 0) {
-            r(sliderContainer, label(vec2(3.25,0), subScale,
+            r(sliderContainer, label(glm::vec2(3.25,0), subScale,
               sprintf_o("%2.1f yr at %2.f%%", time, getInterestRate()*100)));
           }
           sfy += subScale;
@@ -392,20 +390,20 @@ Part* budgetPanel() {
 
       } else if (show && g == 2 && l != TransitExpenses) {
         // Budget Controls
-        Part* sliderContainer = panel(vec2(0,sfy), vec2(3+bpPadding*2,subScale));
+        Part* sliderContainer = panel(glm::vec2(0,sfy), glm::vec2(3+bpPadding*2,subScale));
         sliderContainer->renderMode = RenderTransparent;
         sliderContainer->padding = 0.05;
         r(scroll, sliderContainer);
         float val = getBudgetControl((BudgetLine)l);
-        Part* controlSlider = slider(vec2(0,sliderOffset-0.05),
-            vec2(3,sliderSize), val/c(CMaxBudgetControl), setBudgetControl);
+        Part* controlSlider = slider(glm::vec2(0,sliderOffset-0.05),
+            glm::vec2(3,sliderSize), val/c(CMaxBudgetControl), setBudgetControl);
         controlSlider->itemData = l;
         r(sliderContainer, controlSlider);
         if (val > 0) {
-          r(sliderContainer, label(vec2(3.25,0), subScale,
+          r(sliderContainer, label(glm::vec2(3.25,0), subScale,
             sprintf_o("%2d%% funding", int(val*100))));
         } else {
-          r(sliderContainer, label(vec2(3.25,0), subScale,
+          r(sliderContainer, label(glm::vec2(3.25,0), subScale,
             sprintf_o("Shut Down", int(val*100))));
         }
         sfy += subScale;
@@ -424,13 +422,13 @@ Part* budgetPanel() {
 
   // Cash to Spend
   //sfy -= scale;
-  r(scroll, blackBlock(vec2(0,sfy), vec2(bpWidth-1, 0.1)));
+  r(scroll, blackBlock(glm::vec2(0,sfy), glm::vec2(bpWidth-1, 0.1)));
   sfy += 0.1;
 
-  Part* ctsIco = r(scroll, icon(vec2(0,sfy), vec2(scale, scale), iconCash));
-  Part* ctsLbl = r(scroll, label(vec2(scale,sfy), vec2(tableX-scale*3,scale),
+  Part* ctsIco = r(scroll, icon(glm::vec2(0,sfy), glm::vec2(scale, scale), iconCash));
+  Part* ctsLbl = r(scroll, label(glm::vec2(scale,sfy), glm::vec2(tableX-scale*3,scale),
         strdup_s("Cash to Spend")));
-  Part* ctsInfo = r(scroll, button(vec2(tableX - scale*2, sfy),
+  Part* ctsInfo = r(scroll, button(glm::vec2(tableX - scale*2, sfy),
         iconCitipedia, iconS, openCitipediaBudgetPage, BudgetBalance+1));
   ctsIco->foregroundColor = PickerPalette::GrayDark;
   ctsInfo->foregroundColor = PickerPalette::White;
@@ -439,7 +437,7 @@ Part* budgetPanel() {
   setPartTooltipValues(ctsLbl, ctsTooltip);
   setPartTooltipValues(ctsInfo, TooltipType::DocsCitipedia);
 
-  Part* ctsNoteButt = button(vec2(tableX - scale, sfy), iconPin, iconS,
+  Part* ctsNoteButt = button(glm::vec2(tableX - scale, sfy), iconPin, iconS,
       toggleBudgetMessage, BudgetBalance+1);
   setPartTooltipValues(ctsNoteButt,
     TooltipType::GenMsg);
@@ -451,7 +449,7 @@ Part* budgetPanel() {
 
   for (int y = 0; y < numBudgets; y++) {
     money amount = b[y].line[BudgetBalance] + b[y].line[LineOfCredit];
-    r(scroll, label(vec2(tableX + y*columnX,sfy), scale,
+    r(scroll, label(glm::vec2(tableX + y*columnX,sfy), scale,
           printPaddedMoneyString(amount), amount < 0));
   }
 
@@ -464,14 +462,14 @@ Part* budgetPanel() {
   scroll->flags &= ~_partTextShadow;
   scroll->renderMode = RenderPanelGradient;
 
-  vec3 white = getColorInPalette(PickerPalette::GrayLight);
+  glm::vec3 white = getColorInPalette(PickerPalette::GrayLight);
   Line bpGrad = line(white, white);
   scroll->texture = bpGrad;
   scroll->foregroundColor = PickerPalette::Black;
   scroll->dim.end.y = sfy;
 
-  Part* scrollFrame = scrollboxFrame(vec2(0,scrollStart),
-      vec2(bpWidth, bpHeight-scrollStart),
+  Part* scrollFrame = scrollboxFrame(glm::vec2(0,scrollStart),
+      glm::vec2(bpWidth, bpHeight-scrollStart),
       &budgetScroll, scroll);
   scrollFrame->renderMode = RenderTransparent;
   scrollFrame->flags &= ~_partRaised;

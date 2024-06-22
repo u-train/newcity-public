@@ -1,5 +1,4 @@
-#ifndef ZONE_H
-#define ZONE_H
+#pragma once
 
 #include "item.hpp"
 #include "./parts/tooltip.hpp"
@@ -41,4 +40,4 @@ const char* const zoneCode[] = {
 
 bool getOverzoneMode();
 
-#endif
+

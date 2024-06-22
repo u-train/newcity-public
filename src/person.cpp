@@ -9,12 +9,11 @@
 #include "economy.hpp"
 #include "game/game.hpp"
 #include "game/task.hpp"
+#include "game/constants.hpp"
 #include "heatmap.hpp"
 #include "icons.hpp"
 #include "lane.hpp"
-#include "lot.hpp"
 #include "name.hpp"
-#include "option.hpp"
 #include "pool.hpp"
 #include "selection.hpp"
 #include "string_proxy.hpp"
@@ -24,6 +23,10 @@
 #include "util.hpp"
 #include "vehicle/travelGroup.hpp"
 #include "zone.hpp"
+#include "string_proxy.hpp"
+#include "error.hpp"
+
+#include <spdlog/spdlog.h>
 
 #include "parts/messageBoard.hpp"
 
@@ -290,8 +293,8 @@ item addPerson(bool isFemale, float age, item familyNdx, int flags) {
       float city = getStatistic(econ, (Statistic)(NoEduPercent+i));
       float cityPossible = (econ == ourCityEconNdx()) ?
         nonZero(getEduLevelLimit(i)) / numPeople(econ) : nat*2;
-      float cityTarget = mix(city, cityPossible, c(CEducationMix));
-      float mixedTarget = mix(cityTarget, nat, c(CEducationNationalMix));
+      float cityTarget = glm::mix(city, cityPossible, c(CEducationMix));
+      float mixedTarget = glm::mix(cityTarget, nat, c(CEducationNationalMix));
       if (isTourist) {
         mixedTarget *= (numEducationLevels-i)*0.2f/numEducationLevels*
           getStatistic(ourCityEconNdx(), TouristRating) + 0.1;
@@ -330,7 +333,7 @@ char* personName(item personNdx) {
   return sprintf_o("%s %s", person->name, family->name);
 }
 
-vec3 getPersonIcon(Person* p) {
+glm::vec3 getPersonIcon(Person* p) {
   if (!(p->flags & _personExists)) {
     return iconNo;
   } else if (p->flags & _personIsChild) {
@@ -653,7 +656,7 @@ void removeFamily(item familyNdx) {
     removePerson(family->members[i], false);
   }
 
-  vector<item> swap;
+  std::vector<item> swap;
   family->members.swap(swap);
 
   adjustStat(econ, FamiliesMovingOut, 1);
@@ -1393,7 +1396,7 @@ float memorableExperiencesForPerson(item personNdx, float duration) {
 
   memorableExperiences += c(CPrestigeMemories) * getEffectValue(Prestige);
 
-  vec3 loc = vec3(-1, -1, -1);
+  glm::vec3 loc = glm::vec3(-1, -1, -1);
 
   if (family->home == 0) {
     memorableExperiences += c(CNoHotelMemories);
@@ -1463,7 +1466,7 @@ void evaluatePerson(item personNdx, float duration) {
 
   if (isTourist) {
     prosperityEffects += c(CTouristProsperity);
-    crimeEffects += mix(c(CTouristCrime0), c(CTouristCrime5),
+    crimeEffects += glm::mix(c(CTouristCrime0), c(CTouristCrime5),
         getStatistic(econ, TouristRating) / 5.f);
 
   } else {
@@ -1508,14 +1511,14 @@ void evaluatePerson(item personNdx, float duration) {
     healthEffects += c(CHungryHealth);
   }
 
-  vector<vec3> locs;
+  std::vector<glm::vec3> locs;
   if (family->home == 0) {
     prosperityEffects += c(CHomelessProsperity);
     healthEffects += c(CHomelessHealth);
 
   } else {
     Building* home = getBuilding(family->home);
-    vec3 loc = home->location;
+    glm::vec3 loc = home->location;
     locs.push_back(loc);
     memoriesEcon = home->econ;
 
@@ -1529,7 +1532,7 @@ void evaluatePerson(item personNdx, float duration) {
 
   if (!(person->flags & _personTraveling) && person->location != 0) {
     Building* building = getBuilding(person->location);
-    vec3 loc = building->location;
+    glm::vec3 loc = building->location;
     locs.push_back(loc);
     memoriesEcon = building->econ;
 
@@ -1537,7 +1540,7 @@ void evaluatePerson(item personNdx, float duration) {
     if (!(person->flags & _personSick)) {
       float health = heatMapGet(HealthHM, loc);
       if (family->home == 0) health *= 0.5f;
-      float sickRate = mix(c(CSickRateMinHealth),
+      float sickRate = glm::mix(c(CSickRateMinHealth),
           c(CSickRateMaxHealth), health);
       if (sickRate * duration > randFloat()) {
         person->flags |= _personSick;
@@ -1579,11 +1582,11 @@ void evaluatePerson(item personNdx, float duration) {
   crimeEffects *= finesAndFeesEffect;
 
   for (int i = 0; i < locs.size(); i++) {
-    vec3 loc = locs[i];
+    glm::vec3 loc = locs[i];
     //SPDLOG_INFO("preson {} {} {} {} {} {}", durMult,
         //crimeEffects, prosperityEffects, educationEffects,
         //person->employer, person->flags & _personIsWorker);
-    float popFactor = clamp(numPeople(econ)/200000.f, 0.f, 10.f);
+    float popFactor = glm::clamp(numPeople(econ)/200000.f, 0.f, 10.f);
     float densityEffect = 1 + popFactor*c(CDensityCrime);
     heatMapAdd(Crime, loc, crimeEffects*duration*densityEffect);
     heatMapAdd(Prosperity, loc, prosperityEffects*durMult);
@@ -1614,7 +1617,7 @@ void evaluatePerson(item personNdx, float duration) {
     if (family->home != 0 && //getStatistic(NumHomeless) < maxHomeless()*.5f &&
         numPeople(econ) >= 8000 && family->members.size() > 0 &&
         randFloat() < duration) {
-      vec3 loc = getBuilding(family->home)->location;
+      glm::vec3 loc = getBuilding(family->home)->location;
       float value = heatMapGet(Value, loc);
       float density = heatMapGet(Density, loc);
       float education = heatMapGet(Education, loc);
@@ -1635,8 +1638,8 @@ void evaluatePerson(item personNdx, float duration) {
       }
 
       socialClass /= family->members.size();
-      socialClass -= clamp(timeSinceStore-c(CStoreDays), 0.f, 1.f);
-      socialClass -= clamp(timeSinceWork-c(CWorkDays), 0.f, 1.f);
+      socialClass -= glm::clamp(timeSinceStore-c(CStoreDays), 0.f, 1.f);
+      socialClass -= glm::clamp(timeSinceWork-c(CWorkDays), 0.f, 1.f);
       socialClass += 1;
 
       float unemploymentDiff = unemploymentRate(family->econ) -
@@ -1967,7 +1970,7 @@ float unemploymentRate(item econ) {
 }
 
 float getTouristTypicalStay(item econ) {
-  return mix(c(CTouristStay0), c(CTouristStay5),
+  return glm::mix(c(CTouristStay0), c(CTouristStay5),
       getStatistic(econ, TouristRating)/5.f);
 }
 
@@ -1979,7 +1982,7 @@ void resetPeople() {
   for (int i = 1; i <= families->size(); i++) {
     Family* f = getFamily(i);
     //if (f->name) free(f->name);
-    vector<item> swap;
+    std::vector<item> swap;
     f->members.swap(swap);
   }
   people->clear();
@@ -2103,7 +2106,7 @@ void readPerson(FileBuffer* file, int version, item personNdx) {
   } else {
     float wakeTime = fread_float(file);
     float maxWakeTime = time + c(CPersonUpdateTime)*oneHour;
-    wakeTime = clamp(wakeTime, time, maxWakeTime);
+    wakeTime = glm::clamp(wakeTime, time, maxWakeTime);
     setWakeTime(personNdx, wakeTime);
     person->sleepTime = fread_float(file);
     person->birthday = fread_float(file);

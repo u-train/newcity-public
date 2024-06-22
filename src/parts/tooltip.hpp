@@ -1,5 +1,4 @@
-#ifndef TOOLTIP_HPP
-#define TOOLTIP_HPP
+#pragma once
 // Doing both guards for any old compiler for any new team member
 #pragma once
 
@@ -231,6 +230,6 @@ void setTooltipShow(bool show);
 bool getTooltipShow();
 void updateTooltip(Part* part);
 void tooltip_onInput(InputEvent event);
-Part* tooltip(vec2 pos, const char* txt);
+Part* tooltip(glm::vec2 pos, const char* txt);
 
-#endif  // TOOLTIP_HPP
+  // TOOLTIP_HPP

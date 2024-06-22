@@ -1,5 +1,4 @@
-#ifndef RENDER_LAND_H
-#define RENDER_LAND_H
+#pragma once
 
 #include "item.hpp"
 #include "line.hpp"
@@ -19,4 +18,4 @@ void renderLandStep();
 void resetLandRender();
 void clearTileDataCache();
 
-#endif
+

@@ -1,11 +1,9 @@
 #include "land.hpp"
 
 #include "building/building.hpp"
-#include "city.hpp"
 #include "draw/entity.hpp"
 #include "game/game.hpp"
 #include "graph.hpp"
-#include "plan.hpp"
 #include "renderLand.hpp"
 #include "serialize.hpp"
 #include "simplex.hpp"
@@ -13,12 +11,14 @@
 #include "util.hpp"
 
 #include "spdlog/spdlog.h"
-//#include <stdlib.h>
+
 #include <time.h>
 #include <algorithm>
 #include <random>
 #include <set>
-using namespace std;
+
+#include <glm/glm.hpp>
+
 
 const int defaultChunkSize = 25;
 const float heightFudgeMultiplier = 15;
@@ -32,14 +32,14 @@ struct RenderChunk {
   item landEntity;
   item dirtEntity;
   item waterEntity;
-  vector<item> treeEntity;
+  std::vector<item> treeEntity;
 };
 
 float* heightMap;
 float* naturalHeightMap;
 LandConfiguration landConfig;
 LandConfiguration nextLandConfig;
-set<item> toAssignHeight;
+std::set<item> toAssignHeight;
 static int chunkSize = defaultChunkSize;
 static item numRenderChunks = 0;
 item seemHiderEntity = 0;
@@ -173,13 +173,13 @@ RenderChunk* getRenderChunk(item x, item y) {
   return getRenderChunk(renderChunkIndex(x, y));
 }
 
-TileIndex getTileIndex(vec3 point) {
+TileIndex getTileIndex(glm::vec3 point) {
   return tileIndex(point.x / tileSize, point.y / tileSize);
 }
 
-vec3 getChunkCenter(item cx, item cy) {
+glm::vec3 getChunkCenter(item cx, item cy) {
   float chunkWidth = chunkSize*tileSize;
-  return vec3((cx+0.5f)*chunkWidth, (cy+0.5f)*chunkWidth, 0);
+  return glm::vec3((cx+0.5f)*chunkWidth, (cy+0.5f)*chunkWidth, 0);
 }
 
 void addTrees(Chunk* chunk, int x, int y) {
@@ -320,7 +320,7 @@ void resetLand() {
     for (int x = 0; x < numRenderChunks; x ++) {
       for (int y = 0; y < numRenderChunks; y ++) {
         RenderChunk* chunk = getRenderChunk(x,y);
-        vector<item> swap;
+        std::vector<item> swap;
         chunk->treeEntity.swap(swap);
       }
     }
@@ -471,7 +471,7 @@ void generateBuildingDesignerLand(float buildX,
           int x1 = x * chunkSize + x0;
           int y1 = y * chunkSize + y0;
           ElevationData* data = &chunk->elevationData[x0*chunkSize + y0];
-          vec3 loc = getTileLocation(x1, y1);
+          glm::vec3 loc = getTileLocation(x1, y1);
           float buildDist = loc.x - buildX;
           float height = buildDist > lowTide ? -40 :
             buildDist > highTide ? -5 : c(CSuperflatHeight);
@@ -640,7 +640,7 @@ void renderLand() {
   }
 }
 
-vec3 pointOnLand(vec3 point) {
+glm::vec3 pointOnLand(glm::vec3 point) {
   if (chunks == 0) return point;
   int x = point.x / tileSize;
   int y = point.y / tileSize;
@@ -655,7 +655,7 @@ vec3 pointOnLand(vec3 point) {
   return point;
 }
 
-vec3 pointOnLandNatural(vec3 point) {
+glm::vec3 pointOnLandNatural(glm::vec3 point) {
   int x = point.x / tileSize;
   int y = point.y / tileSize;
   float mx = (point.x - x*tileSize)/tileSize;
@@ -669,9 +669,9 @@ vec3 pointOnLandNatural(vec3 point) {
   return point;
 }
 
-vec3 landIntersect(Line line) {
-  vec3 orig = line.start;
-  vec3 dir = line.end - line.start;
+glm::vec3 landIntersect(Line line) {
+  glm::vec3 orig = line.start;
+  glm::vec3 dir = line.end - line.start;
   float lx = dir.x;
   float ly = dir.z;
   float du = tileSize / sqrt(lx * lx + ly * ly);
@@ -681,10 +681,10 @@ vec3 landIntersect(Line line) {
   item by = 0;
   float bestDistance = FLT_MAX;
   for(float u = 0; u < 1.0; u += du) {
-    vec3 p = orig + dir * u;
+    glm::vec3 p = orig + dir * u;
     item px = p.x/tileSize;
     item py = p.y/tileSize;
-    vec3 t00 = getTileLocation(px, py);
+    glm::vec3 t00 = getTileLocation(px, py);
     float dist = vecDistance(t00, p);
     if (dist < bestDistance) {
       bestDistance = dist;
@@ -703,10 +703,10 @@ vec3 landIntersect(Line line) {
     for (int y = std::max(0, by-2);
       y < std::min(mapTiles+1, by+3); y++) {
 
-      vec3 t00 = getTileLocation(x,   y);
-      vec3 t01 = getTileLocation(x,   y+1);
-      vec3 t10 = getTileLocation(x+1, y);
-      vec3 t11 = getTileLocation(x+1, y+1);
+      glm::vec3 t00 = getTileLocation(x,   y);
+      glm::vec3 t01 = getTileLocation(x,   y+1);
+      glm::vec3 t10 = getTileLocation(x+1, y);
+      glm::vec3 t11 = getTileLocation(x+1, y+1);
 
       float ru = std::max(triangle_intersection(line, t00, t01, t10),
         triangle_intersection(line, t01, t11, t10));
@@ -719,13 +719,13 @@ vec3 landIntersect(Line line) {
   return getTileLocation(bx, by);
 }
 
-vector<BridgeSegment> getBridgeSegments(Line line) {
-  vec3 transverse = line.end-line.start;
+std::vector<BridgeSegment> getBridgeSegments(Line line) {
+  glm::vec3 transverse = line.end-line.start;
   float l = length(transverse);
   float unitSize = 1;
-  vec3 unit = normalize(transverse)*unitSize;
-  vec3 cursor = line.start;
-  vector<BridgeSegment> result;
+  glm::vec3 unit = normalize(transverse)*unitSize;
+  glm::vec3 cursor = line.start;
+  std::vector<BridgeSegment> result;
   float amount = 0;
   float along = 0;
   item type = BSTLand;
@@ -765,18 +765,18 @@ vector<BridgeSegment> getBridgeSegments(Line line) {
   return result;
 }
 
-vec3 unitize(vec3 vector) {
+glm::vec3 unitize(glm::vec3 vector) {
   float unit = tileSize * 5;
-  return vec3(
+  return glm::vec3(
     round(vector.x / unit) * unit,
     round(vector.y / unit) * unit,
     vector.z
   );
 }
 
-vec3 unitizeFine(vec3 vector) {
+glm::vec3 unitizeFine(glm::vec3 vector) {
   float unit = tileSize;
-  return vec3(
+  return glm::vec3(
     round(vector.x / unit) * unit,
     round(vector.y / unit) * unit,
     vector.z
@@ -791,7 +791,7 @@ float getNaturalHeight(const item x, const item y) {
   return naturalHeightMap[nx + ny*mapTiles];
 }
 
-float getNaturalHeight(vec3 loc) {
+float getNaturalHeight(glm::vec3 loc) {
   return getNaturalHeight(loc.x/tileSize, loc.y/tileSize);
 }
 
@@ -820,23 +820,23 @@ float getHeight(item x, item y) {
   return getHeight(tileIndex(x, y));
 }
 
-vec3 getTileLocation(const item x, const item y) {
-  return vec3(x * tileSize, y * tileSize, getHeight(x,y));
+glm::vec3 getTileLocation(const item x, const item y) {
+  return glm::vec3(x * tileSize, y * tileSize, getHeight(x,y));
 }
 
-vec3 getTileLocation(ChunkIndex cNdx, item xt, item yt) {
+glm::vec3 getTileLocation(ChunkIndex cNdx, item xt, item yt) {
   item x = cNdx.x*chunkSize + xt;
   item y = cNdx.y*chunkSize + yt;
   return getTileLocation(x, y);
 }
 
-vec3 getTileLocation(RenderChunkIndex cNdx, item xt, item yt) {
+glm::vec3 getTileLocation(RenderChunkIndex cNdx, item xt, item yt) {
   item x = cNdx.x*chunkSize*c(CTerrainChunking) + xt;
   item y = cNdx.y*chunkSize*c(CTerrainChunking) + yt;
   return getTileLocation(x, y);
 }
 
-vec3 getTileLocation(TileIndex ndx) {
+glm::vec3 getTileLocation(TileIndex ndx) {
   return getTileLocation(ndx.x, ndx.y);
 }
 
@@ -863,7 +863,7 @@ void clearTrees(Box b) {
   float chunkWidth = chunkSize*tileSize;
   for (int cx = 0; cx < landSize; cx++) {
     for (int cy = 0; cy < landSize; cy++) {
-      vec3 center = vec3((cx+0.5f)*chunkWidth, (cy+0.5f)*chunkWidth, 0);
+      glm::vec3 center = glm::vec3((cx+0.5f)*chunkWidth, (cy+0.5f)*chunkWidth, 0);
       if (boxDistance(b, center) < chunkWidth) {
         ChunkIndex ndx = chunkIndex(cx, cy);
         clearChunkTrees(ndx, b);
@@ -872,7 +872,7 @@ void clearTrees(Box b) {
   }
 }
 
-bool addTrees(vec3 p) {
+bool addTrees(glm::vec3 p) {
   TileIndex ndx = getTileIndex(p);
   ChunkIndex cNdx = chunkIndex(ndx);
   Chunk* chunk = getChunk(cNdx);
@@ -893,7 +893,7 @@ bool addTrees(vec3 p) {
   return true;
 }
 
-bool clearTrees(vec3 p) {
+bool clearTrees(glm::vec3 p) {
   TileIndex ndx = getTileIndex(p);
   ChunkIndex cNdx = chunkIndex(ndx);
   Chunk* chunk = getChunk(cNdx);
@@ -938,7 +938,7 @@ Elevator getElevator(item it, bool isBuilding) {
   if (isBuilding) {
     Building* building = getBuilding(it);
     e.b = getBuildingBox(it);
-    e.l = line(building->location, building->location + vec3(e.b.axis0, 0));
+    e.l = line(building->location, building->location + glm::vec3(e.b.axis0, 0));
 
   } else {
     e.b = getGraphBox(it);
@@ -946,7 +946,7 @@ Elevator getElevator(item it, bool isBuilding) {
 
     if (it > 0) {
       // Lower the road a bit to prevent the land rising above
-      vec3 a = e.l.end - e.l.start;
+      glm::vec3 a = e.l.end - e.l.start;
       float slope = abs(a.z/(a.x*a.x + a.y*a.y));
       float lower = 2*c(CRoadRise) + tileSize * slope;
       e.l.start.z -= lower;
@@ -972,7 +972,7 @@ bool assignTileHeight(TileIndex ndx) {
   int y0 = ndx.y%chunkSize;
 
   ElevationData* data = &(chunk->elevationData[x0*chunkSize + y0]);
-  vec3 location = getTileLocation(ndx.x, ndx.y);
+  glm::vec3 location = getTileLocation(ndx.x, ndx.y);
   float min = 100000;
   float max = -100000;
 
@@ -1019,7 +1019,7 @@ bool assignTileHeight(TileIndex ndx) {
   }
 }
 
-void assignChunkHeight(ChunkIndex cNdx, vector<ChunkIndex>* chunksTouched) {
+void assignChunkHeight(ChunkIndex cNdx, std::vector<ChunkIndex>* chunksTouched) {
   Chunk* chunk = getChunk(cNdx);
   int ml = landSize-1;
   int mc = chunkSize-1;
@@ -1044,12 +1044,12 @@ void assignChunkHeight(ChunkIndex cNdx, vector<ChunkIndex>* chunksTouched) {
   }
 }
 
-void assignHeight(Elevator e, vector<ChunkIndex> toRender) {
+void assignHeight(Elevator e, std::vector<ChunkIndex> toRender) {
   float chunkWidth = chunkSize*tileSize;
 
   for (int cx = 0; cx < landSize; cx++) {
     for (int cy = 0; cy < landSize; cy++) {
-      vec3 center = vec3((cx+0.5f)*chunkWidth, (cy+0.5f)*chunkWidth, 0);
+      glm::vec3 center = glm::vec3((cx+0.5f)*chunkWidth, (cy+0.5f)*chunkWidth, 0);
       if (boxDistance(e.b, center) < chunkWidth*2) {
         toAssignHeight.insert(cy*landSize + cx);
       }
@@ -1058,8 +1058,8 @@ void assignHeight(Elevator e, vector<ChunkIndex> toRender) {
 }
 
 void assignHeights() {
-  vector<ChunkIndex> toRender;
-  for (set<item>::iterator it = toAssignHeight.begin();
+  std::vector<ChunkIndex> toRender;
+  for (std::set<item>::iterator it = toAssignHeight.begin();
       it != toAssignHeight.end(); it++) {
     item ndx = *it;
     ChunkIndex cNdx = chunkIndex(ndx%landSize, ndx/landSize);
@@ -1093,7 +1093,7 @@ item numHeightsToAssign() {
 }
 
 void addElevatorToTile(TileIndex tileNdx, ElevationData* data, Elevator e) {
-  vec3 location = getTileLocation(tileNdx.x, tileNdx.y);
+  glm::vec3 location = getTileLocation(tileNdx.x, tileNdx.y);
   float dist = boxDistance(e.b, location)
     - tileSize * (e.isBuilding ? .5f : e.it < 0 ? 1.f : 1.f);
   dist = dist < 0 ? 0 : dist;
@@ -1145,7 +1145,7 @@ void addElevator(Elevator e, bool assign) {
   float chunkWidth = chunkSize*tileSize;
   for (int cx = 0; cx < landSize; cx++) {
     for (int cy = 0; cy < landSize; cy++) {
-      vec3 center = vec3((cx+0.5f)*chunkWidth, (cy+0.5f)*chunkWidth, 0);
+      glm::vec3 center = glm::vec3((cx+0.5f)*chunkWidth, (cy+0.5f)*chunkWidth, 0);
       if (boxDistance(e.b, center) < chunkWidth + maxMound) {
         addElevatorToChunk(chunkIndex(cx, cy), e);
         if (assign) {
@@ -1183,13 +1183,13 @@ void removeElevator(Elevator e) {
   float chunkWidth = chunkSize*tileSize;
   for (int cx = 0; cx < landSize; cx++) {
     for (int cy = 0; cy < landSize; cy++) {
-      vec3 center = vec3((cx+0.5f)*chunkWidth, (cy+0.5f)*chunkWidth, 0);
+      glm::vec3 center = glm::vec3((cx+0.5f)*chunkWidth, (cy+0.5f)*chunkWidth, 0);
       if (boxDistance(e.b, center) < chunkWidth*2.f) {
         removeElevatorFromChunk(chunkIndex(cx, cy), e);
       }
     }
   }
-  vector<ChunkIndex> toRender;
+  std::vector<ChunkIndex> toRender;
   assignHeight(e, toRender);
 }
 
@@ -1203,7 +1203,7 @@ void repairElevators() {
           for (int ndx = 0; ndx < 8; ndx ++) {
             if (data->items[ndx] == 0) continue;
             Elevator e = getElevator(data, ndx);
-            vec3 location = getTileLocation(tileIndex(cx, cy, x0, y0));
+            glm::vec3 location = getTileLocation(tileIndex(cx, cy, x0, y0));
             float dist = boxDistance(e.b, location) - tileSize *
               (e.isBuilding ? .5f : 1.f);
             dist = dist < 0 ? 0 : dist;
@@ -1245,7 +1245,7 @@ void setNaturalHeight(TileIndex ndx, float z) {
   if (modified) queueRenderChunk(cNdx);
 }
 
-float setNaturalHeight(vec3 p, float radius, bool smooth) {
+float setNaturalHeight(glm::vec3 p, float radius, bool smooth) {
   TileIndex ndx = getTileIndex(p);
   TileIndex start = ndx;
   TileIndex end = ndx;
@@ -1263,7 +1263,7 @@ float setNaturalHeight(vec3 p, float radius, bool smooth) {
   for (int y = start.y; y < end.y; y++) {
     int yStride = y*numTiles;
     for (int x = start.x; x < end.x; x++) {
-      vec3 loc = getTileLocation(x,y);
+      glm::vec3 loc = getTileLocation(x,y);
       float natZ = naturalHeightMap[x + yStride];
       float distFromCener = distance2D(p, loc);
       float z = natZ;
@@ -1271,8 +1271,8 @@ float setNaturalHeight(vec3 p, float radius, bool smooth) {
       if (smooth) {
         float smoothDist = distFromCener/radius*.5f;
         smoothDist = pow(smoothDist, 0.1);
-        smoothDist = clamp(smoothDist, 0.9f, 1.f);
-        z = mix(p.z, natZ, smoothDist);
+        smoothDist = glm::clamp(smoothDist, 0.9f, 1.f);
+        z = glm::mix(p.z, natZ, smoothDist);
 
       } else {
         float dist = distFromCener - radius;

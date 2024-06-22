@@ -13,7 +13,6 @@
 #include "../newspaper/newspaperCallbacks.hpp"
 #include "../newspaper/article.hpp"
 #include "../string_proxy.hpp"
-#include "../platform/file.hpp"
 #include "../platform/lookup.hpp"
 #include "../terrain/tree.hpp"
 #include "../util.hpp"
@@ -21,6 +20,7 @@
 #include "../vehicle/vehicleCallbacks.hpp"
 
 #include "spdlog/spdlog.h"
+#include "../console/conDisplay.hpp"
 #include <stdio.h>
 #include <string.h>
 #include <vector>
@@ -43,6 +43,7 @@ const char* const statuesFile = "data/statues.lua";
 
 char* getDifficultyInMod(std::string &srcFile);
 
+// TODO: fix back to normal
 #include "luaCallbacks.cpp"
 
 lua_State* getLuaState() {
@@ -67,7 +68,7 @@ void readLua(const char *filename) {
 }
 
 void readLuaInMod(const char *filename, bool disableDefault) {
-  vector<string> versions = lookupFileVersions(filename,
+  std::vector<std::string> versions = lookupFileVersions(filename,
       disableDefault ? _lookupExcludeBase : 0);
 
   for (int i = versions.size()-1; i >= 0; i--) {
@@ -324,8 +325,8 @@ bool luaFieldBool(lua_State* L, const char* key) {
   return result;
 }
 
-vec3 luaFieldVec3(lua_State* L, const char* key) {
-  vec3 result = vec3(0,0,0);
+glm::vec3 luaFieldVec3(lua_State* L, const char* key) {
+  glm::vec3 result = glm::vec3(0,0,0);
   //SPDLOG_INFO("luaFieldVec3 {}", key);
   //stackDump(L);
   lua_getfield(L, -1, key);

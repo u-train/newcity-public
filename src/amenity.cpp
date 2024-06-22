@@ -17,10 +17,10 @@
 #include "time.hpp"
 #include "util.hpp"
 #include "zone.hpp"
-
+#include "game/constants.hpp"
 #include "parts/leftPanel.hpp"
+#include <glm/glm.hpp> 
 
-#include "spdlog/spdlog.h"
 
 const char* buildingCategoryString[numBuildingCategories+1] = {
   "Education", "Recreation", "Community", "University", "General"
@@ -36,7 +36,7 @@ const char* effectString[numEffects] = {
   "Prestige", "Environment", "Order", "Health",
 };
 
-static const vec3 effectIcon[numEffects] = {
+static const glm::vec3 effectIcon[numEffects] = {
   iconBuildingCategory[1], iconHeatmap[1], iconHeatmap[2], iconHeatmap[3],
   iconHeatmap[4], iconHeatmap[5], iconFamily, iconTech,
   iconZoneMono[OfficeZone], iconTouristFemale, iconBusiness, iconTree,
@@ -45,8 +45,8 @@ static const vec3 effectIcon[numEffects] = {
 
 float effectValue[numEffects];
 Cup<item> governmentBuildings;
-static vector<unsigned char> govBuildingAvail;
-static vector<int> govBuildingsPlaced;
+static std::vector<unsigned char> govBuildingAvail;
+static std::vector<int> govBuildingsPlaced;
 static Cup<item> healthcareProviders;
 static item categoryCount[numBuildingCategories+1] = {0,0,0,0,0};
 item universityQuad = 0;
@@ -121,7 +121,7 @@ const char* getEffectString(item effect) {
   return effectString[effect];
 }
 
-const vec3 getEffectIcon(item effect) {
+const glm::vec3 getEffectIcon(item effect) {
   return effectIcon[effect];
 }
 
@@ -134,7 +134,7 @@ float getEduLevelLimit(item edu) {
     effectValue[EducationEffect] * getEffectMultiplier(Technology) +
     getStatistic(ourCityEconNdx(), NumColleges) *
     c((FloatConstant)(CMaxHSEduPerCollege+edu-1));
-  result = clamp(result, 0.f, getEduLevelHardLimit(edu));
+  result = glm::clamp(result, 0.f, getEduLevelHardLimit(edu));
   return result;
 }
 
@@ -146,7 +146,7 @@ float getEffectMultiplier(item effect, item value) {
   } else if (effect == BusinessEffect) {
     return pow(c(CBusinessUnempBasis), value);
   } else if (effect == Prestige) {
-    return clamp(c(CMaxResidentialDensity) + c(CPrestigeMaxResDensity)*value,
+    return glm::clamp(c(CMaxResidentialDensity) + c(CPrestigeMaxResDensity)*value,
         0.f, 1.f);
   } else if (effect == Environmentalism) {
     return pow(c(CEnvironmentalismPollutionBasis), value);
@@ -273,7 +273,7 @@ char* getMacroEffectDescriptor(item effect) {
   } else if (effect == Prestige) {
     float val = getEffectMultiplier(Prestige, value)*10;
     int num = val;
-    num = clamp(num, 0, 10);
+    num = glm::clamp(num, 0, 10);
 
     if (num < 10) {
       float gap = float(num + 1) - val;
@@ -440,23 +440,23 @@ float getHeatMapAdjustment(HeatMapIndex ndx) {
   }
 }
 
-float getAdjustedDensity(item zone, vec3 loc) {
+float getAdjustedDensity(item zone, glm::vec3 loc) {
   float unadjustedDensity = heatMapGet(Density, loc);
   if (zone == FactoryZone) {
     //float edu = heatMapGet(Education, loc);
-    //float adjEdu = clamp(edu*2.0f, 0.f, unemploymentRate(HSDiploma)*20);
-    //adjEdu = clamp(adjEdu, 0.f, 1.f);
-    return clamp(unadjustedDensity*2.5f, 0.f, 1.f);
+    //float adjEdu = glm::clamp(edu*2.0f, 0.f, unemploymentRate(HSDiploma)*20);
+    //adjEdu = glm::clamp(adjEdu, 0.f, 1.f);
+    return glm::clamp(unadjustedDensity*2.5f, 0.f, 1.f);
   } else if (zone == ResidentialZone || zone == MixedUseZone) {
-    //float adjDensity = clamp(unadjustedDensity, 0.f,
+    //float adjDensity = glm::clamp(unadjustedDensity, 0.f,
         //effectValue[Prestige]/25.f);
-    return clamp(unadjustedDensity, 0.f, getEffectMultiplier(Prestige));
+    return glm::clamp(unadjustedDensity, 0.f, getEffectMultiplier(Prestige));
   } else {
     return unadjustedDensity;
   }
 }
 
-float getAdjustedLandValue(item zone, vec3 loc) {
+float getAdjustedLandValue(item zone, glm::vec3 loc) {
   float unadjustedValue = heatMapGet(Value, loc);
   return unadjustedValue;
 }
@@ -757,8 +757,8 @@ void updateGovernmentBuilding(item ndx, float duration) {
   Design* d = getDesign(b->design);
   float angle = randFloat(0, pi_o*2);
   float mag = randFloat(0, 1);
-  vec3 thrw = vec3(sin(angle), cos(angle), 0.f) * mag;
-  vec3 loc = getBuildingCenter(ndx);
+  glm::vec3 thrw = glm::vec3(sin(angle), cos(angle), 0.f) * mag;
+  glm::vec3 loc = getBuildingCenter(ndx);
 
   for (int i = 0; i < b->lots.size(); i++) {
     Lot* lot = getLot(b->lots[i]);
@@ -867,8 +867,8 @@ void updateGovernmentBuilding(item ndx, float duration) {
 
       // use up to three collision calls to find buildings in the area
       for (item i = 0; i < 3; i++) {
-        Box rad = box(vec2(loc+thrw*c(CAmenityEduThrow)), tileSize*24.f);
-        vector<item> collisions = getCollisions(BuildingCollisions, rad, ndx);
+        Box rad = box(glm::vec2(loc+thrw*c(CAmenityEduThrow)), tileSize*24.f);
+        std::vector<item> collisions = getCollisions(BuildingCollisions, rad, ndx);
         item numColl = collisions.size();
         item collRnd = randItem(numColl);
 
@@ -915,8 +915,8 @@ void updateGovernmentBuilding(item ndx, float duration) {
 
     /*
     if (eduTarget > 0 || doCommunity) {
-      Box rad = box(vec2(loc+thrw*c(CAmenityEduThrow)), tileSize*24.f);
-      vector<item> collisions = getCollisions(BuildingCollisions, rad, ndx);
+      Box rad = box(glm::vec2(loc+thrw*c(CAmenityEduThrow)), tileSize*24.f);
+      std::vector<item> collisions = getCollisions(BuildingCollisions, rad, ndx);
       item numColl = collisions.size();
       if (numColl > 0) {
         item ebNdx = collisions[randItem(numColl)];
@@ -1059,7 +1059,7 @@ void setGovBuildingEnabled(item buildingNdx, bool enabled) {
       }
     }
 
-    vector<item> prevFamilies(
+    std::vector<item> prevFamilies(
         b->families.begin(), b->families.end());
     for (int i=b->families.size()-1; i >= 0; i--) {
       evictFamily(b->families[i], false);

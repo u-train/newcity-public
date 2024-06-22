@@ -11,16 +11,17 @@
 #include "../string_proxy.hpp"
 #include "../icons.hpp"
 #include "../util.hpp"
+#include "../main.hpp"
 
 #include "spdlog/spdlog.h"
 
-vector<float> loaderCars;
+std::vector<float> loaderCars;
 
-Part* loaderBar(vec2 loc, vec2 size) {
+Part* loaderBar(glm::vec2 loc, glm::vec2 size) {
   return loaderBar(loc, size, iconCar);
 }
 
-Part* loaderBar(vec2 loc, vec2 size, vec3 ico) {
+Part* loaderBar(glm::vec2 loc, glm::vec2 size, glm::vec3 ico) {
   Part* cars = panel(loc, size);
   float lsx = size.x;
   cars->flags |= _partLowered | _partClip;
@@ -29,7 +30,7 @@ Part* loaderBar(vec2 loc, vec2 size, vec3 ico) {
   float dur = getFrameDuration()*10;
   dur = std::min(dur, 1.f);
   for (int i = 0; i < numCars; i++) {
-    r(cars, icon(vec2(loaderCars[i], 0), vec2(1,1), ico));
+    r(cars, icon(glm::vec2(loaderCars[i], 0), glm::vec2(1,1), ico));
     loaderCars[i] += dur;
   }
 
@@ -49,14 +50,14 @@ Part* loader() {
   float loadPad = 0.25;
   float lsx = 10; //stringWidth(message) + 0 + loadPad;
   float lsy = 2.25;
-  vec2 loaderSize = vec2(lsx+loadPad*2, lsy+loadPad*2);
+  glm::vec2 loaderSize = glm::vec2(lsx+loadPad*2, lsy+loadPad*2);
   float uiX = uiGridSizeX * getAspectRatio();
 
-  //Part* container = panel(line(vec3(0,0,0),
-    //vec3(uiX, uiGridSizeY, 0)));
+  //Part* container = panel(line(glm::vec3(0,0,0),
+    //glm::vec3(uiX, uiGridSizeY, 0)));
   //container->renderMode = RenderShadow;
 
-  Part* loader = panel(vec2(uiX,uiGridSizeY)*0.5f - loaderSize*0.5f,
+  Part* loader = panel(glm::vec2(uiX,uiGridSizeY)*0.5f - loaderSize*0.5f,
       loaderSize);
   loader->padding = loadPad;
   //r(container, loader);
@@ -66,16 +67,16 @@ Part* loader() {
     float iconY = (lsy-1.25)*.5f - 0.05;
     float textSize = 1.5;
     float textY = (lsy-textSize)*.5f;
-    r(loader, icon(vec2((lsx-iconSize)*.5f, iconY),
-          vec2(iconSize, iconSize), iconTree));
-    r(loader, labelRight(vec2(0, textY), vec2((lsx-iconSize)*.5f,textSize),
+    r(loader, icon(glm::vec2((lsx-iconSize)*.5f, iconY),
+          glm::vec2(iconSize, iconSize), iconTree));
+    r(loader, labelRight(glm::vec2(0, textY), glm::vec2((lsx-iconSize)*.5f,textSize),
           strdup_s("Lone")));
-    r(loader, label(vec2((lsx+iconSize)*.5f-0.1f, textY), textSize,
+    r(loader, label(glm::vec2((lsx+iconSize)*.5f-0.1f, textY), textSize,
           strdup_s("Pine")));
 
   } else {
-    r(loader, labelCenter(vec2(0, 0), vec2(lsx,lsy-1), strdup_s(getLoaderText())));
-    r(loader, loaderBar(vec2(0,1.25), vec2(lsx,1)));
+    r(loader, labelCenter(glm::vec2(0, 0), glm::vec2(lsx,lsy-1), strdup_s(getLoaderText())));
+    r(loader, loaderBar(glm::vec2(0,1.25), glm::vec2(lsx,1)));
   }
 
   return loader;

@@ -3,8 +3,6 @@
 #include "../item.hpp"
 #include "../route/route.hpp"
 
-#include <vector>
-using namespace std;
 
 double getVehicleTime();
 int getVehicleUpdatesPending();

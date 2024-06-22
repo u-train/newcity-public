@@ -1,9 +1,5 @@
 #pragma once
 
-#include <thread>
-#include <mutex>
-#include <condition_variable>
-
 typedef void (*ThreadCallback)();
 
 void startThread(const char* name, ThreadCallback loop);

@@ -3,8 +3,10 @@
 
 #include "../draw/camera.hpp"
 #include "../platform/lookup.hpp"
+#include <spdlog/spdlog.h>
 
 #include <cstring>
+#include "../game/constants.hpp"
 
 enum {
   OBJ_LOOKUP_FAILED = -1
@@ -58,15 +60,15 @@ int getObjIndex(std::string name) {
 ObjVertex convertVertex(objl::Vertex vert) {
   return ObjVertex(
     // pos
-    vec3(vert.Position.X,
+    glm::vec3(vert.Position.X,
       vert.Position.Y,
       vert.Position.Z),
     // norm
-    vec3(vert.Normal.X,
+    glm::vec3(vert.Normal.X,
       vert.Normal.Y,
       vert.Normal.Z),
     // uv
-    vec2(vert.TextureCoordinate.X,
+    glm::vec2(vert.TextureCoordinate.X,
       vert.TextureCoordinate.Y));
 }
 
@@ -81,9 +83,9 @@ std::vector<ObjVertex> convertVertices(std::vector<objl::Vertex> verts) {
 ObjMaterial convertMaterial(objl::Material mat) {
   ObjMaterial newMat;
   newMat.name = mat.name;
-  newMat.Ka = vec3(mat.Ka.X,mat.Ka.Y,mat.Ka.Z);
-  newMat.Kd = vec3(mat.Kd.X,mat.Kd.Y,mat.Kd.Z);
-  newMat.Ks = vec3(mat.Ks.X,mat.Ks.Y,mat.Ks.Z);
+  newMat.Ka = glm::vec3(mat.Ka.X,mat.Ka.Y,mat.Ka.Z);
+  newMat.Kd = glm::vec3(mat.Kd.X,mat.Kd.Y,mat.Kd.Z);
+  newMat.Ks = glm::vec3(mat.Ks.X,mat.Ks.Y,mat.Ks.Z);
   newMat.Ns = mat.Ns;
   newMat.Ni = mat.Ni;
   newMat.d = mat.d;
@@ -128,7 +130,7 @@ bool loadObjFile(std::string name) {
     return false;
   }
 
-  vector<string> files = lookupDirectory("models",".obj",0);
+  std::vector<std::string> files = lookupDirectory("models",".obj",0);
 
   if(files.size() == 0) {
     consolePrintError(consoleGetError(ConStatus::DIR_READ_ERROR),"/models/");
@@ -238,7 +240,7 @@ bool tryPrintObjData(std::string name) {
 void importObj(const char* name, item meshNdx, bool buffer) {
   if (name == NULL || streql(name, "(null)")) return;
   objl::Loader loadObj;
-  string filename = lookupFile(name, 0);
+  std::string filename = lookupFile(name, 0);
   if(!loadObj.LoadFile(filename.c_str())) {
     SPDLOG_WARN("Could not load mesh {}", filename);
     return;
@@ -265,9 +267,9 @@ void importObj(const char* name, item meshNdx, bool buffer) {
     for(int j = 0; j < 3; j++) {
       RenderPoint p;
       ObjVertex vert = verts[indices[i*3+j]];
-      p.point = vec3(vert.pos.x, vert.pos.z, vert.pos.y); // reverse y and z
-      p.normal = vec3(vert.norm.x, vert.norm.z, vert.norm.y); // " "
-      p.texture = vec3(vert.uv.x, 1-vert.uv.y, 0.0f); // y is inverted
+      p.point = glm::vec3(vert.pos.x, vert.pos.z, vert.pos.y); // reverse y and z
+      p.normal = glm::vec3(vert.norm.x, vert.norm.z, vert.norm.y); // " "
+      p.texture = glm::vec3(vert.uv.x, 1-vert.uv.y, 0.0f); // y is inverted
       tri.points[2-j] = p; // reverse winding for backface culling
     }
 
@@ -283,7 +285,7 @@ void importObj(const char* name, item meshNdx) {
   importObj(name, meshNdx, true);
 }
 
-bool renderObj(ObjModel* obj, Shader shader, int tex, vec3 pos, int size){
+bool renderObj(ObjModel* obj, Shader shader, int tex, glm::vec3 pos, int size){
   meshNdxTemp = addMesh();
   Mesh* mesh = getMesh(meshNdxTemp);
 
@@ -306,15 +308,15 @@ bool renderObj(ObjModel* obj, Shader shader, int tex, vec3 pos, int size){
     
     p0.point = verts[indices[(i*3)]].pos;
     p0.normal = verts[indices[(i*3)]].norm;
-    p0.texture = vec3(verts[indices[(i*3)]].uv, 0.0f);
+    p0.texture = glm::vec3(verts[indices[(i*3)]].uv, 0.0f);
     
     p1.point = verts[indices[(i*3)+1]].pos;
     p1.normal = verts[indices[(i*3)+1]].norm;
-    p1.texture = vec3(verts[indices[(i*3)+1]].uv, 0.0f);
+    p1.texture = glm::vec3(verts[indices[(i*3)+1]].uv, 0.0f);
 
     p2.point = verts[indices[(i*3)+2]].pos;
     p2.normal = verts[indices[(i*3)+2]].norm;
-    p2.texture = vec3(verts[indices[(i*3)+2]].uv, 0.0f);
+    p2.texture = glm::vec3(verts[indices[(i*3)+2]].uv, 0.0f);
 
     tri.points[0] = p0;
     tri.points[1] = p1;
@@ -331,8 +333,8 @@ bool renderObj(ObjModel* obj, Shader shader, int tex, vec3 pos, int size){
   ent->simpleMesh = meshNdxTemp;
   ent->texture = tex;
   Camera cam = getMainCamera();
-  vec3 dir = normalize(cam.direction);
-  vec3 loc = vec3(cam.target); // + dir * float(20. - cam.distance);
+  glm::vec3 dir = normalize(cam.direction);
+  glm::vec3 loc = glm::vec3(cam.target); // + dir * float(20. - cam.distance);
   loc.z += 10;
   placeEntity(entNdxTemp, loc, 0.0f, pi_o*.5f, size);
 
@@ -352,7 +354,7 @@ bool renderObj(std::string name) {
   }
 
   return renderObj(&objStore[index], RoadShader, grayTexture,
-      vec3(0,0,-20), 100);
+      glm::vec3(0,0,-20), 100);
 }
 
 bool tryUnloadObj(std::string name, bool rmvEnt) {

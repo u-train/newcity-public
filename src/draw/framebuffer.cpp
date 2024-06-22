@@ -1,6 +1,7 @@
 #include "framebuffer.hpp"
 
 #include "camera.hpp"
+#include "../game/constants.hpp"
 #include "texture.hpp"
 
 #include "spdlog/spdlog.h"
@@ -20,7 +21,7 @@ static GLuint captureDepthTex = 0;
 struct FramebufferInfo {
   FramebufferInit init;
   FramebufferSetup setup;
-  vec2 size;
+  glm::vec2 size;
   GLuint name = 0;
   GLuint texture = 0;
 };
@@ -37,11 +38,11 @@ void setupLightingFramebuffer(Framebuffer f);
 void setupMainFramebuffer(Framebuffer f);
 
 FramebufferInfo framebufferInfo[numFramebuffers] = {
-  {initMapFramebuffer, setupMapFramebuffer, vec2(8192, 8192)},
-  {initCaptureFramebuffer, setupCaptureFramebuffer, vec2(960, 640)},
-  {initShadowFramebuffer, setupShadowFramebuffer, vec2(4096, 4096)},
-  {initLightingFramebuffer, setupLightingFramebuffer, vec2(2048, 2048)},
-  {initMainFramebuffer, setupMainFramebuffer, vec2(0, 0)},
+  {initMapFramebuffer, setupMapFramebuffer, glm::vec2(8192, 8192)},
+  {initCaptureFramebuffer, setupCaptureFramebuffer, glm::vec2(960, 640)},
+  {initShadowFramebuffer, setupShadowFramebuffer, glm::vec2(4096, 4096)},
+  {initLightingFramebuffer, setupLightingFramebuffer, glm::vec2(2048, 2048)},
+  {initMainFramebuffer, setupMainFramebuffer, glm::vec2(0, 0)},
 };
 
 void initMapFramebuffer(Framebuffer f) {
@@ -235,7 +236,7 @@ void captureFramebuffer(Framebuffer f, std::string filename) {
   nextCaptureFilename = filename;
 };
 
-vec2 getCaptureDimensions() {
+glm::vec2 getCaptureDimensions() {
   return framebufferInfo[CaptureFramebuffer].size;
 }
 

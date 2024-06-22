@@ -2,12 +2,10 @@
 
 #include "cup.hpp"
 #include "land.hpp"
-#include "util.hpp"
-
-#include "spdlog/spdlog.h"
 #include <set>
+#include <glm/glm.hpp>
 
-struct Collider {
+struct Collider { 
   Box b;
   item it;
 };
@@ -46,12 +44,12 @@ void initCollisionTables() {
 
   chunkBoxes = (Box*) calloc(landSize*landSize, sizeof(Box));
   float cs = tileSize*chunkSize;
-  vec2 axis0 = vec2(0, cs);
-  vec2 axis1 = vec2(cs, 0);
+  glm::vec2 axis0 = glm::vec2(0, cs);
+  glm::vec2 axis1 = glm::vec2(cs, 0);
   for (int x = 0; x < landSize; x++) {
     int xOff = x*landSize;
     for (int y = 0; y < landSize; y++) {
-      chunkBoxes[xOff + y] = box(vec2(x*cs, y*cs), axis0, axis1);
+      chunkBoxes[xOff + y] = box(glm::vec2(x*cs, y*cs), axis0, axis1);
     }
   }
 }
@@ -60,15 +58,15 @@ void addToCollisionTable(CollisionIndex ci, Box b, item it) {
   const int landSize = getLandSize();
   const int chunkSize = getChunkSize();
   const int ls = landSize-1;
-  set<item> result;
+  std::set<item> result;
   int minX = ls;
   int maxX = 0;
   int minY = ls;
   int maxY = 0;
 
-  vector<vec2> corners = boxCorners(b);
+  std::vector<glm::vec2> corners = boxCorners(b);
   for (int i = 0; i < corners.size(); i++) {
-    vec2 c = corners[i];
+    glm::vec2 c = corners[i];
     float x = c.x/chunkSize/tileSize;
     float y = c.y/chunkSize/tileSize;
     if (floor(x) < minX) minX = floor(x);
@@ -99,7 +97,7 @@ void addToCollisionTable(CollisionIndex ci, Box b, item it) {
 
 void removeFromCollisionTable(CollisionIndex ci, item it) {
   int landSize = getLandSize();
-  set<item> result;
+  std::set<item> result;
   for (int x = 0; x < landSize; x++) {
     int xOff = x*landSize;
     for (int y = 0; y < landSize; y++) {
@@ -118,7 +116,7 @@ void removeFromCollisionTable(CollisionIndex ci, item it) {
 }
 
 /*
-item getRandomNearby(CollisionIndex ci, vec3 p) {
+item getRandomNearby(CollisionIndex ci, glm::vec3 p) {
   float cs = tileSize*chunkSize;
   Cup<Collider>* chunkTable =
     &collisionTable[ci][int(p.x/cs)*xOff + int(p.y/cs)];
@@ -129,19 +127,19 @@ item getRandomNearby(CollisionIndex ci, vec3 p) {
 }
 */
 
-vector<item> getCollisions(CollisionIndex ci, Box b, item exclude) {
+std::vector<item> getCollisions(CollisionIndex ci, Box b, item exclude) {
   const int landSize = getLandSize();
   const int chunkSize = getChunkSize();
   const int ls = landSize-1;
-  set<item> result;
+  std::set<item> result;
   int minX = ls;
   int maxX = 0;
   int minY = ls;
   int maxY = 0;
 
-  vector<vec2> corners = boxCorners(b);
+  std::vector<glm::vec2> corners = boxCorners(b);
   for (int i = 0; i < corners.size(); i++) {
-    vec2 c = corners[i];
+    glm::vec2 c = corners[i];
     float x = c.x/chunkSize/tileSize;
     float y = c.y/chunkSize/tileSize;
     if (floor(x) < minX) minX = floor(x);
@@ -171,7 +169,7 @@ vector<item> getCollisions(CollisionIndex ci, Box b, item exclude) {
     }
   }
 
-  vector<item> resultVector(result.begin(), result.end());
+  std::vector<item> resultVector(result.begin(), result.end());
   return resultVector;
 }
 

@@ -1,11 +1,10 @@
-#ifndef PART_SLIDER_H
-#define PART_SLIDER_H
+#pragma once
 
 #include "part.hpp"
 
-Part* slider(vec2 start, vec2 size, float value, InputCallback callback);
-Part* slider(vec2 start, vec2 size, float value, InputCallback callback,
+Part* slider(glm::vec2 start, glm::vec2 size, float value, InputCallback callback);
+Part* slider(glm::vec2 start, glm::vec2 size, float value, InputCallback callback,
     Line tex);
-Part* vslider(vec2 start, vec2 size, float value, InputCallback callback);
+Part* vslider(glm::vec2 start, glm::vec2 size, float value, InputCallback callback);
 
-#endif
+

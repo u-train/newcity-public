@@ -2,15 +2,15 @@
 
 #include "line.hpp"
 
-Line iconToSpritesheet(vec3 icon);
-Line iconToSpritesheet(vec3 icon, float wind);
-vec3 getIcon(const char* ico);
+Line iconToSpritesheet(glm::vec3 icon);
+Line iconToSpritesheet(glm::vec3 icon, float wind);
+glm::vec3 getIcon(const char* ico);
 void initIconsMap();
 
 const float spriteSheetSize = 32.f;
 const float spriteResolution = 64.f;
 
-#define ICO(N,V) const vec3 icon##N = V;
+#define ICO(N,V) const glm::vec3 icon##N = V;
 #include "iconsEnum.hpp"
 #undef ICO
 
@@ -21,10 +21,10 @@ enum Icons {
   numIcons
 };
 
-const vec3 expwySignStart = vec3(12, 13, 1);
-const vec3 expwySignEnd = vec3(15, 15, 1);
+const glm::vec3 expwySignStart = glm::vec3(12, 13, 1);
+const glm::vec3 expwySignEnd = glm::vec3(15, 15, 1);
 
-const vec3 iconTransitTypes[] = {
+const glm::vec3 iconTransitTypes[] = {
   iconNo,
   iconBus,
   iconTrain,
@@ -34,7 +34,7 @@ const vec3 iconTransitTypes[] = {
   iconMagLev,
 };
 
-const vec3 iconTransitTypeSigns[] = {
+const glm::vec3 iconTransitTypeSigns[] = {
   iconNo,
   iconBusSign,
   iconTrainSign,
@@ -44,7 +44,7 @@ const vec3 iconTransitTypeSigns[] = {
   iconMagLevSign,
 };
 
-const vec3 iconTransitPowers[] = {
+const glm::vec3 iconTransitPowers[] = {
   iconNo,
   iconFuel,
   iconGas,
@@ -54,7 +54,7 @@ const vec3 iconTransitPowers[] = {
   iconInduction,
 };
 
-const vec3 iconTransitAutomations[] = {
+const glm::vec3 iconTransitAutomations[] = {
   iconNo,
   iconPersonMan,
   iconPersonTech,
@@ -64,7 +64,7 @@ const vec3 iconTransitAutomations[] = {
 
 const int numTransitLogos = 86;
 const int iconNewTrackNdx = 85;
-const vec3 iconTransitLogos[] = {
+const glm::vec3 iconTransitLogos[] = {
   iconBus,
   iconTrain,
   iconMonorail,
@@ -165,7 +165,7 @@ const vec3 iconTransitLogos[] = {
   iconNewTrack,
 };
 
-const vec3 iconZoneBrushType[] = {
+const glm::vec3 iconZoneBrushType[] = {
   iconVerticalBar,
   iconDotSmall,
   iconDotMedium,
@@ -173,12 +173,12 @@ const vec3 iconZoneBrushType[] = {
   iconPointer,
 };
 
-const vec3 iconIntersectionStrategy[] = {
+const glm::vec3 iconIntersectionStrategy[] = {
   iconStopSign,
   iconStopLight,
 };
 
-const vec3 iconGameSpeed[] = {
+const glm::vec3 iconGameSpeed[] = {
   iconSpeedPause,
   iconSpeedSlow,
   iconSpeedPlay,
@@ -186,7 +186,7 @@ const vec3 iconGameSpeed[] = {
   iconSpeedFF3,
 };
 
-const vec3 iconZone[] = {
+const glm::vec3 iconZone[] = {
   iconZoneNone,
   iconZoneResidential,
   iconZoneRetail,
@@ -198,7 +198,7 @@ const vec3 iconZone[] = {
   iconZonePark,
 };
 
-const vec3 iconZoneMono[] = {
+const glm::vec3 iconZoneMono[] = {
   iconZoneMonoNone,
   iconZoneMonoResidential,
   iconZoneMonoRetail,
@@ -210,7 +210,7 @@ const vec3 iconZoneMono[] = {
   iconZoneMonoPark,
 };
 
-const vec3 iconZoneColor[] = {
+const glm::vec3 iconZoneColor[] = {
   iconZoneColorNone,
   iconZoneColorResidential,
   iconZoneColorRetail,
@@ -222,7 +222,7 @@ const vec3 iconZoneColor[] = {
   iconZoneColorPark,
 };
 
-const vec3 iconBusinessType[] = {
+const glm::vec3 iconBusinessType[] = {
   iconZoneMonoRetail,
   iconZoneMonoOffice,
   iconZoneMonoFarm,
@@ -230,7 +230,7 @@ const vec3 iconBusinessType[] = {
   iconZoneMonoGovernment,
 };
 
-const vec3 iconBuildingCategory[] = {
+const glm::vec3 iconBuildingCategory[] = {
   iconEducationCategory,
   iconParksCategory,
   iconServicesCategory,
@@ -238,7 +238,7 @@ const vec3 iconBuildingCategory[] = {
   iconOffice,
 };
 
-const vec3 iconHeatmap[] = {
+const glm::vec3 iconHeatmap[] = {
   iconPollution,
   iconLandValue,
   iconDensity,
@@ -249,7 +249,7 @@ const vec3 iconHeatmap[] = {
   iconHealth
 };
 
-const vec3 iconHeatmapColor[] = {
+const glm::vec3 iconHeatmapColor[] = {
   iconHMBlockPollution,
   iconHMBlockLandValue,
   iconHMBlockDensity,
@@ -260,7 +260,7 @@ const vec3 iconHeatmapColor[] = {
   iconHMBlockHealth,
 };
 
-const vec3 iconSpeedLimitMph[] = {
+const glm::vec3 iconSpeedLimitMph[] = {
   iconSpeedLimitSign15MPH,
   iconSpeedLimitSign30MPH,
   iconSpeedLimitSign45MPH,
@@ -268,7 +268,7 @@ const vec3 iconSpeedLimitMph[] = {
   iconSpeedLimitSign75MPH,
 };
 
-const vec3 iconSpeedLimitKmph[] = {
+const glm::vec3 iconSpeedLimitKmph[] = {
   iconSpeedLimitSign25KMPH,
   iconSpeedLimitSign50KMPH,
   iconSpeedLimitSign75KMPH,
@@ -276,17 +276,17 @@ const vec3 iconSpeedLimitKmph[] = {
   iconSpeedLimitSign125KMPH,
 };
 
-const vec3 iconBridgePillar[] = {
+const glm::vec3 iconBridgePillar[] = {
   iconTrussBridgePillar,
   iconSuspensionBridgePillar,
 };
 
 // iconTurn[isRight][isStraight][isLeft][isU]
 // iconTurn[lane->flags & _laneTurnMask >> _laneTurnShift];
-const vec3 iconTurn[2*2*2*2] = {
-  vec3(0,12,1), vec3(1,12,1), vec3(2,12,1), vec3(3,12,1),
-  vec3(0,13,1), vec3(1,13,1), vec3(2,13,1), vec3(3,13,1),
-  vec3(0,14,1), vec3(1,14,1), vec3(2,14,1), vec3(3,14,1),
-  vec3(0,15,1), vec3(1,15,1), vec3(2,15,1), vec3(3,15,1),
+const glm::vec3 iconTurn[2*2*2*2] = {
+  glm::vec3(0,12,1), glm::vec3(1,12,1), glm::vec3(2,12,1), glm::vec3(3,12,1),
+  glm::vec3(0,13,1), glm::vec3(1,13,1), glm::vec3(2,13,1), glm::vec3(3,13,1),
+  glm::vec3(0,14,1), glm::vec3(1,14,1), glm::vec3(2,14,1), glm::vec3(3,14,1),
+  glm::vec3(0,15,1), glm::vec3(1,15,1), glm::vec3(2,15,1), glm::vec3(3,15,1),
 };
 

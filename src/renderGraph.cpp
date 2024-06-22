@@ -20,25 +20,26 @@
 #include "string.hpp"
 #include "string_proxy.hpp"
 #include "util.hpp"
+#include "error.hpp"
 
-#include "spdlog/spdlog.h"
+#include <glm/glm.hpp>
 #include <glm/gtx/rotate_vector.hpp>
 #include <stdio.h>
 
-static vec3 up = vec3(0, 0, 1);
-static vec3 railRise = vec3(0, 0, .25f);
+static glm::vec3 up = glm::vec3(0, 0, 1);
+static glm::vec3 railRise = glm::vec3(0, 0, .25f);
 static const float roadMound = 0.04f;
 static const float graphSimpleDistance = 2000;
 
 //Colors
-vec4 roadColor = vec4(1.0f, 1.0f, 1.0f, 1.0f);
-vec4 roadIllegalColor = vec4(1.0f, 0.5f, 0.5f, 1.0f);
-vec4 laneColor = vec4(0.5f, 0.5f, 0.5f, 1.0f);
-vec4 laneClosedColor = vec4(1.0f, 0.5f, 0.5f, 1.0f);
-vec4 laneGreenColor = vec4(0.f, 0.5f, 0.f, 1.0f);
-vec4 laneRedColor = vec4(0.5f, 0.f, 0.f, 1.0f);
+glm::vec4 roadColor = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
+glm::vec4 roadIllegalColor = glm::vec4(1.0f, 0.5f, 0.5f, 1.0f);
+glm::vec4 laneColor = glm::vec4(0.5f, 0.5f, 0.5f, 1.0f);
+glm::vec4 laneClosedColor = glm::vec4(1.0f, 0.5f, 0.5f, 1.0f);
+glm::vec4 laneGreenColor = glm::vec4(0.f, 0.5f, 0.f, 1.0f);
+glm::vec4 laneRedColor = glm::vec4(0.5f, 0.f, 0.f, 1.0f);
 
-static const vec3 xGray = vec3(0.5/spriteSheetSize, 4.5/spriteSheetSize, 1);
+static const glm::vec3 xGray = glm::vec3(0.5/spriteSheetSize, 4.5/spriteSheetSize, 1);
 
 //Stop light render
 static float stopLightHeight = 7.5;
@@ -51,28 +52,28 @@ static float signPoleOffset = 2;
 
 float roadTextureSizeX = 8192;
 float roadTextureSizeY = 512;
-vec3 sholder_xs = vec3(16/roadTextureSizeX, 0.1f, 0);
-vec3 sidewalk_xs = vec3(48/roadTextureSizeX, 0.1f, 0);
-vec3 bridge_xs = vec3(80/roadTextureSizeX, 0.125f, 0);
-vec3 trunk_xs = vec3(80/roadTextureSizeX, 0.375f, 0);
-vec3 grass_xs = vec3(80/roadTextureSizeX, 0.75f, 0);
-vec3 guard_xs = vec3(120/roadTextureSizeX, 0.0f, 0);
-vec3 node_x = vec3(144/roadTextureSizeX, 0.0f, 0);
-vec3 suspension_x = vec3(65/roadTextureSizeX, 1.f/512.f, 0);
-vec3 rail_x = vec3(67/roadTextureSizeX, 1.f/512.f, 1);
-vec3 black_x = vec3(69/roadTextureSizeX, 1.f/512.f, 0);
+glm::vec3 sholder_xs = glm::vec3(16/roadTextureSizeX, 0.1f, 0);
+glm::vec3 sidewalk_xs = glm::vec3(48/roadTextureSizeX, 0.1f, 0);
+glm::vec3 bridge_xs = glm::vec3(80/roadTextureSizeX, 0.125f, 0);
+glm::vec3 trunk_xs = glm::vec3(80/roadTextureSizeX, 0.375f, 0);
+glm::vec3 grass_xs = glm::vec3(80/roadTextureSizeX, 0.75f, 0);
+glm::vec3 guard_xs = glm::vec3(120/roadTextureSizeX, 0.0f, 0);
+glm::vec3 node_x = glm::vec3(144/roadTextureSizeX, 0.0f, 0);
+glm::vec3 suspension_x = glm::vec3(65/roadTextureSizeX, 1.f/512.f, 0);
+glm::vec3 rail_x = glm::vec3(67/roadTextureSizeX, 1.f/512.f, 1);
+glm::vec3 black_x = glm::vec3(69/roadTextureSizeX, 1.f/512.f, 0);
 float twoWayRoadTex[] = {160, 406, 812, 1530};
 float oneWayRoadTex[] = {3920, 4080, 4320, 4640, 5040, 5520, 6080};
 float undenseRailTex[] = {171, 253, 329, 408, 487};
 float denseRailTex[] = {549, 628, 707, 775, 854};
 
-bool shouldDrawSidewalk(vec3 loc) {
+bool shouldDrawSidewalk(glm::vec3 loc) {
   float dens = getGameMode() == ModeBuildingDesigner ?
     getDesign(1)->minDensity : heatMapGet(Density, loc);
   return dens > c(CSidewalkDensity);
 }
 
-bool shouldDrawRailDense(vec3 loc) {
+bool shouldDrawRailDense(glm::vec3 loc) {
   float dens = getGameMode() == ModeBuildingDesigner ?
     getDesign(1)->minDensity : heatMapGet(Density, loc);
   return dens > c(CPavedRailDensity);
@@ -80,7 +81,7 @@ bool shouldDrawRailDense(vec3 loc) {
 
 void renderStopSigns(item ndx) {
   Node* node = getNode(ndx);
-  vector<item> edges = getRenderableEdges(ndx);
+  std::vector<item> edges = getRenderableEdges(ndx);
   int numEdges = edges.size();
   Entity* signEntity = getEntity(node->signEntity);
   signEntity->shader = SignShader;
@@ -96,7 +97,7 @@ void renderStopSigns(item ndx) {
   }
 
   signEntity->texture = iconTexture;
-  vec3 center = node->center;
+  glm::vec3 center = node->center;
 
   for(int i = 0; i < numEdges; i++) {
     Edge* edge = getEdge(edges[i]);
@@ -104,11 +105,11 @@ void renderStopSigns(item ndx) {
     if (oneWay && edge->ends[1] != ndx) {
       continue;
     }
-    vec3 edgeLoc = edge->ends[0] == ndx ? edge->line.start : edge->line.end;
-    vec3 dir = normalize(edgeLoc - center) *
+    glm::vec3 edgeLoc = edge->ends[0] == ndx ? edge->line.start : edge->line.end;
+    glm::vec3 dir = normalize(edgeLoc - center) *
       node->intersectionSize;
     float width = edgeWidth(edges[i])/2.f - c(CSholderWidth)/2.f;
-    vec3 norm = normalize(vec3(-dir.y, dir.x, 0)) * width;
+    glm::vec3 norm = normalize(glm::vec3(-dir.y, dir.x, 0)) * width;
 
     makeSign(mesh, edgeLoc-norm-center, dir, iconStopSign, iconStopSignBack);
   }
@@ -116,9 +117,9 @@ void renderStopSigns(item ndx) {
   bufferMesh(signEntity->mesh);
 }
 
-void renderTrafficLights(item ndx, vector<vec3> ring) {
+void renderTrafficLights(item ndx, std::vector<glm::vec3> ring) {
   Node* node = getNode(ndx);
-  vector<item> edges = getRenderableEdges(ndx);
+  std::vector<item> edges = getRenderableEdges(ndx);
   int numEdges = edges.size();
 
   Entity* signEntity = getEntity(node->signEntity);
@@ -151,7 +152,7 @@ void renderTrafficLights(item ndx, vector<vec3> ring) {
   }
 
   //setStopLightPhaseTexture(ndx);
-  vec3 center = node->center;
+  glm::vec3 center = node->center;
 
   for(int i = 0; i < numEdges; i++) {
     Edge* edge = getEdge(edges[i]);
@@ -159,27 +160,27 @@ void renderTrafficLights(item ndx, vector<vec3> ring) {
     bool isRail = edge->config.type == ConfigTypeHeavyRail;
     if (oneWay && edge->ends[1] != ndx) continue;
 
-    vec3 edgeLoc = edge->ends[0] == ndx ? edge->line.start : edge->line.end;
-    vec3 dir = normalize(edgeLoc - center) * node->intersectionSize;
-    vec3 norm = normalize(vec3(-dir.y, dir.x, 0)) * trafficHandedness() *
+    glm::vec3 edgeLoc = edge->ends[0] == ndx ? edge->line.start : edge->line.end;
+    glm::vec3 dir = normalize(edgeLoc - center) * node->intersectionSize;
+    glm::vec3 norm = normalize(glm::vec3(-dir.y, dir.x, 0)) * trafficHandedness() *
       edgeWidth(edges[i]) / 2.f;
-    vec3 cornerLoc = edgeLoc - norm;
-    vec3 xppb = vec3(0.02f, 0.25f, 0);
-    vec3 xppt = vec3(0.02f, 0.25f, 1);
-    vec3 xpbox = vec3(0.02f, 0.75f, 1);
+    glm::vec3 cornerLoc = edgeLoc - norm;
+    glm::vec3 xppb = glm::vec3(0.02f, 0.25f, 0);
+    glm::vec3 xppt = glm::vec3(0.02f, 0.25f, 1);
+    glm::vec3 xpbox = glm::vec3(0.02f, 0.75f, 1);
 
     if (isRail) {
-      makeCylinder(mesh, cornerLoc-vec3(0,0,2)-center,
+      makeCylinder(mesh, cornerLoc-glm::vec3(0,0,2)-center,
           2, stopLightPoleWidth, 12, xppb, xppb);
       makeAngledCube(mesh, cornerLoc - center,
         normalize(dir)*trainSignalBoxSize, trainSignalBoxHeight, xpbox,
-        vec3((8+32*stopLightTextureIndex[i])/200.0f, 0, 1),
-        vec3((8+32*(stopLightTextureIndex[i]+1))/200.0f, 1, 1));
+        glm::vec3((8+32*stopLightTextureIndex[i])/200.0f, 0, 1),
+        glm::vec3((8+32*(stopLightTextureIndex[i]+1))/200.0f, 1, 1));
 
     } else {
       Line visionLine = line(cornerLoc - dir*1.5f, cornerLoc - dir*3.f);
 
-      vec3 best = ring[0];
+      glm::vec3 best = ring[0];
       float bestDist = FLT_MAX;
       for (int j = 0; j < ring.size(); j++) {
         float dist = pointLineDistance(ring[j], visionLine);
@@ -191,11 +192,11 @@ void renderTrafficLights(item ndx, vector<vec3> ring) {
 
       // make stoplight pole
       float numLanes = edge->config.numLanes;
-      vec3 poleNorm = normalize(norm) * signPoleOffset;
-      vec3 poleStart = best - center;
-      vec3 poleTop = poleStart + vec3(0, 0, stopLightHeight);
+      glm::vec3 poleNorm = normalize(norm) * signPoleOffset;
+      glm::vec3 poleStart = best - center;
+      glm::vec3 poleTop = poleStart + glm::vec3(0, 0, stopLightHeight);
       bool median = edge->config.flags & _configMedian;
-      vec3 beamNorm = norm*(numLanes-0.5f-(median?1:0))/numLanes
+      glm::vec3 beamNorm = norm*(numLanes-0.5f-(median?1:0))/numLanes
         * (oneWay ? 2.f : 1.f) + poleNorm;
 
       makeCylinder(mesh, poleStart, stopLightHeight+0.5f, stopLightPoleWidth,
@@ -203,14 +204,14 @@ void renderTrafficLights(item ndx, vector<vec3> ring) {
       makeCylinder(mesh, poleTop, beamNorm, stopLightPoleWidth, 6, xppt);
 
       // make stoplights
-      vec3 boxStart = poleTop + poleNorm + normalize(dir)*stopLightPoleWidth -
-        vec3(0, 0, stopLightBoxHeight/2);
-      vec3 boxStep = norm / (numLanes + (median ? 1 : 0)) * (oneWay?2.f:1.f);
+      glm::vec3 boxStart = poleTop + poleNorm + normalize(dir)*stopLightPoleWidth -
+        glm::vec3(0, 0, stopLightBoxHeight/2);
+      glm::vec3 boxStep = norm / (numLanes + (median ? 1 : 0)) * (oneWay?2.f:1.f);
       for(float j=0; j < numLanes; j++) {
         makeAngledCube(mesh, boxStart + boxStep*j,
           normalize(dir)*stopLightBoxSize, stopLightBoxHeight, xpbox,
-          vec3((8+32*stopLightTextureIndex[i])/200.0f, 0, 1),
-          vec3((8+32*(stopLightTextureIndex[i]+1))/200.0f, 1, 1));
+          glm::vec3((8+32*stopLightTextureIndex[i])/200.0f, 0, 1),
+          glm::vec3((8+32*(stopLightTextureIndex[i]+1))/200.0f, 1, 1));
       }
     }
   }
@@ -218,23 +219,23 @@ void renderTrafficLights(item ndx, vector<vec3> ring) {
   bufferMesh(signEntity->mesh);
 }
 
-void makeRailroad(Mesh* mesh, LaneBlock* block, item laneNdx, vec3 offset,
+void makeRailroad(Mesh* mesh, LaneBlock* block, item laneNdx, glm::vec3 offset,
     bool makeTies) {
   Lane* lane = &block->lanes[laneNdx];
   const int numCurveSegments = lane->length / 2;
-  vec3 norm0 = uzNormal(lane->spline.normal[0]);
-  vec3 norm1 = -uzNormal(lane->spline.normal[1]);
-  vec3* locs = (vec3*) alloca(sizeof(vec3)*(numCurveSegments+1)*2);
-  vec3 tie_xs = sidewalk_xs;
+  glm::vec3 norm0 = uzNormal(lane->spline.normal[0]);
+  glm::vec3 norm1 = -uzNormal(lane->spline.normal[1]);
+  glm::vec3* locs = (glm::vec3*) alloca(sizeof(glm::vec3)*(numCurveSegments+1)*2);
+  glm::vec3 tie_xs = sidewalk_xs;
   tie_xs.z = 1;
 
   for (int j = 0; j <= numCurveSegments; j++) {
     float theta = float(j)/numCurveSegments;
-    vec3 loc = interpolateSpline(lane->spline, theta) - offset;
-    vec3 n = normalize(lerp(norm0, norm1, theta));
-    vec3 n0 = n * c(CLaneWidth) * .45f;
-    vec3 n1 = uzNormal(n)*.25f;
-    vec3 nr = n * c(CRailGauge) * .5f;
+    glm::vec3 loc = interpolateSpline(lane->spline, theta) - offset;
+    glm::vec3 n = normalize(lerp(norm0, norm1, theta));
+    glm::vec3 n0 = n * c(CLaneWidth) * .45f;
+    glm::vec3 n1 = uzNormal(n)*.25f;
+    glm::vec3 nr = n * c(CRailGauge) * .5f;
     locs[j*2+0] = loc-nr;
     locs[j*2+1] = loc+nr;
 
@@ -246,12 +247,12 @@ void makeRailroad(Mesh* mesh, LaneBlock* block, item laneNdx, vec3 offset,
 
   for (int i = 0; i < 2; i++) {
     for (int j = 0; j < numCurveSegments; j++) {
-      vec3 loc = locs[j*2+i];
-      vec3 along = locs[(j+1)*2+i] - loc;
-      vec3 uAlong = normalize(along) * .05f;
+      glm::vec3 loc = locs[j*2+i];
+      glm::vec3 along = locs[(j+1)*2+i] - loc;
+      glm::vec3 uAlong = normalize(along) * .05f;
       loc -= uAlong;
       along += uAlong*2.f;
-      vec3 right = uzNormal(along)*.15f;
+      glm::vec3 right = uzNormal(along)*.15f;
       loc -= right*.5f;
       makeAngledCube(mesh, loc-railRise*.5f, along,
           right, railRise, true, rail_x);
@@ -259,11 +260,11 @@ void makeRailroad(Mesh* mesh, LaneBlock* block, item laneNdx, vec3 offset,
   }
 }
 
-void makeGuardrails(Mesh* mesh, vec3 btl, vec3 along, vec3 right) {
-  vec3 bridgeUp = up*2.f;
-  vec3 bbl = btl + along;
-  vec3 uright = normalize(right);
-  vec3 ualong = normalize(along);
+void makeGuardrails(Mesh* mesh, glm::vec3 btl, glm::vec3 along, glm::vec3 right) {
+  glm::vec3 bridgeUp = up*2.f;
+  glm::vec3 bbl = btl + along;
+  glm::vec3 uright = normalize(right);
+  glm::vec3 ualong = normalize(along);
   float width = length(right);
   float amount = length(along);
   float i=0;
@@ -280,15 +281,15 @@ void makeGuardrails(Mesh* mesh, vec3 btl, vec3 along, vec3 right) {
     uright*.25f, ualong*.25f, up, true, guard_xs);
 }
 
-vector<vec3> renderNodeCore(item ndx, Mesh* mesh, Mesh* tunnelMesh,
+std::vector<glm::vec3> renderNodeCore(item ndx, Mesh* mesh, Mesh* tunnelMesh,
     bool simple) {
   Node* node = getNode(ndx);
-  vector<item> edges = getRenderableEdges(ndx);
-  vec3 center = node->center;
-  vector<vec3> ring;
-  vector<vec3> outerRing;
-  vector<vec3> norms;
-  vector<bool> isEnd;
+  std::vector<item> edges = getRenderableEdges(ndx);
+  glm::vec3 center = node->center;
+  std::vector<glm::vec3> ring;
+  std::vector<glm::vec3> outerRing;
+  std::vector<glm::vec3> norms;
+  std::vector<bool> isEnd;
   int numEdges = edges.size();
   float *thetas = (float*)alloca(sizeof(float)*numEdges);
   bool isUnderground = isNodeUnderground(ndx);
@@ -307,19 +308,19 @@ vector<vec3> renderNodeCore(item ndx, Mesh* mesh, Mesh* tunnelMesh,
   bool isDense = shouldDrawSidewalk(center);
   bool drawSidewalk = isRoad &&
     (drawGirder || isUnderground || isDense);
-  vec3 tup = vec3(0,0,7.1);
-  vec3 tupi = vec3(0,0,6.1);
-  vec3 tdown = vec3(0,0,1.5);
+  glm::vec3 tup = glm::vec3(0,0,7.1);
+  glm::vec3 tupi = glm::vec3(0,0,6.1);
+  glm::vec3 tdown = glm::vec3(0,0,1.5);
   int gameMode = getGameMode();
   bool railDense = isRail && (isUnderground || drawGirder ||
       shouldDrawRailDense(center));
-  vec3 node_tx = isRail && !railDense ? sholder_xs :
+  glm::vec3 node_tx = isRail && !railDense ? sholder_xs :
     isPed ? sidewalk_xs : node_x;
   node_tx.z = 1;
-  vec3 sholdx = railDense ? node_x :
+  glm::vec3 sholdx = railDense ? node_x :
     isUnderground && isPed ? sidewalk_xs :
     drawGirder ? sidewalk_xs : sholder_xs;
-  vec3 offset = isRail ? -railRise : vec3(0,0,0);
+  glm::vec3 offset = isRail ? -railRise : glm::vec3(0,0,0);
 
   // Check for pedestrian paths
   if (!isPed) {
@@ -338,26 +339,26 @@ vector<vec3> renderNodeCore(item ndx, Mesh* mesh, Mesh* tunnelMesh,
     if (debugMode() && !(edge->flags & _graphExists)) {
       handleError("edge doesn't exist");
     }
-    vec3 edgeLoc = edge->ends[0] == ndx ? edge->line.start : edge->line.end;
-    vec3 dir = normalize(edgeLoc - center) *
+    glm::vec3 edgeLoc = edge->ends[0] == ndx ? edge->line.start : edge->line.end;
+    glm::vec3 dir = normalize(edgeLoc - center) *
       node->intersectionSize;
     thetas[i] = atan2(dir.y, dir.x);
-    vec3 outerDown = drawDirt ?
-      vec3(0,0, -c(CRoadRise)*3) : vec3(0,0, -c(CRoadRise)*1);
+    glm::vec3 outerDown = drawDirt ?
+      glm::vec3(0,0, -c(CRoadRise)*3) : glm::vec3(0,0, -c(CRoadRise)*1);
 
     // make culdesac
     if (numEdges == 1) {
-      vec3 nalong = edgeLoc - center;
-      vec3 unorm = normalize(vec3(dir.y, -dir.x, 0));
-      vec3 norm = unorm * (edgeWidth(edges[i])*.5f);
+      glm::vec3 nalong = edgeLoc - center;
+      glm::vec3 unorm = normalize(glm::vec3(dir.y, -dir.x, 0));
+      glm::vec3 norm = unorm * (edgeWidth(edges[i])*.5f);
       //if (isUnderground && isPed) norm += unorm*c(CSidewalkWidth);
-      vec3 outerNorm =
+      glm::vec3 outerNorm =
         drawSidewalk ? norm+unorm*c(CSidewalkWidth) :
         drawGirder ? norm :
         norm*2.f;
 
-      vec3 loc0 = center + nalong - outerNorm;
-      vec3 loc1 = center + nalong + outerNorm;
+      glm::vec3 loc0 = center + nalong - outerNorm;
+      glm::vec3 loc1 = center + nalong + outerNorm;
       if (drawDirt) {
         loc0 = pointOnLand(loc0);
         loc1 = pointOnLand(loc1);
@@ -389,9 +390,9 @@ vector<vec3> renderNodeCore(item ndx, Mesh* mesh, Mesh* tunnelMesh,
         for(int i = 0; i < culdesacVerticies; i ++) {
           float theta =  - i * pi_o * 1.25 / (culdesacVerticies - 1 ) +
             pi_o * 0.625;
-          vec3 rdir = rotateZ(nalong, theta);
+          glm::vec3 rdir = rotateZ(nalong, theta);
           ring.push_back(center - rdir);
-          vec3 loc = center - rdir*(drawGirder ? 1 : 1.5f);
+          glm::vec3 loc = center - rdir*(drawGirder ? 1 : 1.5f);
           if (drawDirt) {
             loc = pointOnLand(loc);
           }
@@ -400,19 +401,19 @@ vector<vec3> renderNodeCore(item ndx, Mesh* mesh, Mesh* tunnelMesh,
         }
 
         if (drawSidewalk) {
-          vec3 sDown = vec3(0,0,c(CSidewalkDown));
-          vec3 sUp = vec3(0,0,c(CSidewalkRise));
+          glm::vec3 sDown = glm::vec3(0,0,c(CSidewalkDown));
+          glm::vec3 sUp = glm::vec3(0,0,c(CSidewalkRise));
           for (int j = 0; j < 2; j++) {
-            vec3 sp = center - nalong + norm*(j==0?1.f:-1.f);
-            vec3 spo = sp + outerNorm*(j==0?1.f:-1.f);
+            glm::vec3 sp = center - nalong + norm*(j==0?1.f:-1.f);
+            glm::vec3 spo = sp + outerNorm*(j==0?1.f:-1.f);
             spo.z = sp.z;
-            vec3 spd = sp+sDown;
-            vec3 spod = spo+sDown;
+            glm::vec3 spd = sp+sDown;
+            glm::vec3 spod = spo+sDown;
             if (drawDirt) {
               spod += (spo-sp)*c(CSidewalkBezel)/c(CSidewalkWidth);
             }
             if (j == 1) {
-              vec3 swap = sp;
+              glm::vec3 swap = sp;
               sp = spo;
               spo = swap;
               swap = spd;
@@ -426,15 +427,15 @@ vector<vec3> renderNodeCore(item ndx, Mesh* mesh, Mesh* tunnelMesh,
 
         if (drawGirder && !simple) {
           const int numGuardrails = 5;
-          vec3 guardrailLocs[numGuardrails+1];
+          glm::vec3 guardrailLocs[numGuardrails+1];
           for (int j = 0; j < numGuardrails+1; j++) {
             float theta =  - j * pi_o * 1.25 / (numGuardrails - 1) +
               pi_o * 0.625;
-            vec3 rdir = rotateZ(nalong, theta);
+            glm::vec3 rdir = rotateZ(nalong, theta);
             guardrailLocs[j] = rdir;
           }
           for (int j = 0; j < numGuardrails; j++) {
-            vec3 along = guardrailLocs[j+1] - guardrailLocs[j+1];
+            glm::vec3 along = guardrailLocs[j+1] - guardrailLocs[j+1];
             makeGuardrails(mesh, guardrailLocs[j], along, uzNormal(along));
           }
         }
@@ -446,7 +447,7 @@ vector<vec3> renderNodeCore(item ndx, Mesh* mesh, Mesh* tunnelMesh,
       Edge* other = getEdge(otherNdx);
       Edge* cornerEdges[2] = {edge, other};
       float widths[2] = {edgeWidth(edges[i]), edgeWidth(otherNdx)};
-      vec3 cnorms[2];
+      glm::vec3 cnorms[2];
       Line l[2];
       Line lo[2];
 
@@ -464,17 +465,17 @@ vector<vec3> renderNodeCore(item ndx, Mesh* mesh, Mesh* tunnelMesh,
 
         l[j].start.z = center.z;
         l[j].end.z = center.z;
-        vec3 along = l[j].end - l[j].start;
-        vec3 unorm = normalize(vec3(along.y, -along.x, 0));
+        glm::vec3 along = l[j].end - l[j].start;
+        glm::vec3 unorm = normalize(glm::vec3(along.y, -along.x, 0));
         if (j == 1) unorm *= -1;
-        vec3 norm = unorm * widths[j] * .5f;
+        glm::vec3 norm = unorm * widths[j] * .5f;
         cnorms[j] = norm;
         l[j].start += norm;
         l[j].end += norm;
 
-        vec3 outerNorm =
+        glm::vec3 outerNorm =
           drawSidewalk ? unorm * c(CSidewalkWidth) :
-          drawGirder ? vec3(0,0,0) :
+          drawGirder ? glm::vec3(0,0,0) :
           norm;
         lo[j].start = l[j].start + outerNorm;
         lo[j].end = l[j].end + outerNorm;
@@ -492,7 +493,7 @@ vector<vec3> renderNodeCore(item ndx, Mesh* mesh, Mesh* tunnelMesh,
       int numCurveSegments = simple ? 1 : 12;
       for (int j = 0; j <= numCurveSegments; j++) {
         float theta = float(j)/numCurveSegments;
-        vec3 loc = interpolateSpline(s, theta);
+        glm::vec3 loc = interpolateSpline(s, theta);
         ring.push_back(loc);
         outerRing.push_back(interpolateSpline(so, theta));
         norms.push_back(cnorms[0] * (1-theta) + cnorms[1] * theta);
@@ -501,21 +502,21 @@ vector<vec3> renderNodeCore(item ndx, Mesh* mesh, Mesh* tunnelMesh,
       int rs = ring.size();
       isEnd.resize(rs);
       isEnd[rs-1] = true;
-      vec3 sDown = vec3(0,0,drawDirt?c(CSidewalkDown):0);
-      vec3 sUp = vec3(0,0,c(CSidewalkRise));
+      glm::vec3 sDown = glm::vec3(0,0,drawDirt?c(CSidewalkDown):0);
+      glm::vec3 sUp = glm::vec3(0,0,c(CSidewalkRise));
 
       if (drawSidewalk && !simple) {
         for (int j = 0; j < 2; j++) {
-          vec3 sp = l[j].start - center;
-          vec3 spo = lo[j].start - center;
+          glm::vec3 sp = l[j].start - center;
+          glm::vec3 spo = lo[j].start - center;
           spo.z = sp.z;
-          vec3 spd = sp+sDown;
-          vec3 spod = spo+sDown;
+          glm::vec3 spd = sp+sDown;
+          glm::vec3 spod = spo+sDown;
           if (drawDirt) {
             spod += (spo-sp)*c(CSidewalkBezel)/c(CSidewalkWidth);
           }
           if (j == 1) {
-            vec3 swap = sp;
+            glm::vec3 swap = sp;
             sp = spo;
             spo = swap;
             swap = spd;
@@ -529,13 +530,13 @@ vector<vec3> renderNodeCore(item ndx, Mesh* mesh, Mesh* tunnelMesh,
 
       if (drawGirder && !simple) {
         const int numGuardrails = 4;
-        vec3 guardrailLocs[numGuardrails+1];
+        glm::vec3 guardrailLocs[numGuardrails+1];
         for (int j = 0; j < numGuardrails+1; j++) {
           float theta = float(j)/(numGuardrails);
           guardrailLocs[j] = interpolateSpline(s, theta) - center;
         }
         for (int j = 0; j < numGuardrails; j++) {
-          vec3 along = guardrailLocs[j+1] - guardrailLocs[j];
+          glm::vec3 along = guardrailLocs[j+1] - guardrailLocs[j];
           makeGuardrails(mesh, guardrailLocs[j+1], -along, uzNormal(along));
         }
 
@@ -545,7 +546,7 @@ vector<vec3> renderNodeCore(item ndx, Mesh* mesh, Mesh* tunnelMesh,
             guardrailLocs[j] = interpolateSpline(so, theta) - center + sUp;
           }
           for (int j = 0; j < numGuardrails; j++) {
-            vec3 along = guardrailLocs[j+1] - guardrailLocs[j];
+            glm::vec3 along = guardrailLocs[j+1] - guardrailLocs[j];
             makeGuardrails(mesh, guardrailLocs[j+1], -along, uzNormal(along));
           }
         }
@@ -559,19 +560,19 @@ vector<vec3> renderNodeCore(item ndx, Mesh* mesh, Mesh* tunnelMesh,
   center -= offset;
   for(int i = 0; i < ringSize; i ++) {
     int i1 = (i+1) % ringSize;
-    vec3 r0 = ring[i];
-    vec3 r1 = ring[i1];
-    vec3 r2 = outerRing[i];
-    vec3 r3 = outerRing[i1];
-    vec3 upn0 = up + norms[i] * roadMound;
-    vec3 upn1 = up + norms[i1] * roadMound;
-    vec3 n0 = norms[i];
-    vec3 n1 = norms[i1];
+    glm::vec3 r0 = ring[i];
+    glm::vec3 r1 = ring[i1];
+    glm::vec3 r2 = outerRing[i];
+    glm::vec3 r3 = outerRing[i1];
+    glm::vec3 upn0 = up + norms[i] * roadMound;
+    glm::vec3 upn1 = up + norms[i1] * roadMound;
+    glm::vec3 n0 = norms[i];
+    glm::vec3 n1 = norms[i1];
 
     if (numEdges != 2) {
       Triangle t = {{
         {r0-center, upn0, node_tx},
-        {vec3(0.f,0.f,0.f)+offset, up, node_tx},
+        {glm::vec3(0.f,0.f,0.f)+offset, up, node_tx},
         {r1-center, upn1, node_tx},
       }};
       pushTriangle(mesh, t);
@@ -579,10 +580,10 @@ vector<vec3> renderNodeCore(item ndx, Mesh* mesh, Mesh* tunnelMesh,
 
     // Tunnel Structure
     if (makeTunnel && tunnelMesh != 0) {
-      vec3 r0t = (!isRoad ? r0 : r2) - center;
-      vec3 r2t = r0t;
-      vec3 r1t = (!isRoad ? r1 : r3) - center;
-      vec3 r3t = r1t;
+      glm::vec3 r0t = (!isRoad ? r0 : r2) - center;
+      glm::vec3 r2t = r0t;
+      glm::vec3 r1t = (!isRoad ? r1 : r3) - center;
+      glm::vec3 r3t = r1t;
       r2t += normalize(r2 - r0)*1.f;
       r3t += normalize(r3 - r1)*1.f;
 
@@ -612,8 +613,8 @@ vector<vec3> renderNodeCore(item ndx, Mesh* mesh, Mesh* tunnelMesh,
     }
 
     if (drawGirder) {
-      vec3 gr0 = r2-center;
-      vec3 gr1 = r3-center;
+      glm::vec3 gr0 = r2-center;
+      glm::vec3 gr1 = r3-center;
       if (simple) {
         makeQuad(mesh, gr0, gr1,
             gr0-up*2.5f, gr1-up*2.5f,
@@ -633,8 +634,8 @@ vector<vec3> renderNodeCore(item ndx, Mesh* mesh, Mesh* tunnelMesh,
 
     if (drawSidewalk) {
       if (simple) {
-        //vec3 rn0 = (r2 - r0)*c(CSidewalkBezel)/c(CSidewalkWidth);
-        //vec3 rn1 = (r3 - r1)*c(CSidewalkBezel)/c(CSidewalkWidth);
+        //glm::vec3 rn0 = (r2 - r0)*c(CSidewalkBezel)/c(CSidewalkWidth);
+        //glm::vec3 rn1 = (r3 - r1)*c(CSidewalkBezel)/c(CSidewalkWidth);
         //r2 += rn0;
         //r3 += rn1;
         r2.z = r0.z;
@@ -643,10 +644,10 @@ vector<vec3> renderNodeCore(item ndx, Mesh* mesh, Mesh* tunnelMesh,
             sidewalk_xs, sidewalk_xs);
 
       } else {
-        vec3 r0d = r0;
-        vec3 r1d = r1;
-        vec3 r2d = r2;
-        vec3 r3d = r3;
+        glm::vec3 r0d = r0;
+        glm::vec3 r1d = r1;
+        glm::vec3 r2d = r2;
+        glm::vec3 r3d = r3;
         r2.z = r0.z;
         r3.z = r1.z;
         r0.z += c(CSidewalkRise);
@@ -675,8 +676,8 @@ vector<vec3> renderNodeCore(item ndx, Mesh* mesh, Mesh* tunnelMesh,
       }
 
     } else if (drawDirt) {
-      vec3 n0a = cross(cross(n0, up), r2-r0);
-      vec3 n1a = cross(cross(n1, up), r3-r1);
+      glm::vec3 n0a = cross(cross(n0, up), r2-r0);
+      glm::vec3 n1a = cross(cross(n1, up), r3-r1);
       makeQuad(mesh, r0-center, r1-center, r2-center, r3-center,
           up, up, n0a, n1a, sholdx, sholdx);
     }
@@ -685,14 +686,14 @@ vector<vec3> renderNodeCore(item ndx, Mesh* mesh, Mesh* tunnelMesh,
   if (numEdges == 2) {
     for(int i = 0; i < ringSize/2-1; i ++) {
       int i1 = (i+1) % ringSize;
-      vec3 r0 = ring[i1];
-      vec3 r1 = ring[i];
-      vec3 r2 = ring[ringSize-i1-1];
-      vec3 r3 = ring[ringSize-i-1];
-      vec3 upn0 = up + norms[i1] * roadMound;
-      vec3 upn1 = up + norms[i] * roadMound;
-      vec3 upn2 = up + norms[ringSize-i1-1] * roadMound;
-      vec3 upn3 = up + norms[ringSize-i-1] * roadMound;
+      glm::vec3 r0 = ring[i1];
+      glm::vec3 r1 = ring[i];
+      glm::vec3 r2 = ring[ringSize-i1-1];
+      glm::vec3 r3 = ring[ringSize-i-1];
+      glm::vec3 upn0 = up + norms[i1] * roadMound;
+      glm::vec3 upn1 = up + norms[i] * roadMound;
+      glm::vec3 upn2 = up + norms[ringSize-i1-1] * roadMound;
+      glm::vec3 upn3 = up + norms[ringSize-i-1] * roadMound;
       makeQuad(mesh, r0-center, r1-center, r2-center, r3-center,
           upn0, upn1, upn2, upn3, node_tx, node_tx);
     }
@@ -702,20 +703,20 @@ vector<vec3> renderNodeCore(item ndx, Mesh* mesh, Mesh* tunnelMesh,
 }
 
 bool makeSupportPillar(item ndx, Mesh* mesh, Mesh* simpleMesh,
-    vec3 center, vec3 offset) {
+    glm::vec3 center, glm::vec3 offset) {
 
-  vec3 realLoc = center+offset;
-  vec3 onLand = pointOnLand(realLoc);
+  glm::vec3 realLoc = center+offset;
+  glm::vec3 onLand = pointOnLand(realLoc);
   onLand.z -= 4;
   float z = realLoc.z - onLand.z - 1;
   if (onLand.z < -4) return false;
   if (z < 0) return true;
 
-  vector<item> collisions = getGraphCollisions(box(vec2(realLoc), 125));
+  std::vector<item> collisions = getGraphCollisions(box(glm::vec2(realLoc), 125));
   for (int i = 0; i < collisions.size(); i++) {
     item cNdx = collisions[i];
     if (cNdx == ndx) continue;
-    vec3 intersection = nearestPointOnLine(realLoc, getLine(cNdx));
+    glm::vec3 intersection = nearestPointOnLine(realLoc, getLine(cNdx));
     if (intersection.z < realLoc.z) {
       float size = cNdx < 0 ? getNode(cNdx)->intersectionSize :
         edgeWidth(cNdx);
@@ -725,7 +726,7 @@ bool makeSupportPillar(item ndx, Mesh* mesh, Mesh* simpleMesh,
     }
   }
 
-  vec3 tex = node_x;
+  glm::vec3 tex = node_x;
   tex.z = 0;
   makeCylinder(mesh, onLand-offset, z, 2.f, 24, tex);
   if (simpleMesh != 0) {
@@ -749,13 +750,13 @@ void renderNode(item ndx) {
     node->signEntity = addEntity(SignShader);
   }
 
-  vec3 center = node->center;
+  glm::vec3 center = node->center;
   bool isExpwy = node->config.type == ConfigTypeExpressway;
   bool isRail = node->config.type == ConfigTypeHeavyRail;
   bool isPed = node->config.type == ConfigTypePedestrian;
   bool isRoadway = !isRail && !isPed;
   int gameMode = getGameMode();
-  vector<item> edges = getRenderableEdges(ndx);
+  std::vector<item> edges = getRenderableEdges(ndx);
   int numEdges = edges.size();
   if (gameMode == ModeBuildingDesigner) { return; }
 
@@ -808,10 +809,10 @@ void renderNode(item ndx) {
   }
 
   if (abs(node->center.z-pointOnLand(node->center).z) > c(CRoadRise)*4) {
-    makeSupportPillar(ndx, mesh, simpleMesh, vec3(0,0,0), node->center);
+    makeSupportPillar(ndx, mesh, simpleMesh, glm::vec3(0,0,0), node->center);
   }
 
-  vector<vec3> ring = renderNodeCore(ndx, mesh, tunnelMesh, false);
+  std::vector<glm::vec3> ring = renderNodeCore(ndx, mesh, tunnelMesh, false);
   renderNodeCore(ndx, simpleMesh, 0, true);
 
   bufferMesh(entity->mesh);
@@ -851,37 +852,37 @@ void renderNode(item ndx) {
   setEntityRaise(node->signEntity,  complete ? 0 : 4);
 }
 
-vec3 cableHeight(float i, float num) {
+glm::vec3 cableHeight(float i, float num) {
   float u = i/num;
   float z = 1-u;
   z = z*z;
-  return vec3(0,0, z * 105);
+  return glm::vec3(0,0, z * 105);
 }
 
-void makeSuspensionCables(Mesh* mesh, vec3 tl, vec3 along, vec3 right,
+void makeSuspensionCables(Mesh* mesh, glm::vec3 tl, glm::vec3 along, glm::vec3 right,
     bool simple) {
-  vec3 uright = normalize(right);
-  vec3 ualong = normalize(along);
+  glm::vec3 uright = normalize(right);
+  glm::vec3 ualong = normalize(along);
   float lngth = length(along);
   const float cableSpacing = 40;
   int num = lngth/cableSpacing;
   tl.z -= 1.5;
 
   for (float i = 1; i <= num+1; i++) {
-    vec3 loc = tl + ualong*cableSpacing*i;
-    vec3 prevLoc = tl + ualong*cableSpacing*(i-1);
-    vec3 cableUp = cableHeight(i, num);
-    vec3 prevCableUp = cableHeight(i-1, num);
-    vec3 stayAlong = prevLoc + prevCableUp - loc - cableUp;
+    glm::vec3 loc = tl + ualong*cableSpacing*i;
+    glm::vec3 prevLoc = tl + ualong*cableSpacing*(i-1);
+    glm::vec3 cableUp = cableHeight(i, num);
+    glm::vec3 prevCableUp = cableHeight(i-1, num);
+    glm::vec3 stayAlong = prevLoc + prevCableUp - loc - cableUp;
     if (i == 1) stayAlong = stayAlong*1.65f;
 
-    //makeAngledCube(mesh, loc + vec3(0,0, -2.5) - uright*4.f + ualong*2.5f,
-     //   ualong*-5.f, right + uright*8.f, vec3(0,0,2.5), true, bridge_xs);
+    //makeAngledCube(mesh, loc + glm::vec3(0,0, -2.5) - uright*4.f + ualong*2.5f,
+     //   ualong*-5.f, right + uright*8.f, glm::vec3(0,0,2.5), true, bridge_xs);
 
     for (float j = 0; j < 2; j++) {
-      vec3 sloc = loc + right*j + uright * (2.f*(j*2-1));
+      glm::vec3 sloc = loc + right*j + uright * (2.f*(j*2-1));
       if (cableUp.z > 2) {
-        makeCylinder(mesh, sloc-vec3(0,0,1),
+        makeCylinder(mesh, sloc-glm::vec3(0,0,1),
             cableUp, 1.5f, 6, suspension_x, false);
       }
 
@@ -892,17 +893,17 @@ void makeSuspensionCables(Mesh* mesh, vec3 tl, vec3 along, vec3 right,
 }
 
 void makeSuspensionCables(item ndx,
-    Mesh* mesh, vec3 btl, vec3 along, vec3 right, bool simple) {
+    Mesh* mesh, glm::vec3 btl, glm::vec3 along, glm::vec3 right, bool simple) {
 
   Edge* edge = getEdge(ndx);
-  vec3 uright = normalize(right);
-  vec3 ualong = normalize(along);
+  glm::vec3 uright = normalize(right);
+  glm::vec3 ualong = normalize(along);
   float width = length(right);
   float amount = length(along);
 
   makeIBeam(mesh, btl-up*2.5f-uright*3.f, right+uright*6.f,
       along, up*2.f, width+4, true, false, suspension_x);
-  vec3 btld = btl-up*.5f;
+  glm::vec3 btld = btl-up*.5f;
   makeQuad(mesh, btld, btld+along, btl, btl+along,
     node_x, node_x);
   makeQuad(mesh, btld+right+along, btld+right, btl+right+along, btl+right,
@@ -920,7 +921,7 @@ void makeSuspensionCables(item ndx,
       suspension[i] = p->flags & _pillarSuspension;
 
       if (suspension[i]) {
-        vec3 buff = ualong * (node->intersectionSize*.1f);
+        glm::vec3 buff = ualong * (node->intersectionSize*.1f);
         along += buff;
         if (i == 0) btl -= buff;
       }
@@ -931,7 +932,7 @@ void makeSuspensionCables(item ndx,
     if (!suspension[i]) continue;
 
     float mult = i*2-1;
-    vec3 segAlong = along;
+    glm::vec3 segAlong = along;
     if (suspension[!i]) segAlong = segAlong * .5f;
 
     makeSuspensionCables(mesh, btl+(along+right)*float(i),
@@ -939,15 +940,15 @@ void makeSuspensionCables(item ndx,
   }
 }
 
-void makeBridgeSegment(Mesh* mesh, vec3 btl, vec3 along, vec3 right,
+void makeBridgeSegment(Mesh* mesh, glm::vec3 btl, glm::vec3 along, glm::vec3 right,
     bool forceTruss, bool simple, bool isSidewalk, bool includeIBeams) {
-  vec3 uright = normalize(right);
-  vec3 ualong = normalize(along);
+  glm::vec3 uright = normalize(right);
+  glm::vec3 ualong = normalize(along);
   float width = length(right);
   float amount = length(along);
 
   if (simple) {
-    vec3 btld = btl-up*2.5f;
+    glm::vec3 btld = btl-up*2.5f;
     makeQuad(mesh, btld, btld+along, btl, btl+along,
       bridge_xs, bridge_xs);
     makeQuad(mesh, btld+right+along, btld+right, btl+right+along, btl+right,
@@ -958,8 +959,8 @@ void makeBridgeSegment(Mesh* mesh, vec3 btl, vec3 along, vec3 right,
       makeIBeam(mesh, btl-up*2.5f+uright, right-uright*2.f, along, up*2.f,
         width-4, false, false, bridge_xs);
     }
-    vec3 btld = btl-up*.5f;
-    vec3 node_tx = isSidewalk ? sidewalk_xs : node_x;
+    glm::vec3 btld = btl-up*.5f;
+    glm::vec3 node_tx = isSidewalk ? sidewalk_xs : node_x;
     makeQuad(mesh, btld, btld+along, btl, btl+along,
       node_tx, node_tx);
     makeQuad(mesh, btld+right+along, btld+right, btl+right+along, btl+right,
@@ -977,24 +978,24 @@ void makeBridgeSegment(Mesh* mesh, vec3 btl, vec3 along, vec3 right,
     int numTriangles = amount/triangleLength;
     float beamAngle = pi_o/3.f;
     float innerWidth = 1.f;
-    vec3 beamStep = ualong*triangleLength;
-    vec3 beamAlong = (triangleLength+1) *
-      (ualong*cos(beamAngle) + up*sin(beamAngle));
-    vec3 beamBack = (triangleLength+1) *
-      (-ualong*cos(beamAngle) + up*sin(beamAngle));
-    vec3 beamUp = beamHeight *
-      (-ualong*sin(beamAngle) + up*cos(beamAngle));
-    vec3 beamUpBack = beamHeight *
-      (ualong*sin(beamAngle) + up*cos(beamAngle));
-    vec3 beamRight = uright*beamWidth;
-    vec3 start = btl+.5f*(amount - numTriangles*triangleLength)*ualong
+    glm::vec3 beamStep = ualong*triangleLength;
+    glm::vec3 beamAlong = (triangleLength+1) *
+      (ualong*glm::cos(beamAngle) + up*glm::sin(beamAngle));
+    glm::vec3 beamBack = (triangleLength+1) *
+      (-ualong*glm::cos(beamAngle) + up*glm::sin(beamAngle));
+    glm::vec3 beamUp = beamHeight *
+      (-ualong*glm::sin(beamAngle) + up*glm::cos(beamAngle));
+    glm::vec3 beamUpBack = beamHeight *
+      (ualong*glm::sin(beamAngle) + up*glm::cos(beamAngle));
+    glm::vec3 beamRight = uright*beamWidth;
+    glm::vec3 start = btl+.5f*(amount - numTriangles*triangleLength)*ualong
       - up*beamHeight;
-    vec3 botBeamStart = start;
-    vec3 topBeamStart = start+.5f*beamStep +
-      up*sin(beamAngle)*triangleLength;
-    vec3 topBeamStartAdj = topBeamStart - ualong*1.0f;
-    vec3 botBeamAlong = beamStep*float(numTriangles);
-    vec3 topBeamAlong = beamStep*float(numTriangles-1) + ualong*2.f;
+    glm::vec3 botBeamStart = start;
+    glm::vec3 topBeamStart = start+.5f*beamStep +
+      up*glm::sin(beamAngle)*triangleLength;
+    glm::vec3 topBeamStartAdj = topBeamStart - ualong*1.0f;
+    glm::vec3 botBeamAlong = beamStep*float(numTriangles);
+    glm::vec3 topBeamAlong = beamStep*float(numTriangles-1) + ualong*2.f;
 
     makeIBeam(mesh, botBeamStart+right+beamRight,
         up*beamHeight, botBeamAlong,
@@ -1010,11 +1011,11 @@ void makeBridgeSegment(Mesh* mesh, vec3 btl, vec3 along, vec3 right,
         -beamRight, innerWidth, true, true, bridge_xs);
 
     for (int i = 0; i < numTriangles; i++) {
-      vec3 loc = start+float(i)*beamStep;
-      vec3 locR0 = loc+right+beamRight;
-      vec3 locL0 = loc;
-      vec3 locR1 = loc+right+beamStep;
-      vec3 locL1 = loc+beamStep-beamRight;
+      glm::vec3 loc = start+float(i)*beamStep;
+      glm::vec3 locR0 = loc+right+beamRight;
+      glm::vec3 locL0 = loc;
+      glm::vec3 locR1 = loc+right+beamStep;
+      glm::vec3 locL1 = loc+beamStep-beamRight;
       makeIBeam(mesh, locR0, beamUp, beamAlong, -beamRight,
           innerWidth, true, true, bridge_xs);
       makeIBeam(mesh, locL0, beamUp, beamAlong, -beamRight,
@@ -1031,64 +1032,64 @@ void makeBridgeSegment(Mesh* mesh, vec3 btl, vec3 along, vec3 right,
   }
 }
 
-void makeExpresswaySign(Mesh* signMesh, vec3 end, vec3 ualong, vec3 unorm,
+void makeExpresswaySign(Mesh* signMesh, glm::vec3 end, glm::vec3 ualong, glm::vec3 unorm,
     float width) {
 
   //Signs
-  vec3 poleForward = ualong * stopLightPoleWidth * .55f;
-  vec3 sbloc = end - ualong*tileSize;
-  vec3 sloc = sbloc + vec3(0,0,8) - poleForward +
+  glm::vec3 poleForward = ualong * stopLightPoleWidth * .55f;
+  glm::vec3 sbloc = end - ualong*tileSize;
+  glm::vec3 sloc = sbloc + glm::vec3(0,0,8) - poleForward +
     unorm*(width*.5f - c(CLaneWidth));
-  vec3 sup = vec3(0,0,6);
-  vec3 salong = unorm * c(CLaneWidth) * 3.f;
-  vec3 sspacing = unorm * c(CLaneWidth) * 3.25f;
+  glm::vec3 sup = glm::vec3(0,0,6);
+  glm::vec3 salong = unorm * c(CLaneWidth) * 3.f;
+  glm::vec3 sspacing = unorm * c(CLaneWidth) * 3.25f;
 
   //Poles
-  vec3 palong = unorm * (width * .5f - stopLightPoleWidth);
-  vec3 pup = vec3(0,0,13);
-  vec3 pdown = vec3(0,0,2);
-  vec3 ptup = vec3(0,0,4);
-  vec3 pbup = vec3(0,0,9);
+  glm::vec3 palong = unorm * (width * .5f - stopLightPoleWidth);
+  glm::vec3 pup = glm::vec3(0,0,13);
+  glm::vec3 pdown = glm::vec3(0,0,2);
+  glm::vec3 ptup = glm::vec3(0,0,4);
+  glm::vec3 pbup = glm::vec3(0,0,9);
 
   //Lights
-  vec3 lightAlong = unorm*.5f;
-  vec3 lightRight = ualong*.5f;
-  vec3 lightUp = vec3(0,0,.25f);
-  vec3 lightOffset = - ualong - lightAlong*.5f - lightUp;
+  glm::vec3 lightAlong = unorm*.5f;
+  glm::vec3 lightRight = ualong*.5f;
+  glm::vec3 lightUp = glm::vec3(0,0,.25f);
+  glm::vec3 lightOffset = - ualong - lightAlong*.5f - lightUp;
 
   //Light Structure
-  vec3 lsAlong = unorm*.25f;
-  vec3 lsRight = ualong*.25f;
-  vec3 lsUp = vec3(0,0,1.5f);
-  vec3 lsOffset = ualong*.5f - lsAlong*.5f - lightUp - poleForward;
+  glm::vec3 lsAlong = unorm*.25f;
+  glm::vec3 lsRight = ualong*.25f;
+  glm::vec3 lsUp = glm::vec3(0,0,1.5f);
+  glm::vec3 lsOffset = ualong*.5f - lsAlong*.5f - lightUp - poleForward;
 
   //Light carriage
-  vec3 lcAlong = salong + sspacing + unorm*.25f;
-  vec3 lcRight = ualong*.25f;
-  vec3 lcUp = vec3(0,0,.25f);
-  vec3 lcOffset = - ualong*.75f - lcUp - lightUp - sspacing*1.0f - unorm*.125f;
+  glm::vec3 lcAlong = salong + sspacing + unorm*.25f;
+  glm::vec3 lcRight = ualong*.25f;
+  glm::vec3 lcUp = glm::vec3(0,0,.25f);
+  glm::vec3 lcOffset = - ualong*.75f - lcUp - lightUp - sspacing*1.0f - unorm*.125f;
 
   //Super structure
-  vec3 ssRight = ualong*.5f;
-  vec3 ssUp = vec3(0,0,.5f);
-  vec3 ssOffset = - sspacing*1.0f - unorm*.125f + vec3(0,0,1.25f) +
+  glm::vec3 ssRight = ualong*.5f;
+  glm::vec3 ssUp = glm::vec3(0,0,.5f);
+  glm::vec3 ssOffset = - sspacing*1.0f - unorm*.125f + glm::vec3(0,0,1.25f) +
     ualong*.125f;
-  vec3 ssSecond = vec3(0,0,3.5f);
+  glm::vec3 ssSecond = glm::vec3(0,0,3.5f);
 
   //Light Structure Underbar
-  vec3 lsuRight = ualong*1.25f - poleForward;
-  vec3 lsuUp = vec3(0,0,.25f);
-  vec3 lsuOffset = - ualong*.5f - unorm*.125f - lightUp - lsuUp;
+  glm::vec3 lsuRight = ualong*1.25f - poleForward;
+  glm::vec3 lsuUp = glm::vec3(0,0,.25f);
+  glm::vec3 lsuOffset = - ualong*.5f - unorm*.125f - lightUp - lsuUp;
 
   //Textures
-  vec3 xs = expwySignStart/spriteSheetSize;
-  vec3 xe = expwySignEnd/spriteSheetSize;
-  vec3 xbp = iconColorGray/spriteSheetSize;
-  vec3 xls = iconLightStart/spriteSheetSize;
-  vec3 xle = iconLightEnd/spriteSheetSize;
+  glm::vec3 xs = expwySignStart/spriteSheetSize;
+  glm::vec3 xe = expwySignEnd/spriteSheetSize;
+  glm::vec3 xbp = iconColorGray/spriteSheetSize;
+  glm::vec3 xls = iconLightStart/spriteSheetSize;
+  glm::vec3 xle = iconLightEnd/spriteSheetSize;
 
   for (int i = 0; i < 2; i++) {
-    vec3 siloc = sloc - sspacing*float(i);
+    glm::vec3 siloc = sloc - sspacing*float(i);
     //Sign
     makeQuad(signMesh, siloc+sup, siloc+sup+salong, siloc, siloc+salong,
         xs, xe);
@@ -1098,7 +1099,7 @@ void makeExpresswaySign(Mesh* signMesh, vec3 end, vec3 ualong, vec3 unorm,
         xbp, xbp);
     for (int j = 0; j < 4; j++) {
       //Light Structure
-      vec3 lsLoc = siloc+salong*(j/3.f);
+      glm::vec3 lsLoc = siloc+salong*(j/3.f);
       makeAngledCube(signMesh, lsLoc + lsOffset,
           lsAlong, lsRight, lsUp, true, xbp);
       //Underbar
@@ -1106,7 +1107,7 @@ void makeExpresswaySign(Mesh* signMesh, vec3 end, vec3 ualong, vec3 unorm,
           lsAlong, lsuRight, lsuUp, true, xbp);
     }
     for (int j = 0; j < 2; j++) {
-      vec3 lightLoc = siloc + salong*(j*0.5f+0.25f) + lightOffset;
+      glm::vec3 lightLoc = siloc + salong*(j*0.5f+0.25f) + lightOffset;
       //Light
       makeAngledCube(signMesh, lightLoc,
         lightAlong, lightRight, lightUp, false, xbp);
@@ -1121,7 +1122,7 @@ void makeExpresswaySign(Mesh* signMesh, vec3 end, vec3 ualong, vec3 unorm,
     float swap = xe.x;
     xe.x = xs.x;
     xs.x = swap;
-    //sup = vec3(0,0,9);
+    //sup = glm::vec3(0,0,9);
   }
 
   //Light carriage
@@ -1138,16 +1139,16 @@ void makeExpresswaySign(Mesh* signMesh, vec3 end, vec3 ualong, vec3 unorm,
 }
 
 void makeTunnelEntrance(Mesh* mesh, Mesh* tunnelMesh,
-    vec3 start, vec3 along, vec3 right, vec3 center, bool sides) {
+    glm::vec3 start, glm::vec3 along, glm::vec3 right, glm::vec3 center, bool sides) {
 
   // Test to make sure it's really a tunnel
-  vec3 realLoc0 = start+center;
+  glm::vec3 realLoc0 = start+center;
   float landZ0 = pointOnLand(realLoc0).z;
   bool tooHigh0 = landZ0 < realLoc0.z;
   bool tooLow0 = landZ0 > realLoc0.z + 6;
   bool doTunnel = true;
   if (tooHigh0 || tooLow0) {
-    vec3 realLoc1 = realLoc0 + along;
+    glm::vec3 realLoc1 = realLoc0 + along;
     float landZ1 = pointOnLand(realLoc1).z;
     bool tooHigh1 = landZ1 < realLoc1.z;
     bool tooLow1 = landZ1 > realLoc1.z + 6;
@@ -1155,12 +1156,12 @@ void makeTunnelEntrance(Mesh* mesh, Mesh* tunnelMesh,
     if (tooLow0 && tooLow1) doTunnel = false;
   }
 
-  vec3 tup = vec3(0,0,7+c(CSidewalkRise));
-  vec3 halfTup = tup*.5f;
-  vec3 tdown = vec3(0,0,-2); //c(CSidewalkDown));
-  vec3 wall = normalize(right)*1.f;
-  vec3 halfRight = right*.5f;
-  vec3 ualong = normalize(along);
+  glm::vec3 tup = glm::vec3(0,0,7+c(CSidewalkRise));
+  glm::vec3 halfTup = tup*.5f;
+  glm::vec3 tdown = glm::vec3(0,0,-2); //c(CSidewalkDown));
+  glm::vec3 wall = normalize(right)*1.f;
+  glm::vec3 halfRight = right*.5f;
+  glm::vec3 ualong = normalize(along);
 
   if (sides) {
     // Sides
@@ -1178,50 +1179,50 @@ void makeTunnelEntrance(Mesh* mesh, Mesh* tunnelMesh,
         along, wall, halfTup, false, node_x);
     // Top
     makeAngledCube(tunnelMesh, start + tdown + tup - halfRight,
-        along, right, vec3(0,0,1), true, node_x);
+        along, right, glm::vec3(0,0,1), true, node_x);
 
     // Black to hide land at entrance
     for (int i = 0; i < 2; i++) {
       float in = 1-i*2;
-      vec3 t = start + tdown + along * float(i);
-      vec3 b = t + ualong*(5.f*in);
+      glm::vec3 t = start + tdown + along * float(i);
+      glm::vec3 b = t + ualong*(5.f*in);
       t += tup;
-      vec3 tl = t - halfRight*in;
-      vec3 tr = t + halfRight*in;
-      vec3 bl = b - halfRight*in;
-      vec3 br = b + halfRight*in;
+      glm::vec3 tl = t - halfRight*in;
+      glm::vec3 tr = t + halfRight*in;
+      glm::vec3 bl = b - halfRight*in;
+      glm::vec3 br = b + halfRight*in;
       makeQuad(tunnelMesh, bl, br, tl, tr, black_x, black_x);
     }
   }
 }
 
-void makeTicketMachine(Mesh* mesh, vec3 center,
-    vec3 ualong, vec3 unorm, vec3 up) {
-  const vec3 bX = iconColorDarkBlue/spriteSheetSize;
-  const vec3 wX = iconColorWhite/spriteSheetSize;
+void makeTicketMachine(Mesh* mesh, glm::vec3 center,
+    glm::vec3 ualong, glm::vec3 unorm, glm::vec3 up) {
+  const glm::vec3 bX = iconColorDarkBlue/spriteSheetSize;
+  const glm::vec3 wX = iconColorWhite/spriteSheetSize;
   makeAngledCube(mesh, center,
       -ualong*1.4f, unorm*1.f, up*2.f, true, bX);
   makeAngledCube(mesh, center-ualong*.2f+unorm*1.f+up*.2f,
       -ualong*1.0f, unorm*.1f, up*1.6f, true, wX);
 }
 
-void makeExitTurnstile(Mesh* mesh, vec3 center,
-    vec3 along, vec3 right, vec3 up) {
-  const vec3 bRight = right;
-  const vec3 bX = iconColorDarkBlue/spriteSheetSize;
+void makeExitTurnstile(Mesh* mesh, glm::vec3 center,
+    glm::vec3 along, glm::vec3 right, glm::vec3 up) {
+  const glm::vec3 bRight = right;
+  const glm::vec3 bX = iconColorDarkBlue/spriteSheetSize;
   const float tBWidth = 0.5f;
   const float tPLength = .7f;
   const float height = 2.f;
-  const vec3 tAlong = bRight;
-  const vec3 tAxis = up*height;
-  const vec3 tX = iconColorGray/spriteSheetSize;
+  const glm::vec3 tAlong = bRight;
+  const glm::vec3 tAxis = up*height;
+  const glm::vec3 tX = iconColorGray/spriteSheetSize;
   const int num = 6;
-  const vec3 tUp = tAxis/float(num);
+  const glm::vec3 tUp = tAxis/float(num);
 
   makeCylinder(mesh, center, tAxis, tBWidth, 12, tX);
   for (int i = 0; i < 3; i++) {
     float theta = 2*i*pi_o/3;
-    vec3 dir = rotate(tAlong, theta, tAxis) * tPLength;
+    glm::vec3 dir = rotate(tAlong, theta, tAxis) * tPLength;
     for (float j = 0; j < num; j++) {
       makeCylinder(mesh, center + tUp*(j+.5f), dir, 0.2f, 6, tX);
     }
@@ -1229,46 +1230,46 @@ void makeExitTurnstile(Mesh* mesh, vec3 center,
 
   makeCylinder(mesh, center-right, tAxis, tBWidth, 12, tX);
   for (float x = -1; x < 2; x+=2) {
-    vec3 axis = (bRight*.75f + along*x)*.75f;
+    glm::vec3 axis = (bRight*.75f + along*x)*.75f;
     for (float j = 0; j < num; j++) {
       makeCylinder(mesh, center + tUp*j - right, axis, 0.2f, 6, tX);
     }
   }
 }
 
-void makeTurnstile(Mesh* mesh, vec3 center, vec3 along, vec3 right, vec3 up) {
-  const vec3 bAlong = along*2.f;
-  const vec3 bRight = right;
-  const vec3 bUp = up;
-  const vec3 bX = iconColorDarkBlue/spriteSheetSize;
+void makeTurnstile(Mesh* mesh, glm::vec3 center, glm::vec3 along, glm::vec3 right, glm::vec3 up) {
+  const glm::vec3 bAlong = along*2.f;
+  const glm::vec3 bRight = right;
+  const glm::vec3 bUp = up;
+  const glm::vec3 bX = iconColorDarkBlue/spriteSheetSize;
   const float tBWidth = 0.65f;
   const float tPLength = .6f;
-  const vec3 tAlong = bRight;
-  const vec3 tAxis = normalize(-bRight - vec3(0,0,1.f));
-  const vec3 tUp = bUp - up*tBWidth*.5f;
-  const vec3 tStart = center+tUp+normalize(right)*.2f;
-  const vec3 tX = iconColorGray/spriteSheetSize;
+  const glm::vec3 tAlong = bRight;
+  const glm::vec3 tAxis = normalize(-bRight - glm::vec3(0,0,1.f));
+  const glm::vec3 tUp = bUp - up*tBWidth*.5f;
+  const glm::vec3 tStart = center+tUp+normalize(right)*.2f;
+  const glm::vec3 tX = iconColorGray/spriteSheetSize;
   makeAngledCube(mesh, center-bAlong*.5f, bAlong,
       bRight*.5f, bUp, true, bX);
 
   makeCylinder(mesh, tStart, tAxis*.25f, tBWidth, 6, tX);
   for (int i = 0; i < 3; i++) {
     float theta = 2*i*pi_o/3;
-    vec3 dir = rotate(tAlong, theta, tAxis) * tPLength;
+    glm::vec3 dir = rotate(tAlong, theta, tAxis) * tPLength;
     makeCylinder(mesh, tStart, -dir, 0.1f, 6, tX);
   }
 }
 
-void makeTransitMap(Mesh* mesh, vec3 center,
-    vec3 along, vec3 right, vec3 up) {
-  const vec3 bAlong = along*2.25f;
-  const vec3 bRight = right*.5f;
-  const vec3 bUp = up*.25f;
-  const vec3 bX = (iconZoneColor[6]+vec3(.5,.5,0))/spriteSheetSize;
-  const vec3 sAlong = along*2.f;
-  const vec3 sRight = right*.25f;
-  const vec3 sUp = up*2.f;
-  const vec3 sX = iconColorWhite/spriteSheetSize;
+void makeTransitMap(Mesh* mesh, glm::vec3 center,
+    glm::vec3 along, glm::vec3 right, glm::vec3 up) {
+  const glm::vec3 bAlong = along*2.25f;
+  const glm::vec3 bRight = right*.5f;
+  const glm::vec3 bUp = up*.25f;
+  const glm::vec3 bX = (iconZoneColor[6]+glm::vec3(.5,.5,0))/spriteSheetSize;
+  const glm::vec3 sAlong = along*2.f;
+  const glm::vec3 sRight = right*.25f;
+  const glm::vec3 sUp = up*2.f;
+  const glm::vec3 sX = iconColorWhite/spriteSheetSize;
   makeAngledCube(mesh, center-bAlong*.5f-bRight*.5f, bAlong, bRight, bUp, true,
       bX);
   makeAngledCube(mesh, center-sAlong*.5f-sRight*.5f, sAlong, sRight, sUp, true,
@@ -1306,10 +1307,10 @@ void renderEdge(item edgeIndex) {
 
   Node* node0 = getNode(edge->ends[0]);
   Node* node1 = getNode(edge->ends[1]);
-  vec3 ends[] = { edge->line.start, edge->line.end };
-  vec3 transverse = ends[0] - ends[1];
+  glm::vec3 ends[] = { edge->line.start, edge->line.end };
+  glm::vec3 transverse = ends[0] - ends[1];
   float roadLength = length(transverse);
-  vec3 center = ends[1] + transverse*0.5f;
+  glm::vec3 center = ends[1] + transverse*0.5f;
   ends[0] -= center;
   ends[1] -= center;
   float width = edgeWidth(edgeIndex);
@@ -1319,15 +1320,15 @@ void renderEdge(item edgeIndex) {
   bool railDense = isRail && (isUnderground || shouldDrawRailDense(center));
   bool isSidewalk = bridgeType >= 0 && isRoad ||
     (isRail && (edge->config.flags & _configPlatform));
-  vec3 norm(transverse.y, -transverse.x, 0);
+  glm::vec3 norm(transverse.y, -transverse.x, 0);
   norm *= width / length(norm) / 2.f;
   float hand = trafficHandedness();
-  vec3 hnorm = norm * hand;
+  glm::vec3 hnorm = norm * hand;
 
-  vec3 tr = ends[0] + norm;
-  vec3 tl = ends[0] - norm;
-  vec3 br = ends[1] + norm;
-  vec3 bl = ends[1] - norm;
+  glm::vec3 tr = ends[0] + norm;
+  glm::vec3 tl = ends[0] - norm;
+  glm::vec3 br = ends[1] + norm;
+  glm::vec3 bl = ends[1] - norm;
 
 
   Entity* entity = getEntity(edge->entity);
@@ -1369,21 +1370,21 @@ void renderEdge(item edgeIndex) {
   setCull(edge->entity, roadLength*1.5f, 10000*numLanes*numLanes);
   setCull(edge->wearEntity, roadLength*1.5f, 10000);
 
-  vec3 xs, xe;
-  vec3 sholdx = railDense ? node_x : sholder_xs;
+  glm::vec3 xs, xe;
+  glm::vec3 sholdx = railDense ? node_x : sholder_xs;
   int n = numLanes-1;
   float txLength = length(transverse)/32;
   if (isRail) {
     float* tex = railDense ?
       &denseRailTex[0] : &undenseRailTex[0];
-    xs = vec3(tex[0]/roadTextureSizeX, 0.0f, 1);
-    xe = vec3(tex[numLanes*(1+!oneWay)]/roadTextureSizeX, txLength, 1);
+    xs = glm::vec3(tex[0]/roadTextureSizeX, 0.0f, 1);
+    xe = glm::vec3(tex[numLanes*(1+!oneWay)]/roadTextureSizeX, txLength, 1);
   } else if (isPed) {
     xs = sidewalk_xs;
     xe = sidewalk_xs;
   } else if (oneWay) {
-    xs = vec3(oneWayRoadTex[n  ]/roadTextureSizeX, 0, 1);
-    xe = vec3((oneWayRoadTex[n+1]+1)/roadTextureSizeX, txLength, 1);
+    xs = glm::vec3(oneWayRoadTex[n  ]/roadTextureSizeX, 0, 1);
+    xe = glm::vec3((oneWayRoadTex[n+1]+1)/roadTextureSizeX, txLength, 1);
 
     if (hand < 0) {
       float temp = xs.x;
@@ -1391,33 +1392,33 @@ void renderEdge(item edgeIndex) {
       xe.x = temp;
     }
   } else {
-    xs = vec3(twoWayRoadTex[n  ]/roadTextureSizeX, 0, 1);
-    xe = vec3((twoWayRoadTex[n+1]+1)/roadTextureSizeX, txLength, 1);
+    xs = glm::vec3(twoWayRoadTex[n  ]/roadTextureSizeX, 0, 1);
+    xe = glm::vec3((twoWayRoadTex[n+1]+1)/roadTextureSizeX, txLength, 1);
   }
 
-  vec3 wxs = vec3(1.0f-(xe.x-xs.x), 0.0f, 1);
-  vec3 wxe = vec3(1.0f, roadLength/32, 1);
-  vec3 upr = up + norm*roadMound;
-  vec3 upl = up - norm*roadMound;
+  glm::vec3 wxs = glm::vec3(1.0f-(xe.x-xs.x), 0.0f, 1);
+  glm::vec3 wxe = glm::vec3(1.0f, roadLength/32, 1);
+  glm::vec3 upr = up + norm*roadMound;
+  glm::vec3 upl = up - norm*roadMound;
 
   makeQuad(wearMesh, tr, tl, br, bl, upr, upl, upr, upl, wxs, wxe);
 
-  vec3 right = tr-tl;
-  vec3 uright = normalize(right);
-  vector<BridgeSegment> bridgeSegments = getBridgeSegments(edge->line);
-  vec3 unit = normalize(transverse);
-  vec3 ualong = normalize(bl-tl);
-  vec3 hualong = normalize(bl-tl);
-  vec3 unorm = normalize(norm);
-  vec3 hunorm = normalize(hnorm);
-  vec3 median = edge->config.flags & _configMedian ?
-    unorm*c(CLaneWidth) : vec3(0,0,0);
-  vec3 sUp = vec3(0,0,c(CSidewalkRise));
-  vec3 sNorm = unorm*c(CSidewalkWidth);
+  glm::vec3 right = tr-tl;
+  glm::vec3 uright = normalize(right);
+  std::vector<BridgeSegment> bridgeSegments = getBridgeSegments(edge->line);
+  glm::vec3 unit = normalize(transverse);
+  glm::vec3 ualong = normalize(bl-tl);
+  glm::vec3 hualong = normalize(bl-tl);
+  glm::vec3 unorm = normalize(norm);
+  glm::vec3 hunorm = normalize(hnorm);
+  glm::vec3 median = edge->config.flags & _configMedian ?
+    unorm*c(CLaneWidth) : glm::vec3(0,0,0);
+  glm::vec3 sUp = glm::vec3(0,0,c(CSidewalkRise));
+  glm::vec3 sNorm = unorm*c(CSidewalkWidth);
   item colorNdx = 22;
 
   if (edge->config.flags & _configPlatform) {
-    vector<item> colors = suggestStationColors(edgeIndex);
+    std::vector<item> colors = suggestStationColors(edgeIndex);
     if (colors.size() > 0) {
       colorNdx = colors[0];
     }
@@ -1428,15 +1429,15 @@ void renderEdge(item edgeIndex) {
 
   for (int simple = 0; simple < 2; simple++) {
 
-    vec3 cursor = tl;
+    glm::vec3 cursor = tl;
     Mesh* mesh = getMesh(simple ? entity->simpleMesh : entity->mesh);
 
     if (isRail) {
       if (simple) {
         float* tex = railDense ?
           &denseRailTex[0] : &undenseRailTex[0];
-        xs = vec3(tex[0]/roadTextureSizeX, 0.0f, 1);
-        xe = vec3(tex[numLanes*(1+!oneWay)]/roadTextureSizeX, txLength, 1);
+        xs = glm::vec3(tex[0]/roadTextureSizeX, 0.0f, 1);
+        xe = glm::vec3(tex[numLanes*(1+!oneWay)]/roadTextureSizeX, txLength, 1);
 
       } else {
         xs = railDense ? node_x : sholder_xs;
@@ -1471,21 +1472,21 @@ void renderEdge(item edgeIndex) {
 
     for (int i=0; i < bridgeSegments.size(); i++) {
       BridgeSegment seg = bridgeSegments[i];
-      vec3 btl = cursor;
+      glm::vec3 btl = cursor;
       float amount = seg.length;
-      vec3 bbl = cursor - unit*seg.length;
+      glm::vec3 bbl = cursor - unit*seg.length;
       cursor = bbl;
-      vec3 btr = btl+right;
-      vec3 bbr = bbl+right;
-      vec3 sholderDown = vec3(0, 0, -c(CRoadRise)*3);
-      vec3 es = ualong*4.f;
-      vec3 esn = -es;
+      glm::vec3 btr = btl+right;
+      glm::vec3 bbr = bbl+right;
+      glm::vec3 sholderDown = glm::vec3(0, 0, -c(CRoadRise)*3);
+      glm::vec3 es = ualong*4.f;
+      glm::vec3 esn = -es;
       if (i == 0) {
-        esn = vec3(0,0,0);
+        esn = glm::vec3(0,0,0);
       }
 
       if (i == bridgeSegments.size() - 1) {
-        es = vec3(0,0,0);
+        es = glm::vec3(0,0,0);
       }
 
       bool isSegSidewalk = isSidewalk ||
@@ -1509,7 +1510,7 @@ void renderEdge(item edgeIndex) {
         }
 
       } else if (seg.type == BSTTunnel && showBody) {
-        vec3 tright = right +
+        glm::vec3 tright = right +
           unorm*(2.f + (isSegSidewalk ? 2.f*c(CSidewalkWidth) : 0.f));
         makeTunnelEntrance(mesh, tunnelMesh, (btl+btr)*.5f, bbl-btl,
             -tright, center, !(edge->config.flags & _configPlatform));
@@ -1520,13 +1521,13 @@ void renderEdge(item edgeIndex) {
       if (isSegSidewalk) {
         // Sidewalk
 
-        vec3 bNorm = unorm * ((seg.type == BSTLand) ? c(CSidewalkBezel):0.f);
-        vec3 sDown = vec3(0,0, seg.type == BSTLand ? c(CSidewalkDown):0.f);
-        vec3 btrs = btr + sNorm;
-        vec3 btls = btl - sNorm;
-        vec3 bbrs = bbr + sNorm;
-        vec3 bbls = bbl - sNorm;
-        vec3 along = bbl-btl;
+        glm::vec3 bNorm = unorm * ((seg.type == BSTLand) ? c(CSidewalkBezel):0.f);
+        glm::vec3 sDown = glm::vec3(0,0, seg.type == BSTLand ? c(CSidewalkDown):0.f);
+        glm::vec3 btrs = btr + sNorm;
+        glm::vec3 btls = btl - sNorm;
+        glm::vec3 bbrs = bbr + sNorm;
+        glm::vec3 bbls = bbl - sNorm;
+        glm::vec3 along = bbl-btl;
 
         if (seg.type == BSTBridge && bridgeType != 1) {
           makeBridgeSegment(mesh, btl+sUp-sNorm, along, right+sNorm*2.f,
@@ -1569,11 +1570,11 @@ void renderEdge(item edgeIndex) {
 
         // Render train station platform awning
         if (edge->config.flags & _configPlatform) {
-          vec3 awnUp0 = vec3(0,0,3);
-          vec3 awnUp1 = vec3(0,0,4);
+          glm::vec3 awnUp0 = glm::vec3(0,0,3);
+          glm::vec3 awnUp1 = glm::vec3(0,0,4);
           int col = colorNdx / 4;
           int row = colorNdx % 4;
-          vec3 awnColor = vec3((col*2+1)/roadTextureSizeX,
+          glm::vec3 awnColor = glm::vec3((col*2+1)/roadTextureSizeX,
                 1 + ((row-4)*2+1)/roadTextureSizeY, 0);
 
           if (seg.type == BSTTunnel) {
@@ -1585,9 +1586,9 @@ void renderEdge(item edgeIndex) {
           } else {
             //Awning
             makeAngledCube(mesh, bbrs+awnUp0, awnUp1-awnUp0-sNorm,
-                btr-bbr, vec3(0,0,0.5), true, awnColor);
+                btr-bbr, glm::vec3(0,0,0.5), true, awnColor);
             makeAngledCube(mesh, btls+awnUp0, awnUp1-awnUp0+sNorm,
-                bbl-btl, vec3(0,0,0.5), true, awnColor);
+                bbl-btl, glm::vec3(0,0,0.5), true, awnColor);
           }
 
           if (!simple && seg.type != BSTTunnel) {
@@ -1596,11 +1597,11 @@ void renderEdge(item edgeIndex) {
             float poleSegLength = seg.length-polePad*2;
             int numPoles = poleSegLength/15;
             if (numPoles < 2) numPoles = 2;
-            vec3 poleSpacing = unit*(poleSegLength/numPoles);
+            glm::vec3 poleSpacing = unit*(poleSegLength/numPoles);
             for (int p = 0; p <= numPoles; p++) {
               for (int k = 0; k < 4; k++) {
                 if (k == 1 || k == 2) continue;
-                vec3 loc = k == 0 ? bbrs :
+                glm::vec3 loc = k == 0 ? bbrs :
                   k == 1 ? bbr :
                   k == 2 ? bbl : bbls;
                 loc += unorm * (k%2 == 0 ? -1.f : 1.f);
@@ -1614,29 +1615,29 @@ void renderEdge(item edgeIndex) {
         }
 
       } else if (seg.type == BSTLand && showBody) { // Sholder
-        vec3 btrs = pointOnLand(btr + norm + esn + center)
+        glm::vec3 btrs = pointOnLand(btr + norm + esn + center)
           + sholderDown - center;
-        vec3 btls = pointOnLand(btl - norm + esn + center) +
+        glm::vec3 btls = pointOnLand(btl - norm + esn + center) +
           sholderDown - center;
-        vec3 bbrs = pointOnLand(bbr + norm + es + center) +
+        glm::vec3 bbrs = pointOnLand(bbr + norm + es + center) +
           sholderDown - center;
-        vec3 bbls = pointOnLand(bbl - norm + es + center) +
+        glm::vec3 bbls = pointOnLand(bbl - norm + es + center) +
           sholderDown - center;
 
         //if (!isUnderground) {
-          vec3 n2 = -cross(btrs-btr, bbr-btr);
+          glm::vec3 n2 = -cross(btrs-btr, bbr-btr);
           makeQuad(mesh, btr, bbr, btrs, bbrs,
               up, up, n2, n2, sholdx, sholdx);
-          vec3 n3 = -cross(bbls-bbl, btl-bbl);
+          glm::vec3 n3 = -cross(bbls-bbl, btl-bbl);
           makeQuad(mesh, bbl, btl, bbls, btls,
               up, up, n3, n3, sholdx, sholdx);
         //}
 
         if (!simple) {
-          vec3 n0 = cross(bbrs-bbr, bbl-bbr);
+          glm::vec3 n0 = cross(bbrs-bbr, bbl-bbr);
           makeQuad(mesh, bbr, bbl, bbrs, bbls,
               up, up, n0, n0, sholdx, sholdx);
-          vec3 n1 = cross(btls-btl, btr-btl);
+          glm::vec3 n1 = cross(btls-btl, btr-btl);
           makeQuad(mesh, btl, btr, btls, btrs,
               up, up, n1, n1, sholdx, sholdx);
         }
@@ -1644,19 +1645,19 @@ void renderEdge(item edgeIndex) {
 
       // Median strip
       if (edge->config.flags & _configMedian) {
-        vec3 center0 = btl+unorm*width*.5f;
-        vec3 center1 = bbl+unorm*width*.5f;
-        vec3 mnorm = unorm*c(CLaneWidth);
-        vec3 mwalong = ualong*0.5f;
-        vec3 mwnorm = unorm*0.5f;
-        vec3 mtr = center0 + mnorm;
-        vec3 mtl = center0 - mnorm;
-        vec3 mbr = center1 + mnorm;
-        vec3 mbl = center1 - mnorm;
-        vec3 gup = vec3(0,0,0.5);
-        vec3 mwup = vec3(0,0,0.75);
-        vec3 up = vec3(0,0,1);
-        vec3 btrans = btl - bbl;
+        glm::vec3 center0 = btl+unorm*width*.5f;
+        glm::vec3 center1 = bbl+unorm*width*.5f;
+        glm::vec3 mnorm = unorm*c(CLaneWidth);
+        glm::vec3 mwalong = ualong*0.5f;
+        glm::vec3 mwnorm = unorm*0.5f;
+        glm::vec3 mtr = center0 + mnorm;
+        glm::vec3 mtl = center0 - mnorm;
+        glm::vec3 mbr = center1 + mnorm;
+        glm::vec3 mbl = center1 - mnorm;
+        glm::vec3 gup = glm::vec3(0,0,0.5);
+        glm::vec3 mwup = glm::vec3(0,0,0.75);
+        glm::vec3 up = glm::vec3(0,0,1);
+        glm::vec3 btrans = btl - bbl;
 
         if (seg.type != BSTLand) {
           if (simple) {
@@ -1690,7 +1691,7 @@ void renderEdge(item edgeIndex) {
           for (int t = 0; t < numTrees; t++) {
             if (randFloat(&randomSeed) > treeProb) continue;
             float zs = pow(randFloat(&randomSeed),2)*2+4;
-            vec3 treeLoc = center0 + (t+treeOffset) * treeSpacing * ualong +
+            glm::vec3 treeLoc = center0 + (t+treeOffset) * treeSpacing * ualong +
               up*zs*.5f;
 
             if (simple) {
@@ -1749,10 +1750,10 @@ void renderEdge(item edgeIndex) {
       float iconX = iconLine.end.x - iconLine.start.x;
       iconLine.start.x += iconX*.25f;
       iconLine.end.x -= iconX*.25f;
-      vec3 ialong = ualong*width;
+      glm::vec3 ialong = ualong*width;
       for (int x = 0; x < 2; x ++) {
-        vec3 start = br - ialong*2.f - ualong*25.f;
-        vec3 across = tl - tr;
+        glm::vec3 start = br - ialong*2.f - ualong*25.f;
+        glm::vec3 across = tl - tr;
         makeQuad(x == 0 ? signMesh : signMeshSimple, start, start + across,
           start + ialong*2.f, start + across + ialong*2.f,
           iconLine.end, iconLine.start);
@@ -1763,7 +1764,7 @@ void renderEdge(item edgeIndex) {
   // Make speed limit signs
   if (isRoadway && length(transverse) > 111) {
     item speedLimit = edge->config.speedLimit;
-    vec3 ico = useMetric() ?
+    glm::vec3 ico = useMetric() ?
       iconSpeedLimitKmph[speedLimit] : iconSpeedLimitMph[speedLimit];
     makeSign(signMesh, tr-transverse/4.f, transverse,
       ico, iconSpeedLimitSignBack);
@@ -1775,14 +1776,14 @@ void renderEdge(item edgeIndex) {
 
   float padding = 0.5;
   float laneWidth = c(CLaneWidth);
-  vec3 textAlong = transverse*(laneWidth-padding*2)/roadLength;
-  vec3 paddingAlong = transverse*laneWidth*2.f/roadLength;
-  vec3 paddingNorm = unorm*padding +
-    (edge->config.flags & _configMedian ? unorm*laneWidth*0.25f : vec3(0,0,0));
-  vec3 speedAlong = transverse*laneWidth/roadLength;
-  vec3 speedNorm = unorm*(laneWidth-padding*2);
-  vec3 laneNorm = unorm*laneWidth;
-  vec3 oneWayNorm = norm - unorm*c(CSholderWidth);
+  glm::vec3 textAlong = transverse*(laneWidth-padding*2)/roadLength;
+  glm::vec3 paddingAlong = transverse*laneWidth*2.f/roadLength;
+  glm::vec3 paddingNorm = unorm*padding +
+    (edge->config.flags & _configMedian ? unorm*laneWidth*0.25f : glm::vec3(0,0,0));
+  glm::vec3 speedAlong = transverse*laneWidth/roadLength;
+  glm::vec3 speedNorm = unorm*(laneWidth-padding*2);
+  glm::vec3 laneNorm = unorm*laneWidth;
+  glm::vec3 oneWayNorm = norm - unorm*c(CSholderWidth);
   float speed = speedLimits[edge->config.speedLimit];
   int speedInt = useMetric() ? int(speed*c(CMsToKmph)) : int(speed*c(CMsToMph));
   char* speedStr = sprintf_o("%d", speedInt);
@@ -1797,13 +1798,13 @@ void renderEdge(item edgeIndex) {
       LaneBlock* block = getLaneBlock(edge->laneBlocks[i]);
       for (int j = 0; j < block->numLanes; j ++) {
         Lane* lane = &block->lanes[j];
-        vec3 lualong = normalize(lane->ends[0]-lane->ends[1]);
-        vec3 luacross = vec3(lualong.y, -lualong.x, 0);
-        vec3 loc = lane->ends[1] - luacross*laneWidth*.5f + lualong*2.f -
+        glm::vec3 lualong = normalize(lane->ends[0]-lane->ends[1]);
+        glm::vec3 luacross = glm::vec3(lualong.y, -lualong.x, 0);
+        glm::vec3 loc = lane->ends[1] - luacross*laneWidth*.5f + lualong*2.f -
           center;
         //loc += i ? median*luacross*.5f : -median*luacross*.5f;
-        vec3 turnAcross = luacross*laneWidth;
-        vec3 turnDown = lualong*laneWidth*2.f;
+        glm::vec3 turnAcross = luacross*laneWidth;
+        glm::vec3 turnDown = lualong*laneWidth*2.f;
 
         int turnIconNdx = 0;
         for (int k = 0; k < lane->drains.size(); k ++) {
@@ -1811,7 +1812,7 @@ void renderEdge(item edgeIndex) {
         }
         turnIconNdx = (turnIconNdx & _laneTurnMask) >> _laneTurnShift;
         if (turnIconNdx == 0) continue;
-        vec3 icon = iconTurn[turnIconNdx];
+        glm::vec3 icon = iconTurn[turnIconNdx];
         Line iconLine = iconToSpritesheet(icon, 0.f);
 
         if (numLanes > 1) {
@@ -1825,7 +1826,7 @@ void renderEdge(item edgeIndex) {
           loc = lane->ends[0] - luacross*laneWidth*.5f - lualong*2.f - center;
           renderString(textMesh, speedStr, loc, textAlong, paddingNorm);
           /*
-          vec3 speedDown = ualong*length(speedNorm);
+          glm::vec3 speedDown = ualong*length(speedNorm);
           if (oneWay) {
             renderString(textMesh, speedStr, ends[0] - oneWayNorm - median -
               speedAlong + laneNorm * float(j) + paddingNorm, speedNorm,
@@ -1854,20 +1855,20 @@ void renderEdge(item edgeIndex) {
   for (int i = 0; i < (oneWay ? 1 : 2) && isRoadway; i ++) {
     item nodeNdx = edge->ends[!i];
     Node* node = getNode(nodeNdx);
-    vector<item> edges = getRenderableEdges(nodeNdx);
+    std::vector<item> edges = getRenderableEdges(nodeNdx);
     if (node->config.type == ConfigTypeExpressway || edges.size() <= 2) {
       continue;
     }
     float multiplier = i*2-1;
     multiplier *= hand;
-    vec3 sloc = i ? ends[0] : ends[1];
+    glm::vec3 sloc = i ? ends[0] : ends[1];
     sloc -= median*multiplier;
     float swidth = numLanes*laneWidth;
     if (oneWay) {
       sloc -= swidth*.5f*unorm;
     }
-    vec3 sacross = -unorm * swidth * multiplier;
-    vec3 sdown = ualong * multiplier;
+    glm::vec3 sacross = -unorm * swidth * multiplier;
+    glm::vec3 sdown = ualong * multiplier;
     makeQuad(signMesh, sloc, sloc+sacross, sloc+sdown, sloc+sacross+sdown,
       iconColorWhite/spriteSheetSize, iconColorWhite/spriteSheetSize);
     makeQuad(signMeshSimple,
@@ -1880,7 +1881,7 @@ void renderEdge(item edgeIndex) {
     if (oneWay && i == 0) continue;
 
     Node* node = getNode(edge->ends[i]);
-    vector<item> edges = getRenderableEdges(edge->ends[i]);
+    std::vector<item> edges = getRenderableEdges(edge->ends[i]);
     if (edges.size() <= 2) {
       continue;
     }
@@ -1896,7 +1897,7 @@ void renderEdge(item edgeIndex) {
 
     if (hasExpwy) {
       float multiplier = i*2 - 1;
-      vec3 ualongFlat = hualong;
+      glm::vec3 ualongFlat = hualong;
       ualongFlat.z = 0;
       ualongFlat = normalize(ualongFlat);
       makeExpresswaySign(signMesh, ends[i], ualongFlat*multiplier,
@@ -1910,14 +1911,14 @@ void renderEdge(item edgeIndex) {
 
   // Platform
   const float signSpacing = 25;
-  vec3 signAlong = ualong * signSpacing;
-  vec3 aUp = normalize(cross(ualong, unorm));
+  glm::vec3 signAlong = ualong * signSpacing;
+  glm::vec3 aUp = normalize(cross(ualong, unorm));
   if (isRail && isSidewalk) { // station platform
-    vec3 stl = tl - unorm*c(CSidewalkWidth);
-    vec3 sbr = br + unorm*c(CSidewalkWidth);
+    glm::vec3 stl = tl - unorm*c(CSidewalkWidth);
+    glm::vec3 sbr = br + unorm*c(CSidewalkWidth);
     for (int i = 0; i < roadLength/signSpacing-1; i++) {
-      vec3 loc0 = stl+signAlong*(i+.5f);
-      vec3 loc1 = sbr-signAlong*(i+.5f);
+      glm::vec3 loc0 = stl+signAlong*(i+.5f);
+      glm::vec3 loc1 = sbr-signAlong*(i+.5f);
       if (i % 2 == 0) {
         makeTicketMachine(signMesh, loc0, ualong, unorm, aUp);
         makeTicketMachine(signMesh, loc1, -ualong, -unorm, aUp);
@@ -1935,30 +1936,30 @@ void renderEdge(item edgeIndex) {
 
   // Turnstiles
   if (isPed && (edge->config.flags & _configToll)) {
-    vec3 turnstileSpace = -unorm*c(CLaneWidth)*.5f;
-    vec3 turnstileLoc = (br+tr)*.5f + turnstileSpace*.5f;
+    glm::vec3 turnstileSpace = -unorm*c(CLaneWidth)*.5f;
+    glm::vec3 turnstileLoc = (br+tr)*.5f + turnstileSpace*.5f;
     for (int i = 0; i < edge->config.numLanes; i++) {
       makeTurnstile(signMesh, turnstileLoc+turnstileSpace*float(i),
           -ualong, -turnstileSpace, aUp);
     }
 
-    const vec3 bX = iconColorDarkBlue/spriteSheetSize;
-    //const vec3 gX = iconColorDarkGray/spriteSheetSize;
-    const vec3 gX = (iconZoneColor[6]+vec3(.5,.5,0))/spriteSheetSize;
-    vec3 remains = hnorm*2.f +
+    const glm::vec3 bX = iconColorDarkBlue/spriteSheetSize;
+    //const glm::vec3 gX = iconColorDarkGray/spriteSheetSize;
+    const glm::vec3 gX = (iconZoneColor[6]+glm::vec3(.5,.5,0))/spriteSheetSize;
+    glm::vec3 remains = hnorm*2.f +
       turnstileSpace*(edge->config.numLanes+.0f);
     //remains *= -1;
-    //vec3 remains = hnorm + turnstileSpace*(edge->config.numLanes+0.f);
-    vec3 boothUp = aUp*3.f;
-    vec3 boothWUp = aUp*1.f;
-    vec3 boothRight = remains*.25f;
-    vec3 boothAlong = -ualong*2.f;
-    vec3 boothWX = -ualong*.2f;
-    vec3 boothWY = unorm*.2f;
-    vec3 boothCenter = (bl+tl)*.5f + remains*.75f - boothWX*.5f-boothWY*.5f;
-    vec3 exitCenter = (bl+tl)*.5f + remains*.3f;
-    vec3 exitAlong = length(remains)*.25f*ualong;
-    vec3 sunshStart = (bl+tl)*.5f - boothAlong - boothWX - boothWY;
+    //glm::vec3 remains = hnorm + turnstileSpace*(edge->config.numLanes+0.f);
+    glm::vec3 boothUp = aUp*3.f;
+    glm::vec3 boothWUp = aUp*1.f;
+    glm::vec3 boothRight = remains*.25f;
+    glm::vec3 boothAlong = -ualong*2.f;
+    glm::vec3 boothWX = -ualong*.2f;
+    glm::vec3 boothWY = unorm*.2f;
+    glm::vec3 boothCenter = (bl+tl)*.5f + remains*.75f - boothWX*.5f-boothWY*.5f;
+    glm::vec3 exitCenter = (bl+tl)*.5f + remains*.3f;
+    glm::vec3 exitAlong = length(remains)*.25f*ualong;
+    glm::vec3 sunshStart = (bl+tl)*.5f - boothAlong - boothWX - boothWY;
 
     // Sunsheild
     if (!isUnderground) {
@@ -1986,7 +1987,7 @@ void renderEdge(item edgeIndex) {
           boothAlong*2.f, boothWY, boothUp, isUnderground, gX);
 
       // Ticket Machines
-      vec3 ticketLoc = boothCenter - (x+4)*1.f*ualong;
+      glm::vec3 ticketLoc = boothCenter - (x+4)*1.f*ualong;
       makeTicketMachine(signMesh, ticketLoc, ualong, unorm, aUp);
 
       // Maps
@@ -2011,7 +2012,7 @@ void renderEdge(item edgeIndex) {
   // Make name
   if (showBody && length(transverse) > 50 &&
       edge->name != 0 && edge->name[0] != 0 && isRoad) {
-    vec3 padding = paddingNorm*fnumLanes + median*.5f;
+    glm::vec3 padding = paddingNorm*fnumLanes + median*.5f;
 
     for (int i = 0; i < 2; i++) {
       item blockNdx = edge->laneBlocks[i];
@@ -2019,7 +2020,7 @@ void renderEdge(item edgeIndex) {
       LaneBlock* block = getLaneBlock(blockNdx);
       if (block->numLanes == 0) continue;
       Lane* lane = &block->lanes[0];
-      vec3 loc = lane->ends[i];// + padding;
+      glm::vec3 loc = lane->ends[i];// + padding;
       /*
       if (i == 0) {
         renderString(textMesh, edge->name, loc, textAlong * fnumLanes);
@@ -2053,7 +2054,7 @@ void renderEdge(item edgeIndex) {
       int speedInt = useMetric() ?
         int(speed*c(CMsToKmph)) : int(speed*c(CMsToMph));
       char* speedStr = sprintf_o("%d", speedInt);
-      vec3 speedDown = ualong*length(speedNorm);
+      glm::vec3 speedDown = ualong*length(speedNorm);
       if (oneWay) {
         renderString(textMesh, speedStr, ends[0] - oneWayNorm - median -
           speedAlong + laneNorm * float(i) + paddingNorm, speedNorm,
@@ -2137,23 +2138,23 @@ void setElementHighlight(item ndx, bool highlight) {
   }
 }
 
-void renderStopDisc(Mesh* m, item ndx, vec3 offset) {
+void renderStopDisc(Mesh* m, item ndx, glm::vec3 offset) {
   Stop* stop = getStop(ndx);
   GraphLocation gl = stop->graphLoc;
   gl.lane = getLaneIndex(gl.lane, 0);
   Lane* lane = getLane(gl);
-  vec3 loc = getLocation(gl);
+  glm::vec3 loc = getLocation(gl);
   gl.dap += 0.1;
-  vec3 unorm = uzNormal(getLocation(gl)-loc);
+  glm::vec3 unorm = uzNormal(getLocation(gl)-loc);
   loc += unorm * (c(CTransitLineWidth)*-1.25f) * trafficHandedness();
   loc -= offset;
-  vec3 bloc = loc;
-  vec3 tloc = loc;
+  glm::vec3 bloc = loc;
+  glm::vec3 tloc = loc;
   bloc.z += 22;
   tloc.z += 20;
 
-  set<int> colorSet;
-  vector<item> lines = stop->lines;
+  std::set<int> colorSet;
+  std::vector<item> lines = stop->lines;
   for (int i = 0; i < lines.size(); i++) {
     TransitLine* line = getTransitLine(lines[i]);
     int color = line->color;
@@ -2164,7 +2165,7 @@ void renderStopDisc(Mesh* m, item ndx, vec3 offset) {
     colorSet.insert(color);
   }
 
-  vector<int> colors(colorSet.begin(), colorSet.end());
+  std::vector<int> colors(colorSet.begin(), colorSet.end());
   if (colors.size() == 0) colors.push_back(22);
   int colorS = colors.size();
   int segPerColor = ceil(24.f/colorS);
@@ -2172,20 +2173,20 @@ void renderStopDisc(Mesh* m, item ndx, vec3 offset) {
   const float segFactor = pi_o*2/segments;
 
   for (int i = 0; i < segments; i++) {
-    vec3 color = getColorInPalette(colors[i/segPerColor]);
+    glm::vec3 color = getColorInPalette(colors[i/segPerColor]);
     float ang0 = i*segFactor;
     float ang1 = (i+1)*segFactor;
-    float c0 = cos(ang0);
-    float s0 = sin(ang0);
-    float c1 = cos(ang1);
-    float s1 = sin(ang1);
-    vec3 tl = tloc + vec3(c0,s0,0)*(c(CTransitLineWidth)*1.5f);
-    vec3 tr = tloc + vec3(c1,s1,0)*(c(CTransitLineWidth)*1.5f);
-    vec3 bl = bloc + vec3(c0,s0,0)*(c(CTransitLineWidth)*1.f);
-    vec3 br = bloc + vec3(c1,s1,0)*(c(CTransitLineWidth)*1.f);
-    vec3 nl = normalize(.5f*(tl+bl) - tloc);
-    vec3 nr = normalize(.5f*(tr+br) - tloc);
-    vec3 wd = vec3(0,0,0);
+    float c0 = glm::cos(ang0);
+    float s0 = glm::sin(ang0);
+    float c1 = glm::cos(ang1);
+    float s1 = glm::sin(ang1);
+    glm::vec3 tl = tloc + glm::vec3(c0,s0,0)*(c(CTransitLineWidth)*1.5f);
+    glm::vec3 tr = tloc + glm::vec3(c1,s1,0)*(c(CTransitLineWidth)*1.5f);
+    glm::vec3 bl = bloc + glm::vec3(c0,s0,0)*(c(CTransitLineWidth)*1.f);
+    glm::vec3 br = bloc + glm::vec3(c1,s1,0)*(c(CTransitLineWidth)*1.f);
+    glm::vec3 nl = normalize(.5f*(tl+bl) - tloc);
+    glm::vec3 nr = normalize(.5f*(tr+br) - tloc);
+    glm::vec3 wd = glm::vec3(0,0,0);
 
     makeQuad(m, tl, tr, bl, br, nl, nr, nl, nr, color, color);
     makeTriangle(m, tl+wd, tr+wd, tloc+wd, colorWhite);
@@ -2193,7 +2194,7 @@ void renderStopDisc(Mesh* m, item ndx, vec3 offset) {
 }
 
 void renderLane(Mesh* mesh, item laneNdx, float start, float end,
-    float width, item laneOffset, vec3 offset, vec3 tx) {
+    float width, item laneOffset, glm::vec3 offset, glm::vec3 tx) {
   Lane* lane = getLane(laneNdx);
 
   if (end == -1) {
@@ -2203,13 +2204,13 @@ void renderLane(Mesh* mesh, item laneNdx, float start, float end,
   float basis = start / lane->length;
 
   const int numCurveSegments = 12;
-  vec3 norm0 = uzNormal(lane->spline.normal[0]);
-  vec3 norm1 = -uzNormal(lane->spline.normal[1]);
-  vec3* locs = (vec3*) alloca(sizeof(vec3)*(numCurveSegments+1)*2);
+  glm::vec3 norm0 = uzNormal(lane->spline.normal[0]);
+  glm::vec3 norm1 = -uzNormal(lane->spline.normal[1]);
+  glm::vec3* locs = (glm::vec3*) alloca(sizeof(glm::vec3)*(numCurveSegments+1)*2);
   for (int j = 0; j <= numCurveSegments; j++) {
     float theta = fraction*float(j)/numCurveSegments + basis;
-    vec3 loc = interpolateSpline(lane->spline, theta) - offset;
-    vec3 n = normalize(lerp(norm0, norm1, theta)) * width;
+    glm::vec3 loc = interpolateSpline(lane->spline, theta) - offset;
+    glm::vec3 n = normalize(lerp(norm0, norm1, theta)) * width;
     if (laneOffset != 0) loc += n*float(laneOffset)*trafficHandedness();
     locs[j*2+0] = loc - n;
     locs[j*2+1] = loc + n;
@@ -2223,7 +2224,7 @@ void renderLane(Mesh* mesh, item laneNdx, float start, float end,
 
 void renderLane(Mesh* mesh, item laneNdx, float start, float end) {
   renderLane(mesh, laneNdx, start, end,
-      c(CLaneWidth)*.45f, 0, vec3(0,0,0), colorWhite);
+      c(CLaneWidth)*.45f, 0, glm::vec3(0,0,0), colorWhite);
 }
 
 void renderLane(Mesh* mesh, item laneNdx) {

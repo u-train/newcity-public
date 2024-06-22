@@ -5,6 +5,7 @@
 #include "../draw/camera.hpp"
 #include "../draw/texture.hpp"
 #include "../string_proxy.hpp"
+#include "../main.hpp"
 
 #include "spdlog/spdlog.h"
 
@@ -43,7 +44,7 @@ void selectFrameInFilename(char* filename, int camTime) {
   }
 }
 
-Part* image(vec2 loc, float width, char* rawFilename, float* y) {
+Part* image(glm::vec2 loc, float width, char* rawFilename, float* y) {
   // Find what frame we're on
   char* filename = strdup_s(rawFilename);
   int camTime = int(getCameraTime());
@@ -56,9 +57,9 @@ Part* image(vec2 loc, float width, char* rawFilename, float* y) {
   free(f);
   free(rawFilename);
 
-  vec2 imgDim = getTextureDimensions(filename);
+  glm::vec2 imgDim = getTextureDimensions(filename);
   if (imgDim.x == 0) {
-    imgDim = vec2(1240,720);
+    imgDim = glm::vec2(1240,720);
 
     /*
     // Go through every possible frame (up to 48) and pre-load it.
@@ -71,17 +72,17 @@ Part* image(vec2 loc, float width, char* rawFilename, float* y) {
     */
   }
 
-  vec2 size(width, imgDim.y*width/imgDim.x);
+  glm::vec2 size(width, imgDim.y*width/imgDim.x);
   *y = size.y;
 
   Part* result = part(loc);
-  result->dim.end = vec3(size, 0);
+  result->dim.end = glm::vec3(size, 0);
   result->renderMode = RenderImage;
   result->text = filename;
   return result;
 }
 
-Part* image(vec2 loc, float width, item textureNdx, float* y) {
+Part* image(glm::vec2 loc, float width, item textureNdx, float* y) {
   char* filename = 0;
 
   if (textureNdx > 0) {

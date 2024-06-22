@@ -14,6 +14,9 @@
 #include "../platform/lookup.hpp"
 #include "../string_proxy.hpp"
 #include "../util.hpp"
+#include <glm/glm.hpp>
+
+using glm::clamp;
 
 #include "spdlog/spdlog.h"
 
@@ -23,8 +26,8 @@ struct DesignPackage {
 };
 
 Cup<DesignPackage> designPackages;
-vector<item> packageTexturesAlbedo;
-vector<item> packageTexturesIllum;
+std::vector<item> packageTexturesAlbedo;
+std::vector<item> packageTexturesIllum;
 
 void resetDesignPackages() {
   for (int i = 0; i < designPackages.size(); i++) {
@@ -65,7 +68,7 @@ bool removeEnd(char* txt, const char* end) {
   return true;
 }
 
-string suggestTextureFilename(const char* designName, const char* textureFile, bool isIllum) {
+std::string suggestTextureFilename(const char* designName, const char* textureFile, bool isIllum) {
   /*
   char* textureFileEnd = textureFile;
   item strLength = strlength(textureFile);
@@ -81,15 +84,15 @@ string suggestTextureFilename(const char* designName, const char* textureFile, b
   removeEnd(textureFileEnd, ".illum");
   */
 
-  string filePathStart = "designs/";
+  std::string filePathStart = "designs/";
   filePathStart = filePathStart + designName + "/"; // + textureFileEnd + ".";
-  string filePathEnd = isIllum ? ".illum" : ".albedo";
+  std::string filePathEnd = isIllum ? ".illum" : ".albedo";
   filePathEnd = filePathEnd + ".png";
 
   for (int i = 0; ; i++) {
     char* file = sprintf_o("%s%02d%s", filePathStart.c_str(), i, filePathEnd.c_str());
 
-    string canon = lookupFile(file, _lookupForceMod);
+    std::string canon = lookupFile(file, _lookupForceMod);
     if (!fileExists(canon)) {
       return lookupSave(file);
     }
@@ -106,8 +109,8 @@ void addTextureToPackage(item designNdx, item texture, bool isIllum) {
   if (tex->filename == 0) return;
   if (design->name == 0) return;
 
-  string suggestion = suggestTextureFilename(design->name != 0 ? design->name : "", tex->filename, isIllum);
-  string source = tex->filename;
+  std::string suggestion = suggestTextureFilename(design->name != 0 ? design->name : "", tex->filename, isIllum);
+  std::string source = tex->filename;
   copyFile(source, suggestion);
 
   item newTexture = getTexture(suggestion.c_str());
@@ -126,7 +129,7 @@ void deleteTextureInPackage(item designNdx, item texture) {
   package->illumTextures.removeByValue(texture);
 
   Texture* tex = getTexture(texture);
-  string file = tex->filename;
+  std::string file = tex->filename;
   if (stringContainsCaseInsensitive(file, "design/")) {
     deleteFile(file);
   }
@@ -179,12 +182,12 @@ item numMatchingTexturesForBuilding(item buildingNdx) {
   return numMatchingTextures(buildingNdx);
 }
 
-vector<item> getAllPackageTextures(bool illum) {
+std::vector<item> getAllPackageTextures(bool illum) {
   return illum ? packageTexturesIllum : packageTexturesAlbedo;
 }
 
-void loadDesignPackageTextures(string packageName, item designNdx, uint32_t loadFlags) {
-  vector<string> images = lookupDirectory("designs/" + packageName, ".png", loadFlags);
+void loadDesignPackageTextures(std::string packageName, item designNdx, uint32_t loadFlags) {
+  std::vector<std::string> images = lookupDirectory("designs/" + packageName, ".png", loadFlags);
   if (designNdx >= designPackages.size()) designPackages.resize(designNdx+1);
   DesignPackage* package = designNdx <= 0 ? 0 : designPackages.get(designNdx);
 
@@ -193,7 +196,7 @@ void loadDesignPackageTextures(string packageName, item designNdx, uint32_t load
     bool illum = endsWith(images[k].c_str(), ".illum");
     if (!albedo && !illum) continue;
 
-    string fullPath = "designs/" + packageName + "/" + images[k] + ".png";
+    std::string fullPath = "designs/" + packageName + "/" + images[k] + ".png";
     item tex = getTexture(fullPath.c_str());
     if (albedo) {
       packageTexturesAlbedo.push_back(tex);
@@ -224,10 +227,10 @@ void loadDesignPackageTextures() {
     loadDesignPackageTextures(d->name, getSelectedDesignNdx(), loadFlags);
 
   } else {
-    vector<string> packages = lookupSubDirectories("designs", loadFlags);
+    std::vector<std::string> packages = lookupSubDirectories("designs", loadFlags);
 
     for (int i = 0; i < packages.size(); i++) {
-      string packageName = packages[i];
+      std::string packageName = packages[i];
 
       item designNdx = 0;
       for (int d = 1; d <= sizeDesigns(); d++) {
@@ -252,7 +255,7 @@ void cleanupLegacyDesignFiles() {
     return;
   }
 
-  string path = "designs/";
+  std::string path = "designs/";
   path = path + design->name + ".design";
   deleteFile(lookupFile(path, _lookupForceMod));
   deleteFile(lookupFile(path + ".png", _lookupForceMod));
@@ -269,23 +272,23 @@ void deleteDesign(item ndx) {
     package->illumTextures.clear();
   }
 
-  string path = "designs/";
+  std::string path = "designs/";
   path = path + design->name;
 
   while (true) {
-    string file = lookupFile(path + ".design", _lookupForceMod);
+    std::string file = lookupFile(path + ".design", _lookupForceMod);
     if (!fileExists(file)) break;
     deleteFile(file);
   }
 
   while (true) {
-    string file = lookupFile(path + ".design.png", _lookupForceMod);
+    std::string file = lookupFile(path + ".design.png", _lookupForceMod);
     if (!fileExists(file)) break;
     deleteFile(file);
   }
 
   while (true) {
-    string file = lookupFile(path, _lookupForceMod);
+    std::string file = lookupFile(path, _lookupForceMod);
     if (!fileExists(file)) break;
     deleteDir(file);
   }
@@ -328,13 +331,13 @@ void designPackageResaved() {
 
   item dNdx = getSelectedDesignNdx();
   DesignPackage* package = designPackages.get(dNdx);
-  vector<item> albs = package->albedoTextures.toVector();
-  vector<item> illums = package->illumTextures.toVector();
+  std::vector<item> albs = package->albedoTextures.toVector();
+  std::vector<item> illums = package->illumTextures.toVector();
   package->albedoTextures.clear();
   package->illumTextures.clear();
 
   for (int isIllum = 0; isIllum < 2; isIllum++)  {
-    vector<item> textures = isIllum ? illums : albs;
+    std::vector<item> textures = isIllum ? illums : albs;
     for (int k = 0; k < textures.size(); k++) {
       addTextureToPackage(dNdx, textures[k], isIllum);
     }

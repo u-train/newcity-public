@@ -1,7 +1,8 @@
 #pragma once
 
-#include "item.hpp"
 #include "serialize.hpp"
+#include <glm/vec3.hpp>
+#include <GL/glew.h>
 
 enum HeatMapIndex {
   Pollution, Value, Density, Crime, Education, Prosperity,
@@ -16,8 +17,8 @@ const HeatMapIndex RoadHeatMap = (HeatMapIndex)-4;
 
 typedef float HeatMapTile;
 
-void heatMapAdd(HeatMapIndex ndx, vec3 loc, float amount);
-float heatMapGet(HeatMapIndex ndx, vec3 loc);
+void heatMapAdd(HeatMapIndex ndx, glm::vec3 loc, float amount);
+float heatMapGet(HeatMapIndex ndx, glm::vec3 loc);
 float heatMapTotal(HeatMapIndex ndx);
 void setHeatMap(HeatMapIndex ndx, bool intense);
 HeatMapIndex getHeatMap();

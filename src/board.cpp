@@ -1,16 +1,14 @@
 #include "board.hpp"
 
-#include "business.hpp"
 #include "cup.hpp"
 #include "util.hpp"
 
 #include <vector>
-using namespace std;
 
-typedef vector<item> Board;
+typedef std::vector<item> Board;
 
 struct EconBoardSet {
-  vector<item> boards[numBoards];
+  std::vector<item> boards[numBoards];
 };
 
 Cup<EconBoardSet> boardSets;
@@ -30,7 +28,7 @@ Board* getBoard(item econ, item boardNdx) {
 }
 
 item boardTake(item econ, item boardNdx) {
-  vector<item>* board = getBoard(econ, boardNdx);
+  std::vector<item>* board = getBoard(econ, boardNdx);
   if (board->size() == 0) {
     return 0;
   }
@@ -53,12 +51,12 @@ void boardTake(item boardNdx, item ndx) {
 */
 
 void boardPut(item econ, item boardNdx, item ndx) {
-  vector<item>* board = getBoard(econ, boardNdx);
+  std::vector<item>* board = getBoard(econ, boardNdx);
   board->push_back(ndx);
 }
 
 void boardPut(item econ, item boardNdx, item ndx, item num) {
-  vector<item>* board = getBoard(econ, boardNdx);
+  std::vector<item>* board = getBoard(econ, boardNdx);
 
   for (int i = 0; i < num; i++) {
     board->push_back(ndx);
@@ -66,12 +64,12 @@ void boardPut(item econ, item boardNdx, item ndx, item num) {
 }
 
 int boardSize(item econ, item boardNdx) {
-  vector<item>* board = getBoard(econ, boardNdx);
+  std::vector<item>* board = getBoard(econ, boardNdx);
   return board->size();
 }
 
 void boardClean(item econ, item boardNdx, item ndx) {
-  vector<item>* board = getBoard(econ, boardNdx);
+  std::vector<item>* board = getBoard(econ, boardNdx);
   for (int i=board->size()-1; i >= 0; i--) {
     if(board->at(i) == ndx) {
       board->erase(board->begin()+i);
@@ -97,7 +95,7 @@ void readBoards(FileBuffer* file, int version) {
       nb = fread_int(file);
     }
     for (int i = 0; i < nb; i++) {
-      vector<item> trash;
+      std::vector<item> trash;
       fread_item_vector(file, &trash, version);
     }
   }

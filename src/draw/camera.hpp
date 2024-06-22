@@ -1,18 +1,18 @@
-#ifndef CAMERA_H
-#define CAMERA_H
+#pragma once
 
 #include "../line.hpp"
 #include "../item.hpp"
 #include "../inputEvent.hpp"
 #include "../time.hpp"
+#include <glm/glm.hpp>
 
 struct Plane {
-  vec3 pt;
-  vec3 norm;
+  glm::vec3 pt;
+  glm::vec3 norm;
   float D;
 
   Plane();
-  Plane(vec3 p, vec3 n);
+  Plane(glm::vec3 p, glm::vec3 n);
 };
 
 enum FrustumPlanes {
@@ -26,8 +26,8 @@ enum FrustumPlanes {
 };
 
 struct Frustum {
-  vec3 origin;
-  vec3 direction;
+  glm::vec3 origin;
+  glm::vec3 direction;
   Plane planes[FrustumPlanes::NUM_PLANES];
   float nearW;
   float nearH;
@@ -38,16 +38,16 @@ struct Frustum {
 };
 
 struct Camera {
-  dvec3 target;
-  dvec3 position;
-  dvec3 direction;
-  dvec3 up;
-  dvec3 right;
+  glm::dvec3 target;
+  glm::dvec3 position;
+  glm::dvec3 direction;
+  glm::dvec3 up;
+  glm::dvec3 right;
   Frustum viewFrustum;
   Line ray;
-  vec2 window;
-  vec2 projSize;
-  vec2 invProjSize;
+  glm::vec2 window;
+  glm::vec2 projSize;
+  glm::vec2 invProjSize;
   double size;
   double distance;
   float resolutionDistance;
@@ -56,11 +56,11 @@ struct Camera {
   double roll;
   float aspectRatio;
   float distanceFactor;
-  mat4 view;
-  mat4 projection;
-  mat4 viewProjection;
+  glm::mat4 view;
+  glm::mat4 projection;
+  glm::mat4 viewProjection;
   LightInformation light;
-  vec3 clearColor;
+  glm::vec3 clearColor;
 };
 
 enum WindowMode {
@@ -85,8 +85,8 @@ void setHorizontalCameraAngle(float angle);
 float getVerticalCameraAngle();
 void swapCameras();
 void resetCamera();
-void setCameraTarget(vec3 location);
-vec3 getCameraTarget();
+void setCameraTarget(glm::vec3 location);
+glm::vec3 getCameraTarget();
 void setCameraYaw(float yaw);
 void setCameraPitch(float pitch);
 void setCameraRoll(float roll);
@@ -113,7 +113,7 @@ void resetGraphics();
 void setFreezeCamera(bool freezeCamera);
 void setWindowMode(WindowMode mode);
 WindowMode getWindowMode();
-bool inFrustrum(Camera c, vec3 eloc, float eSize);
+bool inFrustrum(Camera c, glm::vec3 eloc, float eSize);
 void setFOV(float newFOV);
 float getFOV();
 float getFOVBias();
@@ -138,4 +138,4 @@ void setNextPerspective_g(item perspective);
 Perspective getPerspective_g();
 Perspective getPerspective_r();
 
-#endif
+

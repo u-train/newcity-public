@@ -123,15 +123,15 @@ Part* messageBoard(float xSize, float ySize) {
   }
 
   float usableYSize = ySize - 2;//8;
-  Part* scroll = scrollbox(vec2(0,0), vec2(messageWidthOuter, usableYSize));
+  Part* scroll = scrollbox(glm::vec2(0,0), glm::vec2(messageWidthOuter, usableYSize));
   scroll->padding = 0;
 
   float y = 0.0f;
   for (int i = messages_o.size() - 1; i >= 0; i--) {
     Message m = messages_o[i];
 
-    Part* messagePart = panel(line(vec3(0.6f,y,0.0f),
-          vec3(messageWidthOuter, 1.0f, 0.0f)));
+    Part* messagePart = panel(line(glm::vec3(0.6f,y,0.0f),
+          glm::vec3(messageWidthOuter, 1.0f, 0.0f)));
     messagePart->padding = messagePadding;
     messagePart->itemData = m.object;
 
@@ -141,15 +141,15 @@ Part* messageBoard(float xSize, float ySize) {
       float xclose = messageWidthOuter-msgScl;
       Part* target = messagePart->contents[0];
         //m.object < 0 ? messagePart : messagePart->contents[0];
-      r(target, button(vec2(xclose, messagePadding),
-          iconX, vec2(msgScl, msgScl), removeMessage, i));
-      r(target, button(vec2(xclose-msgScl, messagePadding),
+      r(target, button(glm::vec2(xclose, messagePadding),
+          iconX, glm::vec2(msgScl, msgScl), removeMessage, i));
+      r(target, button(glm::vec2(xclose-msgScl, messagePadding),
           m.object < 0 ? iconPlus : iconMinus,
-          vec2(msgScl, msgScl), minimizeMessage, i));
+          glm::vec2(msgScl, msgScl), minimizeMessage, i));
 
     } else {
-      r(messagePart, button(vec2(messageWidthOuter-msgScl-messagePadding,0),
-            iconX, vec2(msgScl, msgScl), removeMessage, i));
+      r(messagePart, button(glm::vec2(messageWidthOuter-msgScl-messagePadding,0),
+            iconX, glm::vec2(msgScl, msgScl), removeMessage, i));
       messagePart->dim.end.y += messagePadding*2;
     }
 
@@ -159,8 +159,8 @@ Part* messageBoard(float xSize, float ySize) {
   }
 
   Part* scrollFrame = scrollboxFrame(
-      vec2(xSize-messageWidthOuter-0.6, 1.5-messagePadding),
-      vec2(messageWidthOuter+messagePadding+1, usableYSize+messagePadding*2),
+      glm::vec2(xSize-messageWidthOuter-0.6, 1.5-messagePadding),
+      glm::vec2(messageWidthOuter+messagePadding+1, usableYSize+messagePadding*2),
       &messageScroll, scroll, true);
   scrollFrame->renderMode = RenderTransparent;
   scrollFrame->flags &= ~_partLowered;

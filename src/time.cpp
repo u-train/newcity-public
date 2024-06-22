@@ -6,25 +6,22 @@
 #include "heatmap.hpp"
 #include "land.hpp"
 #include "option.hpp"
-#include "renderUtils.hpp"
 #include "string_proxy.hpp"
 #include "time.hpp"
-#include "util.hpp"
+#include "draw/camera.hpp"
 #include "weather.hpp"
+#include <glm/glm.hpp>
 
-#include "spdlog/spdlog.h"
-#include <algorithm>
-
-//const vec3 white   = vec3(1  , 1  , 0.9);
-//const vec3 gold    = vec3(1  , 0.5, 0.1);
-//const vec3 blue    = vec3(0.2, 0.4, 0.7);
-//const vec3 orange  = vec3(0.9, 0.4, 0.1);
-//const vec3 skyBlue = vec3(.224, .31, .357);
-const vec3 skyColor[4] = {
-  vec3(1.0, 0.1, 0.1),
-  vec3(1.0, 0.5, 0.1),
-  vec3(0.1, 0.3, 1.0),
-  vec3(0.0, 0.0, 0.2)
+//const glm::vec3 white   = glm::vec3(1  , 1  , 0.9);
+//const glm::vec3 gold    = glm::vec3(1  , 0.5, 0.1);
+//const glm::vec3 blue    = glm::vec3(0.2, 0.4, 0.7);
+//const glm::vec3 orange  = glm::vec3(0.9, 0.4, 0.1);
+//const glm::vec3 skyBlue = glm::vec3(.224, .31, .357);
+const glm::vec3 skyColor[4] = {
+  glm::vec3(1.0, 0.1, 0.1),
+  glm::vec3(1.0, 0.5, 0.1),
+  glm::vec3(0.1, 0.3, 1.0),
+  glm::vec3(0.0, 0.0, 0.2)
 };
 
 const double latitude = 0.3;
@@ -105,7 +102,7 @@ item getPaletteAnimationFrame() {
 
 void updateAnimation(double duration) {
   float dayFrac = duration / gameDayInRealSeconds;
-  animationTime += clamp(dayFrac, 0.f, .25f/24/60);
+  animationTime += glm::clamp(dayFrac, 0.f, .25f/24/60);
   if (animationTime > 4) animationTime -= 4;
 
   paletteAnimationFrameFrac += duration * c(CPaletteAnimationFramerate);
@@ -371,7 +368,7 @@ LightInformation getLightInformation() {
   double moonTheta = (dateTime/4-0.5)*pi_o*2;
   double cloudDim = 1-w.clouds*.8;
   if (isPresimulating()) cloudDim = 1;
-  double lightPower0 = clamp(sunHeight * cloudDim, 0., 1.);
+  double lightPower0 = glm::clamp(sunHeight * cloudDim, 0., 1.);
   double lightPower1 = 1 - lightPower0;
   double dirFactor = std::min(std::max(0.0, sunHeight + goldAmount), 0.8);
   double skyBright = std::max(0.1, cloudDim*(1+cos(timeTheta))*.4f);
@@ -384,48 +381,48 @@ LightInformation getLightInformation() {
   for (int i = 0; i < 3; i++) {
     double pos = (i-1) * (goldA4+0.5) + 2 * (1-goldA4);
     //if (pos > 2.5) pos = 2.5;
-    vec3 color = vec3(0,0,0);
+    glm::vec3 color = glm::vec3(0,0,0);
     for (int j = 0; j < 4; j++) {
-      color += skyColor[j] * clamp(float(1-abs(j - pos)), 0.f, 1.f);
+      color += skyColor[j] * glm::clamp(float(1-abs(j - pos)), 0.f, 1.f);
     }
-    color = color * float(1-cloudEffect) + vec3(1,1,1)*float(cloudEffect);
+    color = color * float(1-cloudEffect) + glm::vec3(1,1,1)*float(cloudEffect);
     color *= skyBright;
-    color += vec3(1,1,1)*float(lightning*.5f);
+    color += glm::vec3(1,1,1)*float(lightning*.5f);
     result.skyColor[i] = color;
   }
   */
 
-  result.skyColor = vec3(goldAmount, skyBright, w.clouds);
-  result.skyColor = clamp(result.skyColor, 0.f, 1.f);
+  result.skyColor = glm::vec3(goldAmount, skyBright, w.clouds);
+  result.skyColor = glm::clamp(result.skyColor, 0.f, 1.f);
 
   /*
-  result.color = (dvec3(1,1,1)*lightPower0 + dvec3(0.1, 0.1, 0.8)*lightPower1)
-    *(1-goldA4) + dvec3(1.0, 0.3, 0.1)*goldA4;
+  result.color = (glm::dvec3(1,1,1)*lightPower0 + glm::dvec3(0.1, 0.1, 0.8)*lightPower1)
+    *(1-goldA4) + glm::dvec3(1.0, 0.3, 0.1)*goldA4;
     */
 
   float x = 5 - 4*skyBright;
-  float y = 49 + 8*clamp(goldAmount, 0., 1.);
-  result.color = vec3(
+  float y = 49 + 8*glm::clamp(goldAmount, 0., 1.);
+  result.color = glm::vec3(
       samplePixel(getPaletteImage(), x/paletteSize, y/paletteSize));
-  result.color += vec3(1,1,1)*float(lightning*.2f);
+  result.color += glm::vec3(1,1,1)*float(lightning*.2f);
 
   result.direction =
-    dirFactor*dvec3(sin(timeTheta), cos(seasonTheta+pi_o)+latitude,
+    dirFactor*glm::dvec3(sin(timeTheta), cos(seasonTheta+pi_o)+latitude,
         sunHeight*.5) +
-    (1-dirFactor)*dvec3(sin(moonTheta), latitude, .5);
+    (1-dirFactor)*glm::dvec3(sin(moonTheta), latitude, .5);
   if (lightning > 0.1) {
     double dirEffect = lightning*.5f;
     double angle = moonTheta + pi_o*.5f;
-    dvec3 randVec = vec3(sin(angle), cos(angle), 0.5);
+    glm::dvec3 randVec = glm::vec3(sin(angle), cos(angle), 0.5);
     result.direction = result.direction * float(1-dirEffect) +
-      vec3(randVec*dirEffect);
+      glm::vec3(randVec*dirEffect);
   }
 
   // Adjust for bad sun angle at sunset
   double rx = result.direction.x;
   double ry = result.direction.y;
   double rz = result.direction.z;
-  result.color *= clamp(2 - rz / (sqrt(rx*rx + ry*ry) + 1.f), .5, 2.);
+  result.color *= glm::clamp(2 - rz / (sqrt(rx*rx + ry*ry) + 1.f), .5, 2.);
   result.color *= brightness*2.4+.1f;
   //result.color *= 0.5f;
 
@@ -449,10 +446,10 @@ void setSkyVisible() {
   setEntityVisible(skyboxEntity, !isUndergroundView());
 }
 
-vec3 getSkyboxUV(float turn, float z) {
-  float power = mix(1.f, 3.f, getFOV()/2.1f);
+glm::vec3 getSkyboxUV(float turn, float z) {
+  float power = glm::mix(1.f, 3.f, getFOV()/2.1f);
   float zAdj = 1-pow(z/6.f, power);
-  return vec3(turn, zAdj, 0);
+  return glm::vec3(turn, zAdj, 0);
 }
 
 float getSkyboxY(float z) {
@@ -472,23 +469,23 @@ void renderSkybox() {
 
   const int numSides = 24;
   const float skyboxSize = 500;
-  vec3 up = vec3(0,0,1);
+  glm::vec3 up = glm::vec3(0,0,1);
 
   for (int z = 0; z < 6; z++) {
     float z0 = z;
     float z1 = z+1;
-    vec3 bottom = vec3(0, 0, (z0-3)*skyboxSize);
-    vec3 top = vec3(0, 0, (z1-3)*skyboxSize);
-    vec3 *points0 = (vec3*)alloca(sizeof(vec3)*numSides);
-    vec3 *points1 = (vec3*)alloca(sizeof(vec3)*numSides);
-    vec3 *tex0 = (vec3*)alloca(sizeof(vec3)*(numSides+1));
-    vec3 *tex1 = (vec3*)alloca(sizeof(vec3)*(numSides+1));
+    glm::vec3 bottom = glm::vec3(0, 0, (z0-3)*skyboxSize);
+    glm::vec3 top = glm::vec3(0, 0, (z1-3)*skyboxSize);
+    glm::vec3 *points0 = (glm::vec3*)alloca(sizeof(glm::vec3)*numSides);
+    glm::vec3 *points1 = (glm::vec3*)alloca(sizeof(glm::vec3)*numSides);
+    glm::vec3 *tex0 = (glm::vec3*)alloca(sizeof(glm::vec3)*(numSides+1));
+    glm::vec3 *tex1 = (glm::vec3*)alloca(sizeof(glm::vec3)*(numSides+1));
     float y0 = getSkyboxY(z0);
     float y1 = getSkyboxY(z1);
 
     for (int i = 0; i < numSides; i ++) {
       float theta = pi_o * 2 * i / numSides;
-      vec3 dir = vec3(cos(theta), sin(theta), 0) *
+      glm::vec3 dir = glm::vec3(cos(theta), sin(theta), 0) *
         (-2.f*skyboxSize);
       points0[i] = dir*y0 + bottom;
       points1[i] = dir*y1 + top;
@@ -503,14 +500,14 @@ void renderSkybox() {
     for (int i = 0; i < numSides; i ++) {
       int j = (i+1)%numSides;
       int k = i+1;
-      vec3 p0 = points0[j];
-      vec3 p1 = points0[i];
-      vec3 p2 = points1[j];
-      vec3 p3 = points1[i];
-      vec3 xp0 = tex0[k];
-      vec3 xp1 = tex0[i];
-      vec3 xp2 = tex1[k];
-      vec3 xp3 = tex1[i];
+      glm::vec3 p0 = points0[j];
+      glm::vec3 p1 = points0[i];
+      glm::vec3 p2 = points1[j];
+      glm::vec3 p3 = points1[i];
+      glm::vec3 xp0 = tex0[k];
+      glm::vec3 xp1 = tex0[i];
+      glm::vec3 xp2 = tex1[k];
+      glm::vec3 xp3 = tex1[i];
 
       /*
       if (z0 == 0) {
@@ -540,19 +537,19 @@ void renderSkybox() {
   }
 
   /*
-  vec3 bottom = vec3(0, 0, -skyboxSize*1.f);
-  vec3 middle = vec3(0,0, skyboxSize*1.f);
-  vec3 top = vec3(0,0, skyboxSize*2.f);
-  vec3 *points0 = (vec3*)alloca(sizeof(vec3)*numSides);
-  vec3 *points1 = (vec3*)alloca(sizeof(vec3)*numSides);
-  vec3 *points2 = (vec3*)alloca(sizeof(vec3)*numSides);
-  vec3 *tex0 = (vec3*)alloca(sizeof(vec3)*(numSides+1));
-  vec3 *tex1 = (vec3*)alloca(sizeof(vec3)*(numSides+1));
-  vec3 *tex2 = (vec3*)alloca(sizeof(vec3)*(numSides+1));
+  glm::vec3 bottom = glm::vec3(0, 0, -skyboxSize*1.f);
+  glm::vec3 middle = glm::vec3(0,0, skyboxSize*1.f);
+  glm::vec3 top = glm::vec3(0,0, skyboxSize*2.f);
+  glm::vec3 *points0 = (glm::vec3*)alloca(sizeof(glm::vec3)*numSides);
+  glm::vec3 *points1 = (glm::vec3*)alloca(sizeof(glm::vec3)*numSides);
+  glm::vec3 *points2 = (glm::vec3*)alloca(sizeof(glm::vec3)*numSides);
+  glm::vec3 *tex0 = (glm::vec3*)alloca(sizeof(glm::vec3)*(numSides+1));
+  glm::vec3 *tex1 = (glm::vec3*)alloca(sizeof(glm::vec3)*(numSides+1));
+  glm::vec3 *tex2 = (glm::vec3*)alloca(sizeof(glm::vec3)*(numSides+1));
 
   for (int i = 0; i < numSides; i ++) {
     float theta = pi_o * 2 * i / numSides;
-    vec3 dir = vec3(cos(theta), sin(theta), 0) *
+    glm::vec3 dir = glm::vec3(cos(theta), sin(theta), 0) *
       (-2.f*skyboxSize);
     points0[i] = dir + bottom;
     points1[i] = dir*2.f + middle;
@@ -560,26 +557,26 @@ void renderSkybox() {
   }
 
   for (int i = 0; i <= numSides; i ++) {
-    tex0[i] = vec3(double(i)/numSides, 0, 0);
-    tex1[i] = vec3(double(i)/numSides, .5f, 0);
-    tex2[i] = vec3(double(i)/numSides, 1, 0);
+    tex0[i] = glm::vec3(double(i)/numSides, 0, 0);
+    tex1[i] = glm::vec3(double(i)/numSides, .5f, 0);
+    tex2[i] = glm::vec3(double(i)/numSides, 1, 0);
   }
 
   for (int i = 0; i < numSides; i ++) {
     int j = (i+1)%numSides;
     int k = i+1;
-    vec3 p0 = points0[j];
-    vec3 p1 = points0[i];
-    vec3 p2 = points1[j];
-    vec3 p3 = points1[i];
-    vec3 p4 = points2[j];
-    vec3 p5 = points2[i];
-    vec3 xp0 = tex0[k];
-    vec3 xp1 = tex0[i];
-    vec3 xp2 = tex1[k];
-    vec3 xp3 = tex1[i];
-    vec3 xp4 = tex2[k];
-    vec3 xp5 = tex2[i];
+    glm::vec3 p0 = points0[j];
+    glm::vec3 p1 = points0[i];
+    glm::vec3 p2 = points1[j];
+    glm::vec3 p3 = points1[i];
+    glm::vec3 p4 = points2[j];
+    glm::vec3 p5 = points2[i];
+    glm::vec3 xp0 = tex0[k];
+    glm::vec3 xp1 = tex0[i];
+    glm::vec3 xp2 = tex1[k];
+    glm::vec3 xp3 = tex1[i];
+    glm::vec3 xp4 = tex2[k];
+    glm::vec3 xp5 = tex2[i];
 
     Triangle t0 = {{
       {p0, up, xp0},

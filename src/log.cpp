@@ -5,18 +5,15 @@
 #include "log.hpp"
 
 #include "console/conDisplay.hpp"
-#include "game/constants.hpp"
 #include "game/game.hpp"
 #include "game/version.hpp"
 #include "error.hpp"
-#include "string_proxy.hpp"
 #include "option.hpp"
 #include "platform/file.hpp"
 
 #include "spdlog/spdlog.h"
 #include "spdlog/sinks/stdout_color_sinks.h"
 #include "spdlog/sinks/rotating_file_sink.h"
-#include "spdlog/sinks/msvc_sink.h"
 #include "spdlog/sinks/base_sink.h"
 
 #include <memory>
@@ -55,7 +52,7 @@ static bool errorOverwrite = false;
 static uint16_t lastLogNum = 0;
 
 template<typename Mutex>
-class console_sink : public spdlog::sinks::base_sink <Mutex> {
+class console_sink : public spdlog::sinks::base_sink <std::mutex> {
   protected:
     void sink_it_(const spdlog::details::log_msg& msg) override {
       // log_msg is a struct containing the log entry info like level,
@@ -65,7 +62,7 @@ class console_sink : public spdlog::sinks::base_sink <Mutex> {
       // If needed (very likely but not mandatory), the sink formats
       // the message before sending it to its final destination:
       spdlog::memory_buf_t formatted;
-      spdlog::sinks::base_sink<Mutex>::formatter_->format(msg, formatted);
+      spdlog::sinks::base_sink<std::mutex>::formatter_->format(msg, formatted);
       std::string msgStr = fmt::to_string(formatted);
       consolePrintLine(msgStr);
     }
@@ -301,7 +298,7 @@ void initLogging() {
     auto consoleSink = make_shared<console_sink_mt>();
     consoleSink->set_level(level::trace);
 
-    vector<spdlog::sink_ptr> sinks {stdoutSink, fileSink, consoleSink};
+    std::vector<spdlog::sink_ptr> sinks {stdoutSink, fileSink, consoleSink};
 
     #ifdef _WIN32
       auto msvcSink = make_shared<sinks::msvc_sink_mt>();

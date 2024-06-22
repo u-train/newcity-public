@@ -5,8 +5,6 @@
 
 #include "../building/building.hpp"
 #include "../building/design.hpp"
-#include "../draw/texture.hpp"
-#include "../draw/image.hpp"
 #include "../game/game.hpp"
 #include "../land.hpp"
 #include "../platform/lua.hpp"
@@ -15,17 +13,17 @@
 #include "../util.hpp"
 #include "../weather.hpp"
 
-#include "spdlog/spdlog.h"
+#include <glm/glm.hpp>
 
 const float pi_o2 = pi_o*2;
 
 struct SpawnPoint {
   item buildingNdx;
-  vec3 location;
+  glm::vec3 location;
   float yaw;
 };
 
-vector<vector<SpawnPoint>> spawnPoints;
+std::vector<std::vector<SpawnPoint>> spawnPoints;
 
 void resetWanderers_g() {
   spawnPoints.clear();
@@ -39,10 +37,10 @@ void readdSpawnPoints(item buildingNdx) {
 void addSpawnPoints(item buildingNdx) {
   Building* b = getBuilding(buildingNdx);
   Design* d = getDesign(b->design);
-  int decoS = d->decos.size();
-  //SPDLOG_INFO("addSpawnPoints {} {} decos:{}", buildingNdx, b->design, decoS);
+  int decos = d->decos.size();
+  //SPDLOG_INFO("addSpawnPoints {} {} decos:{}", buildingNdx, b->design, decos);
 
-  for (int i = 0; i < decoS; i++) {
+  for (int i = 0; i < decos; i++) {
     Deco deco = d->decos[i];
     if (deco.decoType < numLegacyDecoTypes) continue;
     DecoType* decoType = getDecoType(deco.decoType);
@@ -51,14 +49,14 @@ void addSpawnPoints(item buildingNdx) {
 
     if (decoType->spawns <= 0) continue;
 
-    vec3 location = b->location;
-    vec3 norm = normalize(b->normal);
-    vec3 decoOff = vec3(norm.x,norm.y,0)*deco.location.x +
-      vec3(-norm.y,norm.x,0)*deco.location.y + vec3(0,0,deco.location.z);
+    glm::vec3 location = b->location;
+    glm::vec3 norm = normalize(b->normal);
+    glm::vec3 decoOff = glm::vec3(norm.x,norm.y,0)*deco.location.x +
+      glm::vec3(-norm.y,norm.x,0)*deco.location.y + glm::vec3(0,0,deco.location.z);
     location += decoOff;
 
-    vec3 decoNorm = vec3(norm.x,norm.y,0)*cos(deco.yaw) +
-      vec3(-norm.y,norm.x,0)*sin(deco.yaw);
+    glm::vec3 decoNorm = glm::vec3(norm.x,norm.y,0)*glm::cos(deco.yaw) +
+      glm::vec3(-norm.y,norm.x,0)*glm::sin(deco.yaw);
     float yaw = atan2(-decoNorm.x,-decoNorm.y);
 
     if (spawnPoints.size() <= decoType->spawns) {
@@ -72,7 +70,7 @@ void addSpawnPoints(item buildingNdx) {
 void removeSpawnPoints(item buildingNdx) {
   //SPDLOG_INFO("removeSpawnPoints {}", buildingNdx);
   for (int i = 0; i < spawnPoints.size(); i++) {
-    vector<SpawnPoint>* points = &spawnPoints[i];
+    std::vector<SpawnPoint>* points = &spawnPoints[i];
     for (int k = points->size()-1; k >= 0; k--) {
       if (points->at(k).buildingNdx == buildingNdx) {
         points->erase(points->begin()+k);
@@ -89,7 +87,7 @@ float targetWandererCount(item modelNdx) {
 
   if (isSpawned) {
     if (spawnPoints.size() <= modelNdx) return 0;
-    vector<SpawnPoint>* points = &spawnPoints[modelNdx];
+    std::vector<SpawnPoint>* points = &spawnPoints[modelNdx];
     if (isDesigner) {
       return points->size();
     } else {
@@ -137,18 +135,18 @@ void updateOneWanderer_g(item ndx, float duration) {
 
   /*
   Image blueNoise = getBlueNoiseImage();
-  vec3 bnLoc = v->location / 6400.f;
-  vec4 wave = samplePixel(blueNoise, bnLoc.x, bnLoc.y);
+  glm::vec3 bnLoc = v->location / 6400.f;
+  glm::vec4 wave = samplePixel(blueNoise, bnLoc.x, bnLoc.y);
 
   //float pitch = randFloat(-1,1) * (pi_o*.25);
-  //pitch = mix(v->pitch, pitch, 0.01f);
+  //pitch = glm::mix(v->pitch, pitch, 0.01f);
   //v->pitch = pitch;
 
   float turnSpeed = model->speed * duration * 0.01f;
 
   float pitch = v->pitch;
   pitch += (wave.y*2-1) * turnSpeed;
-  pitch = mix(pitch, 0.f, 0.01);
+  pitch = glm::mix(pitch, 0.f, 0.01);
   v->pitch = pitch;
 
   float yaw = v->yaw;
@@ -157,11 +155,11 @@ void updateOneWanderer_g(item ndx, float duration) {
   if (yaw > pi_o2) yaw -= pi_o2;
   v->yaw = yaw;
 
-  float spitch = sin(pitch);
-  float cpitch = cos(pitch);
-  float syaw = sin(yaw) * cpitch;
-  float cyaw = cos(yaw) * cpitch;
-  vec3 move = (duration * model->speed) * vec3(syaw, cyaw, spitch);
+  float spitch = glm::sin(pitch);
+  float cpitch = glm::cos(pitch);
+  float syaw = glm::sin(yaw) * cpitch;
+  float cyaw = glm::cos(yaw) * cpitch;
+  glm::vec3 move = (duration * model->speed) * glm::vec3(syaw, cyaw, spitch);
   v->location += move;
 
   if (ndx == getSelection()) {
@@ -182,20 +180,20 @@ void updateOneWanderer_g(item ndx, float duration) {
     } else {
       v->yaw += pi_o;
     }
-    v->location.x = clamp(v->location.x, -buffer+2, mapSize+buffer-2);
-    v->location.y = clamp(v->location.y, -buffer+2, mapSize+buffer-2);
+    v->location.x = glm::clamp(v->location.x, -buffer+2, mapSize+buffer-2);
+    v->location.y = glm::clamp(v->location.y, -buffer+2, mapSize+buffer-2);
   }
   float floor = pointOnLand(v->location).z;
   if (floor < 0) floor = 0;
   float ceiling = c(CMaxHeight) + 100.f;
   if (floor > v->location.z || v->location.z > ceiling) {
-    v->location.z = clamp(v->location.z, floor + 2.f, ceiling - 2.f);
+    v->location.z = glm::clamp(v->location.z, floor + 2.f, ceiling - 2.f);
     v->pitch *= -1;
   }
 
   if (v->location.z < floor + 200 && v->pitch < 0.05) {
     float pitchDiff = (floor+200 - v->location.z)/200*.01f;
-    pitchDiff = clamp(pitchDiff, 0.f, 0.01f);
+    pitchDiff = glm::clamp(pitchDiff, 0.f, 0.01f);
     v->pitch += pitchDiff;
   }
 
@@ -206,11 +204,11 @@ void updateOneWanderer_g(item ndx, float duration) {
 void addWanderer_g(item modelNdx) {
   VehicleModel* model = getVehicleModel(modelNdx);
   bool isSpawned = model->flags & _modelSpawned;
-  vec3 loc;
+  glm::vec3 loc;
   float yaw = 0;
 
   if (isSpawned) {
-    vector<SpawnPoint>* points = &spawnPoints[modelNdx];
+    std::vector<SpawnPoint>* points = &spawnPoints[modelNdx];
     item pointS = points->size();
     if (pointS <= 0) return;
     SpawnPoint point = points->at(randItem(pointS));
@@ -221,7 +219,7 @@ void addWanderer_g(item modelNdx) {
     yaw = randFloat(0, pi_o2);
     float mapSize = getMapSize();
     for (int k = 0; k < 10; k++) {
-      loc = vec3(randFloat(), randFloat(), 0) * mapSize;
+      loc = glm::vec3(randFloat(), randFloat(), 0) * mapSize;
       loc = pointOnLand(loc);
       if (model->flags & _modelSea && loc.z > -10) continue;
       if (loc.z < 0) loc.z = 0;
@@ -237,7 +235,7 @@ void addWanderer_g(item modelNdx) {
 
 void addWinWanderers_g(item buildingNdx) {
   Building* b = getBuilding(buildingNdx);
-  vec3 loc = getBuildingTop(buildingNdx);
+  glm::vec3 loc = getBuildingTop(buildingNdx);
   float yaw = atan2(-b->normal.x, -b->normal.y);
 
   item winAnimationModel = vehicleModelByCode("VhWinAnimation");
@@ -246,7 +244,7 @@ void addWinWanderers_g(item buildingNdx) {
   for (int i = 0; i < 40; i++) {
     item balloonsModel = vehicleModelByCode("VhPartyBalloons");
     float range = 100;
-    vec3 locOff = loc + vec3(randFloat(-range, range), randFloat(-range, range), randFloat(-range*2, 0));
+    glm::vec3 locOff = loc + glm::vec3(randFloat(-range, range), randFloat(-range, range), randFloat(-range*2, 0));
     addWanderer_g(balloonsModel, locOff, randFloat(0, pi_o2));
   }
 }
@@ -267,7 +265,7 @@ void updateWanderers_g(float duration) {
     }
 
     //float numToSpawn = isDesigner ? duration : dayDur/model->maxAge;
-    //numToSpawn = clamp(numToSpawn, 0.f, diff);
+    //numToSpawn = glm::clamp(numToSpawn, 0.f, diff);
     //SPDLOG_INFO("type:{} count:{} targetCount:{} numToSpawn:{}",
         //model->code, model->count, targetCount, numToSpawn);
 

@@ -19,6 +19,9 @@
 #include "../tools/road.hpp"
 #include "../util.hpp"
 #include "../vehicle/travelGroup.hpp"
+#include "../game/constants.hpp"
+#include "../error.hpp"
+#include "../string_proxy.hpp"
 
 #include "spdlog/spdlog.h"
 
@@ -29,8 +32,8 @@ item stopCoverageMesh = 0;
 item busSignMesh = 0;
 item busSignMeshSimple = 0;
 item trainSignMesh = 0;
-static const vec3 xGray = vec3(0.5/spriteSheetSize, 4.5/spriteSheetSize, 1);
-static const vec3 xBlue = vec3(7.5/spriteSheetSize, 4.5/spriteSheetSize, 1);
+static const glm::vec3 xGray = glm::vec3(0.5/spriteSheetSize, 4.5/spriteSheetSize, 1);
+static const glm::vec3 xBlue = glm::vec3(7.5/spriteSheetSize, 4.5/spriteSheetSize, 1);
 
 void makeStopSignMeshes() {
   stopCoverageMesh = addMesh();
@@ -42,36 +45,36 @@ void makeStopSignMeshes() {
     Mesh* m = getMesh(i == 0 ? busSignMesh : busSignMeshSimple);
 
     // Sign
-    makeTransitSign(m, vec3(0.2,-2.,0), vec3(0,1,0), 2.5,
+    makeTransitSign(m, glm::vec3(0.2,-2.,0), glm::vec3(0,1,0), 2.5,
         iconBusSign, iconBusSignBack);
     //Awning
-    makeAngledCube(m, vec3(0.6,3.1,3.0), vec3(1.7,0,-.25), vec3(0,-4.2,0),
-        vec3(0.025,0,0.2), true, xBlue);
+    makeAngledCube(m, glm::vec3(0.6,3.1,3.0), glm::vec3(1.7,0,-.25), glm::vec3(0,-4.2,0),
+        glm::vec3(0.025,0,0.2), true, xBlue);
     // Foundation
-    makeCube(m, vec3(1.5,1.0,-1), vec3(2.7,4.2,1.25), xGray, true, false);
+    makeCube(m, glm::vec3(1.5,1.0,-1), glm::vec3(2.7,4.2,1.25), xGray, true, false);
 
     if (i == 0) {
       for (int y = 0; y < 2; y ++) {
         for (int x = 0; x < 2; x ++) {
           // Supports
-          makeCube(m, vec3(x*1.5+.75,-1+y*4,.25), vec3(.1,.1,3.0-x*.25f),
+          makeCube(m, glm::vec3(x*1.5+.75,-1+y*4,.25), glm::vec3(.1,.1,3.0-x*.25f),
               xGray, true, true);
         }
         // Bench supports
-        makeCube(m, vec3(1.5,-1+y*4,0.75), vec3(1.6,.09,.1), xGray, true, true);
+        makeCube(m, glm::vec3(1.5,-1+y*4,0.75), glm::vec3(1.6,.09,.1), xGray, true, true);
       }
 
       //Bench
-      makeCube(m, vec3(2.,1.0,0.75), vec3(0.5,4.0,.25), xGray, true, true);
+      makeCube(m, glm::vec3(2.,1.0,0.75), glm::vec3(0.5,4.0,.25), xGray, true, true);
     }
   }
 
   Mesh* t = getMesh(trainSignMesh);
-  makeTransitSign(t, vec3(0.2,-2.,0), vec3(0,1,0), 1.5,
+  makeTransitSign(t, glm::vec3(0.2,-2.,0), glm::vec3(0,1,0), 1.5,
       iconTrainSign, iconBusSignBack);
 
   Mesh* sc = getMesh(stopCoverageMesh);
-  makeDisc(sc, vec3(0,0,0), c(CStopRadius)*2.f, 24, colorWhite);
+  makeDisc(sc, glm::vec3(0,0,0), c(CStopRadius)*2.f, 24, colorWhite);
 
   bufferMesh(stopCoverageMesh);
   bufferMesh(busSignMesh);
@@ -122,9 +125,9 @@ void renderStop(item ndx) {
   setEntityTransparent(eNdx, !(stop->flags & _stopComplete));
 
   float dap = stop->graphLoc.dap/lane->length;
-  vec3 loc = interpolateSpline(lane->spline, dap);
-  vec3 normal = interpolateSpline(lane->spline, dap - 0.01) - loc;
-  vec3 placeLoc = stop->location - uzNormal(normal)*
+  glm::vec3 loc = interpolateSpline(lane->spline, dap);
+  glm::vec3 normal = interpolateSpline(lane->spline, dap - 0.01) - loc;
+  glm::vec3 placeLoc = stop->location - uzNormal(normal)*
     (c(CLaneWidth)-c(CSholderWidth)) * trafficHandedness();
   float ang = atan2(normal.x, normal.y);
   placeEntity(eNdx, placeLoc, -ang, 0);
@@ -185,8 +188,8 @@ void positionStop(item ndx) {
 
   Lane* lane = getLane(stop->graphLoc);
   float dap = stop->graphLoc.dap/lane->length;
-  vec3 loc = interpolateSpline(lane->spline, dap);
-  vec3 normal = loc - interpolateSpline(lane->spline, dap - 0.01);
+  glm::vec3 loc = interpolateSpline(lane->spline, dap);
+  glm::vec3 normal = loc - interpolateSpline(lane->spline, dap - 0.01);
   normal = uzNormal(normal) * trafficHandedness();
   loc -= normal*c(CLaneWidth)*1.5f;
   stop->location = loc;
@@ -405,12 +408,12 @@ void repositionStop(item stopNdx) {
   } else {
     Edge* edge = getEdge(graphElem);
     if (!(edge->flags & _graphExists)) {
-      vector<item> children = getGraphChildren(graphElem);
+      std::vector<item> children = getGraphChildren(graphElem);
       bool side = edge->laneBlocks[1]/10 == stop->graphLoc.lane/10;
       item bestChild = 0;
       float bestChildDist = FLT_MAX;
       GraphLocation bestChildGraphLoc;
-      vec3 bestChildLoc;
+      glm::vec3 bestChildLoc;
 
       for (int i = 0; i < children.size(); i++) {
         item childNdx = children[i];
@@ -421,7 +424,7 @@ void repositionStop(item stopNdx) {
         if (graphLoc.lane < 10) continue;
         bool childSide = child->laneBlocks[1]/10 == graphLoc.lane/10;
         if (side != childSide) continue;
-        vec3 loc = getLocation(graphLoc);
+        glm::vec3 loc = getLocation(graphLoc);
         float dist = vecDistance(loc, stop->location);
 
         if (dist < bestChildDist) {

@@ -3,19 +3,20 @@
 #include "../cpool.hpp"
 #include "../util.hpp"
 
-#include "buffer.hpp"
 #include "culler.hpp"
-#include "texture.hpp"
-
+#include "../game/constants.hpp"
+#include "../error.hpp"
+#include "camera.hpp"
 #include "spdlog/spdlog.h"
 #include <boost/dynamic_bitset.hpp>
+#include <glm/glm.hpp>
 
 CPool<Entity>* entities = CPool<Entity>::newPool(200000);
 boost::dynamic_bitset<> entityActive_g;
 boost::dynamic_bitset<> entityCulled_g;
 
 bool renderEnabled = true;
-vec3 nextGuide = vec3(0,0,1000000000000.);
+glm::vec3 nextGuide = glm::vec3(0,0,1000000000000.);
 float meshQuality = 1;
 
 void entityPrintDebugInfo() {
@@ -79,7 +80,7 @@ void resetEntities() {
   }
   entities->clear();
   entityActive_g.clear();
-  nextGuide = vec3(0,0,1000000000000.);
+  nextGuide = glm::vec3(0,0,1000000000000.);
   if (meshQuality <= 0.01) {
     meshQuality = 1;
   }
@@ -99,10 +100,10 @@ bool isRenderEnabled() {
 }
 
 void stopGuide() {
-  nextGuide = vec3(0,0,1000000000000.);
+  nextGuide = glm::vec3(0,0,1000000000000.);
 }
 
-void setGuide(vec3 guide, float size) {
+void setGuide(glm::vec3 guide, float size) {
   guide.z = size * size;
   nextGuide = guide;
 }
@@ -121,12 +122,12 @@ item addEntity(Shader shader) {
   entity->mesh = 0;
   entity->simpleMesh = 0;
   entity->shader = shader;
-  memcpy_s(entity->matrix, &mat4(1.0f)[0][0], 16*sizeof(float));
+  memcpy_s(entity->matrix, &glm::mat4(1.0f)[0][0], 16*sizeof(float));
   entity->entitySize = 100000;
   entity->maxCameraDistance = 100000;
   entity->simpleDistance = 0;
-  entity->location = vec3(0,0,0);
-  entity->rotScale = vec3(0,0,1);
+  entity->location = glm::vec3(0,0,0);
+  entity->rotScale = glm::vec3(0,0,1);
   setEntityActive_g(ndx);
 
   return ndx;
@@ -348,8 +349,8 @@ item getEntityMesh(Entity* entity, Cull cull) {
   if (simpleMesh <= 0) simpleMesh = mesh;
   if (mesh <= 0) return 0;
 
-  vec3 eloc = entity->location;
-  float cameraDistSqrd = distanceSqrd(vec3(cull.x, cull.y, cull.z), eloc);
+  glm::vec3 eloc = entity->location;
+  float cameraDistSqrd = distanceSqrd(glm::vec3(cull.x, cull.y, cull.z), eloc);
   bool hard = (entity->flags & _entityHardTransitions);
   float es = entity->entitySize;
   if (!hard && cameraDistSqrd < es*es) return mesh;
@@ -361,21 +362,21 @@ item getEntityMesh(Entity* entity, Cull cull) {
   float mq = hard ? 1 : meshQuality;
   float maxDist = entity->maxCameraDistance * mq;
   if (cameraDistSqrd > maxDist*maxDist) return 0;
-  vec4 viewSpace = cull.viewProjection * vec4(entity->location, 1.0);
+  glm::vec4 viewSpace = cull.viewProjection * glm::vec4(entity->location, 1.0);
   float w = viewSpace.w;
   viewSpace /= w;
   //if (randFloat() < 0.001) SPDLOG_INFO("({},{},{},{}), {}",
       //viewSpace.x, viewSpace.y, viewSpace.z, viewSpace.w, w);
   float buffer = 1 + es*cull.fovBias/w;
-  //vec2 buffer;
+  //glm::vec2 buffer;
   /*
   if (getFOV() > 0.f) {
-    //float fovBias = clamp(6 - getFOV()*20, 0.5f, 4.f);
+    //float fovBias = glm::clamp(6 - getFOV()*20, 0.5f, 4.f);
     //float fovBias = getBrightness() * 4.f;
     float fovBias = getFOVBias();
-    buffer = vec2(1,1) * (1 + es*fovBias/w);
+    buffer = glm::vec2(1,1) * (1 + es*fovBias/w);
   } else {
-    buffer = vec2(1,1) + cull.invProjSize*es*.75f;
+    buffer = glm::vec2(1,1) + cull.invProjSize*es*.75f;
   }
   */
   if (viewSpace.x < -buffer || viewSpace.x > buffer) return 0;
@@ -397,7 +398,7 @@ item getEntityMeshOld(Entity* entity, Camera c) {
     return entity->mesh;
   }
 
-  const vec3 eloc = entity->location;
+  const glm::vec3 eloc = entity->location;
   //if(!inFrustrum(c, eloc, entity->entitySize)) return 0;
 
   const float ex = eloc.x;
@@ -424,14 +425,14 @@ item getEntityMeshOld(Entity* entity, Camera c) {
   if (ds < df*.01f) return 0; // Probably way out of view
 
   //if (ds < df*1.f) {
-    vec4 viewSpace = c.viewProjection * vec4(eloc, 1.0);
+    glm::vec4 viewSpace = c.viewProjection * glm::vec4(eloc, 1.0);
     float w = viewSpace.w;
     viewSpace /= w;
     if (randFloat() < 0.001) SPDLOG_INFO("({},{},{},{}), {}",
         viewSpace.x, viewSpace.y, viewSpace.z, viewSpace.w, w);
     //viewSpace.x /= c.window.x;
     //viewSpace.y /= c.window.y;
-    const vec2 buffer = c.invProjSize*es + vec2(1,1);
+    const glm::vec2 buffer = c.invProjSize*es + glm::vec2(1,1);
     if (viewSpace.x < -buffer.x || viewSpace.x > buffer.x) return 0;
     if (viewSpace.y < -buffer.y || viewSpace.y > buffer.y) return 0;
     if (viewSpace.z > rd2) return 0;
@@ -454,20 +455,20 @@ void copyEntityPlacement(item fromNdx, item toNdx) {
   markEntityDirty_g(toNdx);
 }
 
-void placeEntity(item ndx, vec3 location, float yaw, float pitch, float scal) {
+void placeEntity(item ndx, glm::vec3 location, float yaw, float pitch, float scal) {
   Entity* entity = getEntity(ndx);
   entity->location = location;
-  entity->rotScale = vec3(yaw, pitch, scal);
+  entity->rotScale = glm::vec3(yaw, pitch, scal);
 
   //memcpy_s(entity->matrix, &entity->location, 3*sizeof(float));
   //memcpy_s(&entity->matrix[3], &entity->rotScale, 3*sizeof(float));
 
   /* KEEP for reference
-  mat4 matrix = mat4(1.0f);
+  glm::mat4 matrix = glm::mat4(1.0f);
   matrix = translate(matrix, location);
-  matrix = rotate(matrix, yaw, vec3(0, 0, 1));
-  matrix = rotate(matrix, pitch, vec3(1, 0, 0));
-  matrix = scale(matrix, vec3(scal, scal, scal));
+  matrix = rotate(matrix, yaw, glm::vec3(0, 0, 1));
+  matrix = rotate(matrix, pitch, glm::vec3(1, 0, 0));
+  matrix = scale(matrix, glm::vec3(scal, scal, scal));
   memcpy_s(entity->matrix, &matrix[0][0], 16*sizeof(float));
   */
 
@@ -502,7 +503,7 @@ void placeEntity(item ndx, vec3 location, float yaw, float pitch, float scal) {
   markEntityDirty_g(ndx);
 }
 
-void placeEntity(item ndx, vec3 location, float yaw, float pitch) {
+void placeEntity(item ndx, glm::vec3 location, float yaw, float pitch) {
   placeEntity(ndx, location, yaw, pitch, 1);
 }
 

@@ -6,10 +6,13 @@
 #include "../cup.hpp"
 #include "../game/game.hpp"
 #include "../thread.hpp"
-
+#include "camera.hpp"
+#include "../game/constants.hpp"
 #include "spdlog/spdlog.h"
 #include <boost/dynamic_bitset.hpp>
 #include <boost/container/set.hpp>
+#include "../string_proxy.hpp"
+#include <glm/glm.hpp>
 
 typedef boost::container::set<item> itemset;
 typedef itemset::iterator itemsetIter;
@@ -18,8 +21,8 @@ float lastMeshQuality = 0;
 item numEntities = 0;
 item update = 0;
 Cull nextCull;
-atomic<CullerState> cullerState(CullerWaiting);
-atomic<bool> shouldCullerContinue;
+std::atomic<CullerState> cullerState(CullerWaiting);
+std::atomic<bool> shouldCullerContinue;
 
 Cup<uint32_t> eFlags;
 Cup<uint32_t> eDataFlags;
@@ -267,8 +270,8 @@ void selectMeshes_c(Cull cull) {
   for (int i = 1; i < num; i++) {
     if (!eTest[i]) continue;
     float* loc = eLoc.get(i*3);
-    vec4 vloc(loc[0], loc[1], loc[2], 1);
-    vec4 viewSpace = cull.viewProjection * vloc;
+    glm::vec4 vloc(loc[0], loc[1], loc[2], 1);
+    glm::vec4 viewSpace = cull.viewProjection * vloc;
     float w = viewSpace.w;
     float projX = viewSpace.x/w;
     float projY = viewSpace.y/w;

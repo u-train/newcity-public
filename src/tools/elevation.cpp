@@ -74,15 +74,15 @@ bool toggleViaductTunnel(Part* part, InputEvent event) {
   return true;
 }
 
-Part* elevationWidget(vec2 loc, Elevation* elevation) {
-  Part* result = panel(loc, vec2(2.5,3.875));
+Part* elevationWidget(glm::vec2 loc, Elevation* elevation) {
+  Part* result = panel(loc, glm::vec2(2.5,3.875));
   result->padding = 0.125f;
   result->flags |= _partLowered;
   //result->renderMode = RenderTransparent;
   item z = elevation->zOffset;
   if (z != 0 || isFeatureEnabled(FRoadElevation)) {
 
-    Part* buttUp = button(vec2(0,0), iconUp, elevationUp);
+    Part* buttUp = button(glm::vec2(0,0), iconUp, elevationUp);
     buttUp->inputAction = ActTTRaiseElevation;
     buttUp->itemData = 1;
     buttUp->ptrData = elevation;
@@ -93,9 +93,9 @@ Part* elevationWidget(vec2 loc, Elevation* elevation) {
     if (blinkFeature(FRoadElevation)) buttUp->flags |= _partBlink;
     r(result, buttUp);
 
-    r(result, labelCenter(vec2(0.f,1.f), vec2(2.5f,.85f), sprintf_o("%s%dm", z == 0 ? " " : z < 0 ? "" : "+", int(z*c(CZTileSize)))));
-    r(result, labelCenter(vec2(0.f,1.65f), vec2(2.5f,.6f), strdup_s(z < 0 ? "Blw Grnd" : "Abv Grnd")));
-    r(result, labelCenter(vec2(0.f,2.f), vec2(2.5f,.6f), strdup_s(
+    r(result, labelCenter(glm::vec2(0.f,1.f), glm::vec2(2.5f,.85f), sprintf_o("%s%dm", z == 0 ? " " : z < 0 ? "" : "+", int(z*c(CZTileSize)))));
+    r(result, labelCenter(glm::vec2(0.f,1.65f), glm::vec2(2.5f,.6f), strdup_s(z < 0 ? "Blw Grnd" : "Abv Grnd")));
+    r(result, labelCenter(glm::vec2(0.f,2.f), glm::vec2(2.5f,.6f), strdup_s(
             (z <  0 &&  elevation->moveEarth) ? "Trench" :
             (z <  0 && !elevation->moveEarth) ? "Tunnel" :
             (z == 0                         ) ? "Surface" :
@@ -103,7 +103,7 @@ Part* elevationWidget(vec2 loc, Elevation* elevation) {
             (z >= 0 && !elevation->moveEarth) ? "Viaduct" : "Err")));
 
 
-    Part* buttDown = button(vec2(0,2.5), iconDown, elevationDown);
+    Part* buttDown = button(glm::vec2(0,2.5), iconDown, elevationDown);
     buttDown->inputAction = ActTTLowerElevation;
     buttDown->itemData = -1;
     buttDown->ptrData = elevation;
@@ -115,7 +115,7 @@ Part* elevationWidget(vec2 loc, Elevation* elevation) {
     r(result, buttDown);
 
     for (int i = 0; i < 2; i ++) {
-      Part* buttEarth = button(vec2(1.25,i*2.5), i ? iconUnderground : iconCauseway,
+      Part* buttEarth = button(glm::vec2(1.25,i*2.5), i ? iconUnderground : iconCauseway,
           toggleViaductTunnel);
       buttEarth->inputAction = ActTTTunnelMode;
       buttEarth->itemData = 0;

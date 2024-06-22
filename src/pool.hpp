@@ -1,14 +1,12 @@
-#ifndef POOL_H
-#define POOL_H
+#pragma once
 
 #include "cup.hpp"
 #include "serialize.hpp"
 #include "string_proxy.hpp"
 
 #include <vector>
-#include "spdlog/spdlog.h"
+#include <algorithm>
 
-using namespace std;
 
 template <typename T>
 class Pool {
@@ -30,8 +28,8 @@ class Pool {
 
 //  private:
     Cup<T> array;
-    vector<item> gaps;
-    vector<item> settling;
+    std::vector<item> gaps;
+    std::vector<item> settling;
 };
 
 template <typename T>
@@ -48,8 +46,8 @@ template <typename T>
 void Pool<T>::defragment(const char* type) {
   if (this->gaps.size() == 0) return;
 
-  reverse(this->gaps.begin(), this->gaps.end());
-  sort(this->gaps.begin(), this->gaps.end());//, greater<item>());
+  std::reverse(this->gaps.begin(), this->gaps.end());
+  std::sort(this->gaps.begin(), this->gaps.end());//, greater<item>());
   item ndx = this->gaps.back();
   item num = 0;
   while (ndx > 100 && ndx == this->array.size() && this->gaps.size() > 1) {
@@ -58,7 +56,7 @@ void Pool<T>::defragment(const char* type) {
     ndx = this->gaps.back();
     num ++;
   }
-  reverse(this->gaps.begin(), this->gaps.end());
+  std::reverse(this->gaps.begin(), this->gaps.end());
 
   /*
   if (num > 0) {
@@ -135,7 +133,7 @@ int Pool<T>::count() {
 
 template <typename T>
 void Pool<T>::write(FileBuffer* file) {
-  vector<item> allGaps = this->gaps;
+  std::vector<item> allGaps = this->gaps;
   allGaps.insert(allGaps.begin(), this->settling.begin(), this->settling.end());
   fwrite_item_vector(file, &allGaps);
   fwrite_int(file, this->array.size());
@@ -148,5 +146,3 @@ void Pool<T>::read(FileBuffer* file, int version) {
   int size = fread_int(file);
   this->array.resize(size);
 }
-
-#endif

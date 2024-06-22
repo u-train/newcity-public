@@ -1,11 +1,10 @@
 #pragma once
-#ifndef GOV_BUILDING_H
-#define GOV_BUILDING_H
 
 #include "money.hpp"
 #include "heatmap.hpp"
+#include "item.hpp"
 
-#include <vector>
+#include <glm/vec3.hpp>
 
 enum Effect {
 
@@ -24,11 +23,11 @@ enum BuildingCategory {
 
 float getEffectValue(item effect);
 float getEffectMultiplier(item effect);
-float getAdjustedDensity(item zone, vec3 loc);
-float getAdjustedLandValue(item zone, vec3 loc);
+float getAdjustedDensity(item zone, glm::vec3 loc);
+float getAdjustedLandValue(item zone, glm::vec3 loc);
 float getHeatMapAdjustment(HeatMapIndex ndx);
 const char* getEffectString(item effect);
-const vec3 getEffectIcon(item effect);
+const glm::vec3 getEffectIcon(item effect);
 const char* getBuildingCategoryString(item category);
 char* getEffectDescriptor(item effect);
 char* getEffectDescriptor(item effect, int value, int flags);
@@ -64,4 +63,4 @@ void recalculateEffectsAllGovernmentBuildings();
 void writeGovernmentBuildings(FileBuffer* file);
 void readGovernmentBuildings(FileBuffer* file, int version);
 
-#endif
+

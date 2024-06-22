@@ -2,25 +2,22 @@
 
 #include "string_proxy.hpp"
 #include "util.hpp"
+#include "game/constants.hpp"
 
 #include "platform/lookup.hpp"
 
-#include "spdlog/spdlog.h"
-
-#include <ctype.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <vector>
-using namespace std;
 
 const char* country = "us";
 
-vector<char*> nameList[numNameTypes];
+std::vector<char*> nameList[numNameTypes];
 
 void initNames(item type, const char* filename) {
   FILE *file;
   char* fn_base = sprintf_o("locale/%s/%s.txt", country, filename);
-  string fn = lookupFile(fn_base, 0);
+  std::string fn = lookupFile(fn_base, 0);
   free(fn_base);
   int len = 255;
 

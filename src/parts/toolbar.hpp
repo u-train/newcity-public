@@ -1,5 +1,4 @@
-#ifndef PART_TOOLBAR_H
-#define PART_TOOLBAR_H
+#pragma once
 
 #include "part.hpp"
 
@@ -24,4 +23,4 @@ void tool_mouse_move_callback(InputEvent event);
 void resetTools();
 void initTools();
 
-#endif
+

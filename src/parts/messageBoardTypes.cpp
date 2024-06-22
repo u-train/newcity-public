@@ -13,6 +13,7 @@
 #include "../time.hpp"
 #include "../tools/building.hpp"
 #include "../zone.hpp"
+#include "../game/constants.hpp"
 
 #include "../parts/block.hpp"
 #include "../parts/chart.hpp"
@@ -45,14 +46,14 @@ void chartMessage(Part* result, Message message) {
   float ySize = minimized ? 1.3 : 4;
   const float subScl = 0.6f;
 
-  Part* chrt = chart(vec2(0,0), vec2(messageWidth+messagePadding*2, ySize),
+  Part* chrt = chart(glm::vec2(0,0), glm::vec2(messageWidth+messagePadding*2, ySize),
       message.data, (Statistic)stat, timePeriod, true, minimized);
   r(result, chrt);
 
   if (message.data != ourCityEconNdx()) {
     Part* econLbl = r(chrt, labelRight(
-          vec2(0, ySize-subScl),
-          vec2(messageWidth+messagePadding, subScl),
+          glm::vec2(0, ySize-subScl),
+          glm::vec2(messageWidth+messagePadding, subScl),
           strdup_s(getEconName(message.data))));
   }
 
@@ -65,7 +66,7 @@ void chartMessage(Part* result, Message message) {
 void infoMessage(Part* result, Message message) {
   const char* info = infoMessageText[message.object];
   float ySize = 0;
-  r(result, multiline(vec2(0,0), vec2(messageWidth-1, msgScl),
+  r(result, multiline(glm::vec2(0,0), glm::vec2(messageWidth-1, msgScl),
         strdup_s(info), &ySize));
 
   result->dim.end.y = ySize;
@@ -82,19 +83,19 @@ void newspaperMessage(Part* result, Message message) {
   float ySize = 0;
   float y = 0;
 
-  r(result, spanCenter(vec2(0,y), 0, vec2(messageWidth, msgScl),
+  r(result, spanCenter(glm::vec2(0,y), 0, glm::vec2(messageWidth, msgScl),
         strdup_s(getNewspaperNameShort().c_str()), &y));
 
-  r(result, blackBlock(vec2(0,msgScl), vec2(messageWidth,0.1f)));
+  r(result, blackBlock(glm::vec2(0,msgScl), glm::vec2(messageWidth,0.1f)));
   y += 0.2f;
 
   NewspaperIssue* issue = getLatestNewspaperIssue();
   for (int i = 0; i < issue->articles.size(); i++ ) {
     if (i > 0) {
-      r(result, blackBlock(vec2(1,y-0.05f), vec2(messageWidth-2,0.02f)));
+      r(result, blackBlock(glm::vec2(1,y-0.05f), glm::vec2(messageWidth-2,0.02f)));
     }
 
-    r(result, spanCenter(vec2(0,y), 0, vec2(messageWidth, 0.6f),
+    r(result, spanCenter(glm::vec2(0,y), 0, glm::vec2(messageWidth, 0.6f),
           strdup_s(issue->articles[i].title), &y));
   }
 
@@ -112,12 +113,12 @@ void finNewsMessage(Part* result, Message message) {
   float ySize = 0;
   float y = 0;
   float dividerWidth = 0.05;
-  vec2 scoreSize = vec2(result->dim.end.x, 0.7) -
-    vec2(result->padding*2, 0);
-  vec2 scoreMiddle(scoreSize.x*.6f,msgScl);
+  glm::vec2 scoreSize = glm::vec2(result->dim.end.x, 0.7) -
+    glm::vec2(result->padding*2, 0);
+  glm::vec2 scoreMiddle(scoreSize.x*.6f,msgScl);
 
-  r(result, labelCenter(vec2(0,y), scoreSize, strdup_s("Financial")));
-  r(result, blackBlock(vec2(0,msgScl), vec2(messageWidth,0.1f)));
+  r(result, labelCenter(glm::vec2(0,y), scoreSize, strdup_s("Financial")));
+  r(result, blackBlock(glm::vec2(0,msgScl), glm::vec2(messageWidth,0.1f)));
   y += 0.2f;
 
   NewspaperIssue* issue = getLatestNewspaperIssue();
@@ -134,14 +135,14 @@ void finNewsMessage(Part* result, Message message) {
   y += scoreSize.y;
   for (int i = 0; i < numFin; i++) {
     FinancialScore score = issue->financialScores[i];
-    r(result, label(vec2(0,y), scoreSize,
+    r(result, label(glm::vec2(0,y), scoreSize,
           strdup_s(score.statName)));
 
     if (abs(score.score) < 100) {
-      r(result, labelRight(vec2(0,y), scoreSize,
+      r(result, labelRight(glm::vec2(0,y), scoreSize,
           sprintf_o("%2.3f", score.score)));
     } else {
-      r(result, labelRight(vec2(0,y), scoreSize,
+      r(result, labelRight(glm::vec2(0,y), scoreSize,
           sprintf_o("%d", int(score.score))));
     }
 
@@ -149,11 +150,11 @@ void finNewsMessage(Part* result, Message message) {
       FinancialScore prevScore = prevIssue->financialScores[j];
       if (!streql(prevScore.statName, score.statName)) continue;
       float diff = score.score - prevScore.score;
-      r(result, labelRight(vec2(0,y), scoreMiddle,
+      r(result, labelRight(glm::vec2(0,y), scoreMiddle,
             sprintf_o("%.2f", diff)));
 
-      Part* ico = r(result, icon(vec2(scoreSize.x*.65f,y),
-            vec2(scoreSize.y, scoreSize.y), diff < 0 ? iconDown : iconUp));
+      Part* ico = r(result, icon(glm::vec2(scoreSize.x*.65f,y),
+            glm::vec2(scoreSize.y, scoreSize.y), diff < 0 ? iconDown : iconUp));
       if (getCurrentYear() >= 1993) {
         ico->foregroundColor = diff < 0 ? RedLight : GreenMedL;
       }
@@ -175,35 +176,35 @@ void budgetMessage(Part* result, Message message) {
     float amount0 = b0.line[BudgetBalance] + b0.line[LineOfCredit];
     Budget b1 = getBudget(1);
     float amount1 = b1.line[BudgetBalance] + b1.line[LineOfCredit];
-    r(result, icon(vec2(0,0), vec2(msgScl, msgScl), iconCash));
-    r(result, label(vec2(msgScl,0), msgScl,
+    r(result, icon(glm::vec2(0,0), glm::vec2(msgScl, msgScl), iconCash));
+    r(result, label(glm::vec2(msgScl,0), msgScl,
           sprintf_o("%d Cash to Spend", getCurrentYear())));
-    r(result, label(vec2(-0.25f,msgScl), msgScl,
+    r(result, label(glm::vec2(-0.25f,msgScl), msgScl,
           printPaddedMoneyString(amount0), amount0 < 0));
-    r(result, label(vec2(2.5f,msgScl), msgScl, strdup_s("YTD"), amount0 < 0));
-    r(result, label(vec2(3.75f,msgScl), msgScl,
+    r(result, label(glm::vec2(2.5f,msgScl), msgScl, strdup_s("YTD"), amount0 < 0));
+    r(result, label(glm::vec2(3.75f,msgScl), msgScl,
           printPaddedMoneyString(amount1), amount1 < 0));
-    r(result, label(vec2(6.5f,msgScl), msgScl, strdup_s("Est."), amount1 < 0));
+    r(result, label(glm::vec2(6.5f,msgScl), msgScl, strdup_s("Est."), amount1 < 0));
 
   } else {
-    r(result, icon(vec2(0,0), vec2(msgScl, msgScl), iconCash));
-    r(result, label(vec2(msgScl,0), msgScl,
+    r(result, icon(glm::vec2(0,0), glm::vec2(msgScl, msgScl), iconCash));
+    r(result, label(glm::vec2(msgScl,0), msgScl,
           sprintf_o("%d %s", getCurrentYear(), getBudgetLineName(l))));
     float amount0 = getBudget(0).line[l];
     float amount1 = getBudget(1).line[l];
-    r(result, label(vec2(-0.25f,msgScl), msgScl,
+    r(result, label(glm::vec2(-0.25f,msgScl), msgScl,
           printPaddedMoneyString(amount0), amount0 < 0));
-    r(result, label(vec2(2.5f,msgScl), msgScl, strdup_s("YTD"), amount0 < 0));
-    r(result, label(vec2(3.75f,msgScl), msgScl,
+    r(result, label(glm::vec2(2.5f,msgScl), msgScl, strdup_s("YTD"), amount0 < 0));
+    r(result, label(glm::vec2(3.75f,msgScl), msgScl,
           printPaddedMoneyString(amount1), amount1 < 0));
-    r(result, label(vec2(6.5f,msgScl), msgScl, strdup_s("Est."), amount1 < 0));
+    r(result, label(glm::vec2(6.5f,msgScl), msgScl, strdup_s("Est."), amount1 < 0));
   }
 
   if (c(CNewspaperTextured)) result->flags |= _partTextured;
   result->flags &= ~_partTextShadow;
   result->renderMode = RenderPanelGradient;
 
-  vec3 white = getColorInPalette(PickerPalette::GrayLight);
+  glm::vec3 white = getColorInPalette(PickerPalette::GrayLight);
   Line bpGrad = line(white, white);
   result->texture = bpGrad;
   result->foregroundColor = PickerPalette::Black;
@@ -240,8 +241,8 @@ void achievementMessage(Part* result, Message message) {
   float y = 0;
 
   if (ach.name != 0 && strlen(ach.name) > 0) {
-    r(result, label(vec2(0,0), msgScl, strdup_s(ach.name)));
-    r(result, hr(vec2(0,msgScl), messageWidth));
+    r(result, label(glm::vec2(0,0), msgScl, strdup_s(ach.name)));
+    r(result, hr(glm::vec2(0,msgScl), messageWidth));
     y += msgScl + messagePadding + 0.2f;
   }
 
@@ -254,15 +255,15 @@ void achievementMessage(Part* result, Message message) {
 
   if (ach.text != 0 && strlen(ach.text) > 0) {
     float ySize = 0;
-    r(result, span(vec2(messagePadding,y), messagePadding,
-          vec2(innerWidth, subScl), strdup_s(ach.text), &y));
+    r(result, span(glm::vec2(messagePadding,y), messagePadding,
+          glm::vec2(innerWidth, subScl), strdup_s(ach.text), &y));
     y += subScl;
   }
 
   if (ach.effectText != 0 && strlen(ach.effectText) > 0) {
     y += subScl;
-    r(result, span(vec2(messagePadding,y), messagePadding,
-          vec2(innerWidth, subScl), strdup_s(ach.effectText), &y));
+    r(result, span(glm::vec2(messagePadding,y), messagePadding,
+          glm::vec2(innerWidth, subScl), strdup_s(ach.effectText), &y));
     y += subScl;
   }
 
@@ -274,25 +275,25 @@ void personMessage(Part* result, Message message) {
   Person* p = getPerson(message.object);
   Family* family = getFamily(p->family);
 
-  r(result, icon(vec2(0,0), vec2(msgScl, msgScl), getPersonIcon(p)));
-  r(result, label(vec2(msgScl,0), msgScl,
+  r(result, icon(glm::vec2(0,0), glm::vec2(msgScl, msgScl), getPersonIcon(p)));
+  r(result, label(glm::vec2(msgScl,0), msgScl,
     sprintf_o("%s %s", p->name, family->name)));
 
   // Where are they?
   if (p->flags & _personTraveling) {
-    r(result, icon(vec2(0,msgScl), vec2(msgScl, msgScl), iconCar));
+    r(result, icon(glm::vec2(0,msgScl), glm::vec2(msgScl, msgScl), iconCar));
 
   } else if (p->location == 0) {
-    r(result, icon(vec2(0,msgScl), vec2(msgScl, msgScl), iconWait));
+    r(result, icon(glm::vec2(0,msgScl), glm::vec2(msgScl, msgScl), iconWait));
 
   } else {
     Building* building = getBuilding(p->location);
-    vec3 ico = iconZoneMono[building->zone];
-    r(result, icon(vec2(0,msgScl), vec2(msgScl, msgScl), ico));
+    glm::vec3 ico = iconZoneMono[building->zone];
+    r(result, icon(glm::vec2(0,msgScl), glm::vec2(msgScl, msgScl), ico));
   }
 
   // What are they doing?
-  r(result, label(vec2(msgScl,msgScl), msgScl,
+  r(result, label(glm::vec2(msgScl,msgScl), msgScl,
         getActivityName(message.object)));
 
   result->dim.end.y = 2*msgScl;
@@ -301,41 +302,41 @@ void personMessage(Part* result, Message message) {
 void businessMessage(Part* result, Message message) {
   result->onClick = selectBusiness;
   Business* b = getBusiness(message.object);
-  r(result, icon(vec2(0,0), vec2(msgScl, msgScl), iconBusiness));
-  r(result, label(vec2(msgScl,0), msgScl, strdup_s(b->name)));
+  r(result, icon(glm::vec2(0,0), glm::vec2(msgScl, msgScl), iconBusiness));
+  r(result, label(glm::vec2(msgScl,0), msgScl, strdup_s(b->name)));
 }
 
 void govBuildingMessage(Part* result, Building* b, Message message) {
   Design* d = getDesign(b->design);
 
-  vec3 ico = iconZoneMono[b->zone];
-  r(result, icon(vec2(0,0), vec2(msgScl, msgScl), ico));
-  r(result, label(vec2(msgScl,0), msgScl, strdup_s(d->displayName)));
+  glm::vec3 ico = iconZoneMono[b->zone];
+  r(result, icon(glm::vec2(0,0), glm::vec2(msgScl, msgScl), ico));
+  r(result, label(glm::vec2(msgScl,0), msgScl, strdup_s(d->displayName)));
   if (b->flags & _buildingComplete) {
-    r(result, icon(vec2(0,msgScl), vec2(msgScl, msgScl), iconPersonMan));
-    r(result, label(vec2(msgScl,msgScl), msgScl,
+    r(result, icon(glm::vec2(0,msgScl), glm::vec2(msgScl, msgScl), iconPersonMan));
+    r(result, label(glm::vec2(msgScl,msgScl), msgScl,
           sprintf_o("%d inside", b->peopleInside.size())));
 
     bool enabled = b->flags & _buildingEnabled;
     if (enabled) {
       float maintenance = getMaintenance(message.object);
       char* maint = printMoneyString(maintenance);
-      r(result, label(vec2(messageWidth-msgScl*5, msgScl), msgScl,
+      r(result, label(glm::vec2(messageWidth-msgScl*5, msgScl), msgScl,
             sprintf_o("%s/year", maint)));
       free(maint);
     } else {
-      r(result, label(vec2(messageWidth-msgScl*5, msgScl), msgScl,
+      r(result, label(glm::vec2(messageWidth-msgScl*5, msgScl), msgScl,
             strdup_s("Shutdown")));
     }
 
     if (isFeatureEnabled(FShutDownBuilding)) {
-      r(result, button(vec2(messageWidth-msgScl*6,msgScl),
+      r(result, button(glm::vec2(messageWidth-msgScl*6,msgScl),
           enabled ? iconOpen : iconClosed,
-          vec2(msgScl,msgScl), toggleEnableGovBuilding, 0));
+          glm::vec2(msgScl,msgScl), toggleEnableGovBuilding, 0));
     }
 
   } else {
-    r(result, label(vec2(0, msgScl), msgScl, strdup_s("Planned")));
+    r(result, label(glm::vec2(0, msgScl), msgScl, strdup_s("Planned")));
   }
 
   result->dim.end.y = 2*msgScl;
@@ -348,13 +349,13 @@ void buildingMessage(Part* result, Message message) {
     govBuildingMessage(result, b, message);
 
   } else {
-    vec3 ico = iconZoneMono[b->zone];
-    r(result, icon(vec2(0,0), vec2(msgScl, msgScl), ico));
-    r(result, label(vec2(msgScl,0), msgScl,
+    glm::vec3 ico = iconZoneMono[b->zone];
+    r(result, icon(glm::vec2(0,0), glm::vec2(msgScl, msgScl), ico));
+    r(result, label(glm::vec2(msgScl,0), msgScl,
           sprintf_o("%d people inside", b->peopleInside.size())));
 
     char* taxes = printMoneyString(getBuildingTaxes(message.object));
-    r(result, label(vec2(0,msgScl), msgScl, sprintf_o("%s/year", taxes)));
+    r(result, label(glm::vec2(0,msgScl), msgScl, sprintf_o("%s/year", taxes)));
     free(taxes);
     result->dim.end.y = 2*msgScl;
   }
@@ -363,7 +364,7 @@ void buildingMessage(Part* result, Message message) {
 void graphMessage(Part* result, Message message) {
   result->onClick = selectGraphElement;
   Configuration config = getElementConfiguration(message.object);
-  vec3 ico = config.type == ConfigTypeExpressway ? iconExpressway : iconRoad;
+  glm::vec3 ico = config.type == ConfigTypeExpressway ? iconExpressway : iconRoad;
 
   if (message.object > 0) {
     Edge* e = getEdge(message.object);
@@ -371,19 +372,19 @@ void graphMessage(Part* result, Message message) {
     float safeSpeed = getLaneBlock(e->laneBlocks[0])->speedLimit;
     bool slowed = speedLimit > safeSpeed;
 
-    r(result, icon(vec2(messageWidth-msgScl*6,msgScl),
-          vec2(msgScl,msgScl), iconWrench));
-    r(result, label(vec2(messageWidth-msgScl*5,msgScl), msgScl,
+    r(result, icon(glm::vec2(messageWidth-msgScl*6,msgScl),
+          glm::vec2(msgScl,msgScl), iconWrench));
+    r(result, label(glm::vec2(messageWidth-msgScl*5,msgScl), msgScl,
       sprintf_o(slowed ? "%2d%%!" : "%2d%%", (int)(e->wear*100))));
   }
 
-  r(result, icon(vec2(0,0), vec2(msgScl, msgScl), ico));
-  r(result, label(vec2(msgScl,0), msgScl,
+  r(result, icon(glm::vec2(0,0), glm::vec2(msgScl, msgScl), ico));
+  r(result, label(glm::vec2(msgScl,0), msgScl,
         strdup_s(graphElementName(message.object))));
 
   int cars = numVehiclesInElement(message.object);
-  r(result, icon(vec2(0,msgScl), vec2(msgScl, msgScl), iconCar));
-  r(result, label(vec2(msgScl,msgScl), msgScl,
+  r(result, icon(glm::vec2(0,msgScl), glm::vec2(msgScl, msgScl), iconCar));
+  r(result, label(glm::vec2(msgScl,msgScl), msgScl,
         sprintf_o("%d", cars)));
 
   result->dim.end.y = msgScl*2;
@@ -392,18 +393,18 @@ void graphMessage(Part* result, Message message) {
 void vehicleMessage(Part* result, Message message) {
   result->onClick = selectVehicle;
   Vehicle* v = getVehicle(message.object);
-  r(result, icon(vec2(0,0), vec2(msgScl, msgScl), iconCar));
+  r(result, icon(glm::vec2(0,0), glm::vec2(msgScl, msgScl), iconCar));
 
-  r(result, label(vec2(msgScl,0), msgScl,
+  r(result, label(glm::vec2(msgScl,0), msgScl,
     printSpeedString("", length(v->velocity), "")));
 
   if (v->laneLoc.lane != 0) {
     LaneBlock* block = getLaneBlock(v->laneLoc);
     item graphNdx = block->graphElements[1];
     Configuration config = getElementConfiguration(graphNdx);
-    r(result, icon(vec2(0,msgScl), vec2(msgScl,msgScl),
+    r(result, icon(glm::vec2(0,msgScl), glm::vec2(msgScl,msgScl),
          config.type == ConfigTypeExpressway ? iconExpressway : iconRoad));
-    r(result, label(vec2(msgScl,msgScl), msgScl, graphElementName(graphNdx)));
+    r(result, label(glm::vec2(msgScl,msgScl), msgScl, graphElementName(graphNdx)));
   }
 
   result->dim.end.y = 2*msgScl;
@@ -413,29 +414,29 @@ void amenityEffectMessage(Part* result, Message message) {
   int val = getEffectValue(message.object);
   float y = 0;
 
-  r(result, icon(vec2(0, y), vec2(msgScl, msgScl), getEffectIcon(message.object)));
-  r(result, labelRight(vec2(msgScl, y), vec2(msgScl*2, msgScl),
+  r(result, icon(glm::vec2(0, y), glm::vec2(msgScl, msgScl), getEffectIcon(message.object)));
+  r(result, labelRight(glm::vec2(msgScl, y), glm::vec2(msgScl*2, msgScl),
       sprintf_o("%s%d", val > 0 ? "+":"", val)));
-  r(result, label(vec2(msgScl*3, y), msgScl, strdup_s(getEffectString(message.object))));
+  r(result, label(glm::vec2(msgScl*3, y), msgScl, strdup_s(getEffectString(message.object))));
   y += msgScl;
 
-  r(result, multiline(vec2(0, y),
-      vec2(result->dim.end.x - result->padding*2.f, msgScl),
+  r(result, multiline(glm::vec2(0, y),
+      glm::vec2(result->dim.end.x - result->padding*2.f, msgScl),
       getMacroEffectDescriptor(message.object), &y));
   result->dim.end.y = y + result->padding; //+msgScl;
 }
 
 void transitDesignMessage(Part* result, Message message) {
-  r(result, icon(vec2(0, 0), vec2(msgScl, msgScl), iconBus));
-  r(result, label(vec2(msgScl, 0), msgScl, strdup_s("Design Complete!")));
-  r(result, hr(vec2(0,msgScl), messageWidth));
+  r(result, icon(glm::vec2(0, 0), glm::vec2(msgScl, msgScl), iconBus));
+  r(result, label(glm::vec2(msgScl, 0), msgScl, strdup_s("Design Complete!")));
+  r(result, hr(glm::vec2(0,msgScl), messageWidth));
   float y = 0;
   TransitSystem* system = getTransitSystem(message.object);
   char* messageText = sprintf_o("%s has completed it's design for %s."
       " Click here to see the results and accept the design.",
       system->bids[0].firmName, system->name);
-  r(result, multiline(vec2(0, msgScl+messagePadding),
-      vec2(result->dim.end.x - result->padding*2.f, msgScl), messageText, &y));
+  r(result, multiline(glm::vec2(0, msgScl+messagePadding),
+      glm::vec2(result->dim.end.x - result->padding*2.f, msgScl), messageText, &y));
   result->dim.end.y = y+msgScl;
 
   result->onClick = setCurrentTransitSystem;
@@ -444,16 +445,16 @@ void transitDesignMessage(Part* result, Message message) {
 }
 
 void zoneDemandMessage(Part* result, Message message) {
-  r(result, icon(vec2(0, 0), vec2(msgScl, msgScl), iconPin));
-  r(result, label(vec2(msgScl, 0), msgScl,
+  r(result, icon(glm::vec2(0, 0), glm::vec2(msgScl, msgScl), iconPin));
+  r(result, label(glm::vec2(msgScl, 0), msgScl,
     strdup_s("Zone Demand")));
 
   float xPos = 0.5f;
   float padding = 0.1f;
   float ySize = 3.25f - padding;
 
-  Part* subPanel = r(result, panel(vec2(0.f, 0.75f),
-        vec2(result->dim.end.x-result->padding*2.f, ySize+padding)));
+  Part* subPanel = r(result, panel(glm::vec2(0.f, 0.75f),
+        glm::vec2(result->dim.end.x-result->padding*2.f, ySize+padding)));
   subPanel->flags |= _partLowered;
 
   for(int i = 0; i < numZoneTypes; i++)
@@ -473,16 +474,16 @@ void zoneDemandMessage(Part* result, Message message) {
     float demand = zoneDemandSoft(zone);
     if (demand > 0) demand = pow(demand, 0.5);
 
-    r(subPanel, icon(vec2(xPos, ySize-1),
-      vec2(1, 1), iconZone[zone]));
-    r(subPanel, icon(vec2(xPos, ySize-1),
-      vec2(1, -(ySize-1.4f)*demand), iconZoneColor[zone]));
+    r(subPanel, icon(glm::vec2(xPos, ySize-1),
+      glm::vec2(1, 1), iconZone[zone]));
+    r(subPanel, icon(glm::vec2(xPos, ySize-1),
+      glm::vec2(1, -(ySize-1.4f)*demand), iconZoneColor[zone]));
 
     xPos += 1.0f;
   }
 
-  r(subPanel, label(vec2(xPos, 0.f), 0.75f, strdup_s("-Hi")));
-  r(subPanel, label(vec2(xPos, ySize - 1.4f), 0.75f, strdup_s("-Lo")));
+  r(subPanel, label(glm::vec2(xPos, 0.f), 0.75f, strdup_s("-Hi")));
+  r(subPanel, label(glm::vec2(xPos, ySize - 1.4f), 0.75f, strdup_s("-Lo")));
 
   result->dim.end.y = 4;
 }

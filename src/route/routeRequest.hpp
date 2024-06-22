@@ -1,7 +1,7 @@
 #pragma once
 
-#include "../main.hpp"
-
+#include <vector>
+#include <glm/glm.hpp>
 #include "location.hpp"
 
 const uint32_t _routeCompleted = 1 << 0;
@@ -22,10 +22,10 @@ struct RouteRequest {
   item element;
   item source;
   item dest;
-  vec3 sourceLoc;
-  vec3 destLoc;
-  vector<item> subRequests;
-  vector<Location> steps;
+  glm::vec3 sourceLoc;
+  glm::vec3 destLoc;
+  std::vector<item> subRequests;
+  std::vector<Location> steps;
 };
 
 void clearRequest(RouteRequest* req);

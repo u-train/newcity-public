@@ -13,7 +13,7 @@ struct Tool {
   void (*select) ();
   void (*reset) ();
   bool (*isVisible) ();
-  vec3 icon;
+  glm::vec3 icon;
   Part* (*render) (Line dim);
   void (*instructionPanel) (Part* panel);
   std::string (*name)();

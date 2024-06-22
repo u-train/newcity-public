@@ -20,12 +20,12 @@ void designQuery_mouse_button_callback(InputEvent event) {
         Structure* s = &d->structures[i];
         float cangle = cos(s->angle);
         float sangle = sin(s->angle);
-        vec3 loc = s->location + b->location;
-        vec3 along = vec3(sangle, cangle, 0) * s->size.y;
+        glm::vec3 loc = s->location + b->location;
+        glm::vec3 along = glm::vec3(sangle, cangle, 0) * s->size.y;
 
         if (s->size.z >= s->size.y) {
           loc += along*.5f;
-          along = vec3(0,0,s->size.z);
+          along = glm::vec3(0,0,s->size.z);
         }
 
         float dist = lineDistance(line(loc, loc+along), mouseLine);
@@ -74,14 +74,14 @@ void designQuery_reset() {}
 
 Part* designQuery_render(Line dim) {
   Part* result = panel(dim);
-  r(result, label(vec2(0,0), 1, strdup_s("Select")));
-  //r(result, hr(vec2(0,1), dim.end.x-toolPad*2));
-  r(result, button(vec2(4.5f,3.5f), iconPointer, 0));
+  r(result, label(glm::vec2(0,0), 1, strdup_s("Select")));
+  //r(result, hr(glm::vec2(0,1), dim.end.x-toolPad*2));
+  r(result, button(glm::vec2(4.5f,3.5f), iconPointer, 0));
   return result;
 }
 
 void designQueryInstructionPanel(Part* panel) {
-  r(panel, label(vec2(0,0), 1, strdup_s(
+  r(panel, label(glm::vec2(0,0), 1, strdup_s(
     "Use left click to select\n"
     "a structure or decoration.")));
 }

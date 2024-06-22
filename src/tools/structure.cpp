@@ -1,6 +1,6 @@
 #include "../parts/designConfigPanel.hpp"
-
-#include <algorithm>
+#include "../game/constants.hpp"
+#include <glm/glm.hpp>
 
 const float floorSize = 2;
 const float maxDist = 2500.0f;
@@ -8,7 +8,7 @@ const float maxDistZ = 1000.0f;
 bool designerGridMode = true;
 bool roofOnly = false;
 
-const vec2 structureIcon = vec2(2,6);
+const glm::vec2 structureIcon = glm::vec2(2,6);
 static item structureType = 1;
 static item structureButtons[numRoofTypes+1];
 static item currentStructure = -1;
@@ -24,24 +24,24 @@ float designerSnap(float val) {
   }
 }
 
-vec3 designIntersect(Line l, float z) {
-  vec3 buildingLoc = getBuilding(1)->location;
-  vec3 pol = lineAtZ(l, z + buildingLoc.z);
-  //vec3 pol = landIntersect(l);
-  vec3 result = pol - buildingLoc;
+glm::vec3 designIntersect(Line l, float z) {
+  glm::vec3 buildingLoc = getBuilding(1)->location;
+  glm::vec3 pol = lineAtZ(l, z + buildingLoc.z);
+  //glm::vec3 pol = landIntersect(l);
+  glm::vec3 result = pol - buildingLoc;
   result.x = designerSnap(result.x);
   result.y = designerSnap(result.y);
   result.z = designerSnap(result.z);
   return result;
 }
 
-float designIntersectZ(Line l, vec3 point) {
-  vec3 buildingLoc = getBuilding(1)->location;
+float designIntersectZ(Line l, glm::vec3 point) {
+  glm::vec3 buildingLoc = getBuilding(1)->location;
   point += buildingLoc;
   Line axis = line(point, point);
   axis.start.z = -10000;
   axis.end.z = 10000;
-  vec3 intersect = pointOfIntersection(axis, l);
+  glm::vec3 intersect = pointOfIntersection(axis, l);
   float result = intersect.z - buildingLoc.z;
   result = designerSnap(result);
   return result;
@@ -70,12 +70,12 @@ void structure_mouse_button_callback(InputEvent event) {
       }
 
       Structure* s = &d->structures[i];
-      vec3 size = s->size;
+      glm::vec3 size = s->size;
       float cangle = cos(s->angle);
       float sangle = sin(s->angle);
-      vec3 right = vec3(-cangle, sangle, 0) * size.x * .5f;
-      vec3 along = vec3(sangle, cangle, 0) * size.y;
-      vec3 loc = s->location;
+      glm::vec3 right = glm::vec3(-cangle, sangle, 0) * size.x * .5f;
+      glm::vec3 along = glm::vec3(sangle, cangle, 0) * size.y;
+      glm::vec3 loc = s->location;
 
       {
         float dist = pointLineDistance(loc, l);
@@ -96,7 +96,7 @@ void structure_mouse_button_callback(InputEvent event) {
       }
 
       {
-        float dist = pointLineDistance(loc+right+vec3(0,0,size.z), l);
+        float dist = pointLineDistance(loc+right+glm::vec3(0,0,size.z), l);
         if (dist <= bestDistance) {
           bestDistance = dist;
           bestStructure = i;
@@ -118,7 +118,7 @@ void structure_mouse_button_callback(InputEvent event) {
       currentHandleType = 2;
       Structure s;
       s.location = designIntersect(event.mouseLine, 0);
-      s.size = vec3(12,12,floorSize*2);
+      s.size = glm::vec3(12,12,floorSize*2);
       s.roofType = structureType;
       if (roofOnly) s.roofType = -s.roofType-1;
       s.angle = 0;
@@ -152,13 +152,13 @@ void structure_mouse_move_callback(InputEvent event) {
       if (shift) {
         s->location.z = designIntersectZ(event.mouseLine, s->location);
       } else {
-        vec3 ml = designIntersect(event.mouseLine, s->location.z);
-        s->location = vec3(vec2(ml), s->location.z);
+        glm::vec3 ml = designIntersect(event.mouseLine, s->location.z);
+        s->location = glm::vec3(glm::vec2(ml), s->location.z);
       }
 
     } else if (currentHandleType == 2) {
-      vec3 ml = designIntersect(event.mouseLine, s->location.z);
-      vec3 sa = ml - s->location;
+      glm::vec3 ml = designIntersect(event.mouseLine, s->location.z);
+      glm::vec3 sa = ml - s->location;
       float len = length(sa);
 
       if (len > maxDist) {
@@ -168,7 +168,7 @@ void structure_mouse_move_callback(InputEvent event) {
 
       if (len > 0) {
         s->size.y = len;
-        s->angle = atan(sa.x, sa.y);
+        s->angle = glm::atan(sa.x, sa.y);
         s->angle = s->angle - 2*pi_o * floor(s->angle/(2*pi_o));
       }
 
@@ -179,28 +179,28 @@ void structure_mouse_move_callback(InputEvent event) {
       l.end   -= b->location;
       float cangle = cos(s->angle);
       float sangle = sin(s->angle);
-      vec3 loc = s->location;
-      vec3 along = vec3(sangle, cangle, 0) * s->size.y;
-      vec3 right = vec3(-cangle, sangle, 0) * s->size.x * .5f;
+      glm::vec3 loc = s->location;
+      glm::vec3 along = glm::vec3(sangle, cangle, 0) * s->size.y;
+      glm::vec3 right = glm::vec3(-cangle, sangle, 0) * s->size.x * .5f;
 
       if (shift) {
         float z = designIntersectZ(event.mouseLine,
-            loc+right+vec3(0,0,s->size.z)) - s->size.z;
+            loc+right+glm::vec3(0,0,s->size.z)) - s->size.z;
         float slope = z/12.f + defaultRoofSlopeForType(s->roofType);
         if (slope < 0) slope = 0;
         s->roofSlope = slope;
-        //s->roofSlope = clamp(slope, 0.f, 2.f);
+        //s->roofSlope = glm::clamp(slope, 0.f, 2.f);
 
       } else {
-        vec3 pl = linePlaneIntersect(l, loc, along);
+        glm::vec3 pl = linePlaneIntersect(l, loc, along);
 
         if (pl.x != -1) {
-          vec3 pv = pl - loc;
-          float x = designerSnap(length(vec2(pv))*2);
-          x = clamp(x, c(CDesignerGridSize), maxDist);
+          glm::vec3 pv = pl - loc;
+          float x = designerSnap(length(glm::vec2(pv))*2);
+          x = glm::clamp(x, c(CDesignerGridSize), maxDist);
           s->size.x = x;
           float z = round(pv.z / floorSize)*floorSize;
-          z = clamp(z, floorSize*.5f, maxDistZ);
+          z = glm::clamp(z, floorSize*.5f, maxDistZ);
           s->size.z = z;
         }
       }
@@ -266,19 +266,19 @@ static bool toggleStructuresVisible(Part* part, InputEvent event) {
 
 Part* structure_render(Line dim) {
   Part* result = panel(dim);
-  r(result, label(vec2(0,0), 1, strdup_s("Structure")));
-  //r(result, hr(vec2(0,1), dim.end.x-toolPad*2));
+  r(result, label(glm::vec2(0,0), 1, strdup_s("Structure")));
+  //r(result, hr(glm::vec2(0,1), dim.end.x-toolPad*2));
 
-  Part* gridButt = r(result, button(vec2(7, 0),
-        iconGrid, vec2(1,1),
+  Part* gridButt = r(result, button(glm::vec2(7, 0),
+        iconGrid, glm::vec2(1,1),
         toggleDesignerGridMode, 0));
   gridButt->inputAction = ActDesignGridMode;
   setPartTooltipValues(gridButt,
     TooltipType::DesignerGrid);
   if (designerGridMode) gridButt->flags |= _partHighlight;
 
-  Part* roofButt = r(result, button(vec2(5.75, 0),
-        roofOnly ? iconRoof : iconFarm, vec2(1,1),
+  Part* roofButt = r(result, button(glm::vec2(5.75, 0),
+        roofOnly ? iconRoof : iconFarm, glm::vec2(1,1),
         toggleRoofOnly, 0));
   roofButt->inputAction = ActDesignRoofOnly;
   setPartTooltipValues(roofButt,
@@ -286,8 +286,8 @@ Part* structure_render(Line dim) {
   if (roofOnly) roofButt->flags |= _partHighlight;
 
   bool viz = isStructuresVisible();
-  Part* vizButt = r(result, button(vec2(4.5, 0),
-        viz ? iconEye : iconEyeClosed, vec2(1,1),
+  Part* vizButt = r(result, button(glm::vec2(4.5, 0),
+        viz ? iconEye : iconEyeClosed, glm::vec2(1,1),
         toggleStructuresVisible, 0));
   vizButt->inputAction = ActDesignHideStructures;
   setPartTooltipValues(vizButt,
@@ -296,7 +296,7 @@ Part* structure_render(Line dim) {
 
   for (int i=0; i < numRoofTypes; i++) {
     float y = i * 0.85f + 1.5f;
-    Part* butt = button(vec2(1.25,y), vec2(7.5,0.85f),
+    Part* butt = button(glm::vec2(1.25,y), glm::vec2(7.5,0.85f),
       strdup_s(getRoofTypeName(i)), setStructureType);
     butt->flags |= _partAlignCenter;
     butt->itemData = i;
@@ -312,14 +312,14 @@ Part* structure_render(Line dim) {
     /*
     KeyBind bind = getKeyBind(butt->inputAction);
     if (bind.key != GLFW_KEY_UNKNOWN) {
-      Part* keyButt = r(butt, button(vec2(6,y), iconNull, vec2(1.f,0.85f),
+      Part* keyButt = r(butt, button(glm::vec2(6,y), iconNull, glm::vec2(1.f,0.85f),
         setStructureType, i));
       butt->text = strdup_s(getKeyStr(bind.key).c_str());
     }
     */
 
     if (getSelectionType() == SelectionStructure) {
-      Part* changeTypeButt = button(vec2(9, y), iconPointer, vec2(0.85, 0.85),
+      Part* changeTypeButt = button(glm::vec2(9, y), iconPointer, glm::vec2(0.85, 0.85),
         setSelectedStructureType, i);
       setPartTooltipValues(changeTypeButt,
         TooltipType::DesignerStructChangeGable+i);
@@ -330,7 +330,7 @@ Part* structure_render(Line dim) {
 }
 
 void structureInstructionPanel(Part* panel) {
-  r(panel, label(vec2(0,0), 1, strdup_s(
+  r(panel, label(glm::vec2(0,0), 1, strdup_s(
     "Left click and to place\n"
     "a structure.\n"
     "Use grab handles to adjust\n"

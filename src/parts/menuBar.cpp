@@ -1,7 +1,6 @@
 #include "menuBar.hpp"
 
 #include "../compass.hpp"
-#include "../draw/camera.hpp"
 #include "../game/feature.hpp"
 #include "../game/game.hpp"
 #include "../icons.hpp"
@@ -9,6 +8,7 @@
 #include "../option.hpp"
 #include "../string_proxy.hpp"
 #include "../util.hpp"
+#include "../main.hpp"
 
 #include "button.hpp"
 #include "label.hpp"
@@ -47,7 +47,7 @@ bool toggleMessageBoard(Part* part, InputEvent event) {
 }
 
 bool toggleUIHover(Part* part, InputEvent event) {
-  bool dimClip = isInDim(event.mouseLoc, line(vec3(0,0,0), part->dim.end));
+  bool dimClip = isInDim(event.mouseLoc, line(glm::vec3(0,0,0), part->dim.end));
   if (dimClip) {
     lastUIToggleHover = getCameraTime();
   }
@@ -75,12 +75,12 @@ Part* menuBar(float uiX, float uiY, bool showUI) {
   float padding = 0.1;
 
   float xsize = 8+padding*2;
-  Part* menuBar = panel(vec2(uiX-xsize, 0), vec2(xsize, 1+padding*2));
+  Part* menuBar = panel(glm::vec2(uiX-xsize, 0), glm::vec2(xsize, 1+padding*2));
   menuBar->padding = padding;
 
   if (showUI) {
     if (isFeatureEnabled(FNoteObject)) {
-      Part* showMsgButt = button(vec2(0,0), iconPin,
+      Part* showMsgButt = button(glm::vec2(0,0), iconPin,
           toggleSideBarMode, MessageBoardSideBar);
       setPartTooltipValues(showMsgButt,
         TooltipType::TbMsg);
@@ -92,7 +92,7 @@ Part* menuBar(float uiX, float uiY, bool showUI) {
 
     if (getGameMode() != ModeBuildingDesigner &&
         isFeatureEnabledGlobal(FBlueprint)) {
-      Part* bpButt = button(vec2(1,0), iconBlueprint,
+      Part* bpButt = button(glm::vec2(1,0), iconBlueprint,
           toggleSideBarMode, BlueprintsListSideBar);
       setPartTooltipValues(bpButt,
         TooltipType::TbBlu);
@@ -105,7 +105,7 @@ Part* menuBar(float uiX, float uiY, bool showUI) {
 
     if (getGameMode() != ModeBuildingDesigner &&
         isFeatureEnabledGlobal(FNewspaper) && doesNewspaperExist()) {
-      Part* npButt = button(vec2(2,0), iconNewspaper,
+      Part* npButt = button(glm::vec2(2,0), iconNewspaper,
           openNewspaper, 0);
       npButt->inputAction = InputAction::ActNewspaperPanel;
       setPartTooltipValues(npButt, TooltipType::TbNewspaper);
@@ -115,7 +115,7 @@ Part* menuBar(float uiX, float uiY, bool showUI) {
       r(menuBar, npButt);
     }
 
-    //r(menuBar, label(vec2(0,0), 1, sprintf_o("%.0f FPS", getFPS())));
+    //r(menuBar, label(glm::vec2(0,0), 1, sprintf_o("%.0f FPS", getFPS())));
     char* fpsMsg = 0;
     if (fpsMode == ShowFPS) {
       fpsMsg = sprintf_o("%3.ffps", getFPS());
@@ -138,20 +138,20 @@ Part* menuBar(float uiX, float uiY, bool showUI) {
       fpsMsg = strdup_s("");
     }
 
-    Part* fpsButt = button(vec2(3.125,0), vec2(3.75,1), fpsMsg, toggleFPS);
+    Part* fpsButt = button(glm::vec2(3.125,0), glm::vec2(3.75,1), fpsMsg, toggleFPS);
     fpsButt->flags |= _partAlignRight;
     setPartTooltipValues(fpsButt,
       TooltipType::TbFPS);
 
     r(menuBar, fpsButt);
-    r(menuBar, button(vec2(7,0), iconMenu, openMainMenu, 0));
+    r(menuBar, button(glm::vec2(7,0), iconMenu, openMainMenu, 0));
 
   } else {
     menuBar->renderMode = RenderTransparent;
   }
 
   if (isFeatureEnabledGlobal(FQueryTool)) {
-    Part* eyeButt = button(vec2(7+padding,uiY-1),
+    Part* eyeButt = button(glm::vec2(7+padding,uiY-1),
         showUI ? iconEye : iconEyeClosed, toggleUI, 0);
     if (!showUI && lastUIToggleHover + 1 < getCameraTime()) {
       eyeButt->renderMode = RenderTransparent;

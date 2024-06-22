@@ -1,12 +1,11 @@
-#ifndef SELECTION_PANEL_H
-#define SELECTION_PANEL_H
+#pragma once
 
 #include "../graph.hpp"
 
 #include "part.hpp"
 
 Part* selectionPanel();
-Part* graphElementButton(vec2 loc, GraphLocation graphLoc);
+Part* graphElementButton(glm::vec2 loc, GraphLocation graphLoc);
 bool loadInBuildingDesigner(Part* part, InputEvent event);
 
 void clearSelectionPanel();
@@ -18,4 +17,4 @@ bool selectBuilding(Part* part, InputEvent event);
 bool selectFamily(Part* part, InputEvent event);
 bool selectBusiness(Part* part, InputEvent event);
 
-#endif
+

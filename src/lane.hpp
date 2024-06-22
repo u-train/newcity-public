@@ -1,14 +1,10 @@
-#ifndef LANE_H
-#define LANE_H
+#pragma once
 
-#include "item.hpp"
-#include "configuration.hpp"
+#include <cstdint>
 #include "cup.hpp"
-#include "main.hpp"
+#include "item.hpp"
 #include "spline.hpp"
-#include "route/location.hpp"
-
-#include <stdio.h>
+#include "configuration.hpp"
 
 const int _laneExists       = 1 <<  0;
 const int _laneOpen         = 1 <<  1;
@@ -33,7 +29,7 @@ const int maxLaneDrains = 5;
 
 struct Lane {
   float length;
-  vec3 ends[2];
+  glm::vec3 ends[2];
   Spline spline;
   Cup<item> drains;
   Cup<item> sources;
@@ -52,9 +48,9 @@ struct LaneBlock {
 };
 
 struct EndDescriptor {
-  vec3 location;
-  vec3 normal;
-  vec3 median;
+  glm::vec3 location;
+  glm::vec3 normal;
+  glm::vec3 median;
   item graphElement;
   item source;
   item drain;
@@ -73,18 +69,18 @@ Lane* getLane(GraphLocation location);
 Lane* getLane(item ndx);
 item getLaneIndex(item blockNdx, int laneNum);
 item getLaneBlockIndex(item laneNdx);
-vec3 getLocation(GraphLocation location);
+glm::vec3 getLocation(GraphLocation location);
 item laneIndexInBlock(item ndx);
 GraphLocation getRandomGraphLoc();
 GraphLocation graphLocation(item laneNdx, float dap);
-GraphLocation graphLocation(item laneNdx, vec3 loc);
+GraphLocation graphLocation(item laneNdx, glm::vec3 loc);
 GraphLocation graphLocation(item laneNdx);
-GraphLocation graphLocation(vec3 loc);
-GraphLocation graphLocation(vec3 loc, Configuration config);
+GraphLocation graphLocation(glm::vec3 loc);
+GraphLocation graphLocation(glm::vec3 loc, Configuration config);
 GraphLocation graphLocation(Line l);
 GraphLocation graphLocation(Line l, Configuration config);
 item getElement(GraphLocation loc);
-GraphLocation graphLocationForEdge(item edgeNdx, vec3 loc);
+GraphLocation graphLocationForEdge(item edgeNdx, glm::vec3 loc);
 item numLaneBlocks();
 float getStaticTimeEstimate(item blockNdx);
 float getTraversalRecord(item blockNdx);
@@ -101,13 +97,13 @@ bool blockIsActive_r(item i);
 bool blockIsOpen_r(item i);
 float laneRoutingEstimate_r(item blockNdx, item endNdx);
 void markRouterDataDirty_g();
-vec3 getBlockLoc_r(item blockNdx);
+glm::vec3 getBlockLoc_r(item blockNdx);
 
 // For vehicles
 item getNumLaneBlocks_v();
 float getLaneLength(item lane);
 item* getLaneDrains(item lane);
-vec3 getLocationV(GraphLocation loc);
+glm::vec3 getLocationV(GraphLocation loc);
 Spline getLaneSpline(item lane);
 item getBlockLanes(item i);
 float getBlockSpeed(item lane);
@@ -132,7 +128,6 @@ void resetLanes();
 void finishLanes();
 void freeLaneBlocks();
 void swapLanesForVehicles(bool fromSave);
-vector<item> routeToLaneBlock_g(item start, item end);
-vector<item> routeToLaneBlock_r(item start, item end);
+std::vector<item> routeToLaneBlock_g(item start, item end);
+std::vector<item> routeToLaneBlock_r(item start, item end);
 
-#endif

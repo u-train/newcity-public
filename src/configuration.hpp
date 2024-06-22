@@ -1,7 +1,5 @@
-#ifndef CONFIGURATION_H
-#define CONFIGURATION_H
+#pragma once
 
-#include "money.hpp"
 #include "serialize.hpp"
 
 enum ConfigType {
@@ -58,4 +56,4 @@ void writeConfiguration(FileBuffer* file, Configuration config);
 
 char* printSpeedString(const char* pre, float ms, const char* post);
 
-#endif
+

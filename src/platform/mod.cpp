@@ -68,7 +68,7 @@ const char* getNextMod() {
 }
 
 /*
-vector<char*> listMods() {
+std::vector<char*> listMods() {
   return readDirectory("modpacks", "");
 }
 */

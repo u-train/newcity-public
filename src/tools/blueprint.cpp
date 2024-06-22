@@ -6,6 +6,7 @@
 #include "../draw/texture.hpp"
 #include "../game/feature.hpp"
 #include "../game/game.hpp"
+#include "../game/constants.hpp"
 #include "../graph.hpp"
 #include "../icons.hpp"
 #include "../input.hpp"
@@ -22,9 +23,10 @@
 #include "../tutorial.hpp"
 #include "../util.hpp"
 
+#include "../draw/camera.hpp"
+
 #include "../parts/blueprintPanel.hpp"
 #include "../parts/button.hpp"
-#include "../parts/hr.hpp"
 #include "../parts/icon.hpp"
 #include "../parts/label.hpp"
 #include "../parts/panel.hpp"
@@ -44,11 +46,11 @@ static bool raiseCursor = false;
 static item bpCursorEntity = 0;
 static item bpTextEntity = 0;
 static int zOffset = 0;
-static vec3 blueprintCursorLoc;
-static vec3 selectionStart;
-static vector<item> graphElemsSelected;
-static vector<item> lotsSelected;
-static vector<item> virtualLots;
+static glm::vec3 blueprintCursorLoc;
+static glm::vec3 selectionStart;
+static std::vector<item> graphElemsSelected;
+static std::vector<item> lotsSelected;
+static std::vector<item> virtualLots;
 static Line bpLine;
 static TextBoxState draftTB;
 static bool skipFrame = false;
@@ -118,7 +120,7 @@ void renderBlueprintCursor() {
   setEntityTransparent(bpCursorEntity, true);
   setEntityHighlight(bpCursorEntity, getLightLevel() < 0.5);
   createMeshForEntity(bpCursorEntity);
-  vec3 offset = blueprintCursorLoc;
+  glm::vec3 offset = blueprintCursorLoc;
   placeEntity(bpCursorEntity, offset, 0, 0);
 
   Entity* textEntity = getEntity(bpTextEntity);
@@ -135,14 +137,14 @@ void renderBlueprintCursor() {
   float tx = fontSize;
   float ty = 0;
   float tz = 0; //fontSize*2;
-  vec3 tup = vec3(0,0,fontSize*2);
+  glm::vec3 tup = glm::vec3(0,0,fontSize*2);
 
   const float cursorZ = 10;
   const float cursorX = 20;
   const float cursorBaseX = 12;
   const float cursorBaseInner = 8;
 
-  vec3 tex = isSelectingBP || !isBPSelectionMode ? colorWhite : colorBlue;
+  glm::vec3 tex = isSelectingBP || !isBPSelectionMode ? colorWhite : colorBlue;
   float height = zOffset*c(CZTileSize);
   float baseZ = -height;
 
@@ -150,13 +152,13 @@ void renderBlueprintCursor() {
     baseZ += height;
   }
 
-  vec3 bpCursorSize = vec3(10, 10, 5);
-  vec3 baseLoc = blueprintCursorLoc + vec3(0,0,baseZ) - offset;
+  glm::vec3 bpCursorSize = glm::vec3(10, 10, 5);
+  glm::vec3 baseLoc = blueprintCursorLoc + glm::vec3(0,0,baseZ) - offset;
   makeCube(mesh, baseLoc, bpCursorSize, tex, true, false);
 
   if (isSelectingBP) {
-    vec3 center = .5f*(bpLine.start + bpLine.end);
-    vec3 size = vec3(
+    glm::vec3 center = .5f*(bpLine.start + bpLine.end);
+    glm::vec3 size = glm::vec3(
         abs(bpLine.start.x-center.x)*2.f,
         abs(bpLine.start.y-center.y)*2.f,
         5);
@@ -173,12 +175,12 @@ void renderBlueprintCursor() {
     float tx = fontSize;
     float ty = 0;
     float tz = 0; //fontSize*2;
-    vec3 tup = vec3(0,0,fontSize*2);
+    glm::vec3 tup = glm::vec3(0,0,fontSize*2);
 
     money cost = getTotalUnsetPlansCost();
     if (cost > 0) {
       char* resString = printMoneyString(cost);
-      renderString(textMesh, resString, vec3(tx,ty,tz), fontSize);
+      renderString(textMesh, resString, glm::vec3(tx,ty,tz), fontSize);
       free(resString);
     }
 
@@ -201,13 +203,13 @@ void renderBlueprintCursor() {
       if (e.zone[0] == 0 && e.zone[1] == 0) continue;
       BlueprintNode n0 = bp->nodes[e.ends[0]];
       BlueprintNode n1 = bp->nodes[e.ends[1]];
-      vec3 n0c = pointOnLand(n0.loc + blueprintCursorLoc);
-      vec3 n1c = pointOnLand(n1.loc + blueprintCursorLoc);
-      vec3 along = n1c - n0c;
+      glm::vec3 n0c = pointOnLand(n0.loc + blueprintCursorLoc);
+      glm::vec3 n1c = pointOnLand(n1.loc + blueprintCursorLoc);
+      glm::vec3 along = n1c - n0c;
       float l = length(along);
-      vec3 tAlong = along*(tileSize/l);
-      vec3 norm = zNormal(tAlong);
-      vec3 cursor = n0c + tAlong*.5f;
+      glm::vec3 tAlong = along*(tileSize/l);
+      glm::vec3 norm = zNormal(tAlong);
+      glm::vec3 cursor = n0c + tAlong*.5f;
 
       for (; l > tileSize; l -= tileSize) {
         for (int s = 0; s < 2; s++) {
@@ -286,7 +288,7 @@ void blueprint_mouse_move_callback(InputEvent event) {
   if (time - lastBPUpdateTime < 0.1) return;
   lastBPUpdateTime = time;
 
-  vec3 loc = landIntersect(event.mouseLine);
+  glm::vec3 loc = landIntersect(event.mouseLine);
   if (isBPSelectionMode || getDraftBlueprint()->flags & _blueprintFine) {
     loc = unitizeFine(loc);
   } else {
@@ -294,7 +296,7 @@ void blueprint_mouse_move_callback(InputEvent event) {
   }
   loc = pointOnLandNatural(loc);
   if (loc.z < beachLine) loc.z = beachLine;
-  loc += vec3(0, 0, c(CZTileSize) * zOffset + c(CRoadRise)*2.f);
+  loc += glm::vec3(0, 0, c(CZTileSize) * zOffset + c(CRoadRise)*2.f);
 
   if (vecDistance(loc, blueprintCursorLoc) < 0.1 && !wasModified) return;
   wasModified = false;
@@ -471,28 +473,28 @@ bool hoverHelpText(Part* part, InputEvent event) {
 
 Part* blueprint_render(Line dim) {
   Part* result = panel(dim);
-  r(result, label(vec2(0,0), 1, strdup_s("Blueprint")));
-  //r(result, hr(vec2(0,1), dim.end.x-.2));
-  r(result, label(vec2(0,5), 0.85f, strdup_s(helpTxt)));
+  r(result, label(glm::vec2(0,0), 1, strdup_s("Blueprint")));
+  //r(result, hr(glm::vec2(0,1), dim.end.x-.2));
+  r(result, label(glm::vec2(0,5), 0.85f, strdup_s(helpTxt)));
 
   Blueprint* activeBP = isBPSelectionMode ? getBufferBlueprint() :
     getDraftBlueprint();
   if (!isBPSelectionMode && (activeBP->flags & _blueprintExists)) {
-    Part* buttRot = button(vec2(0.f,3.75f), iconBlueprintRotate,
+    Part* buttRot = button(glm::vec2(0.f,3.75f), iconBlueprintRotate,
         rotateBlueprint);
     buttRot->inputAction = ActBPRotate;
     setPartTooltipValues(buttRot,
       TooltipType::BluRotate);
     r(result, buttRot);
 
-    Part* buttFlip = button(vec2(1.f,3.75f), iconBlueprintFlip,
+    Part* buttFlip = button(glm::vec2(1.f,3.75f), iconBlueprintFlip,
         flipBlueprint);
     buttFlip->inputAction = ActBPFlip;
     setPartTooltipValues(buttFlip,
       TooltipType::BluFlip);
     r(result, buttFlip);
 
-    Part* buttUp = button(vec2(2.f,3.75f), iconUp,
+    Part* buttUp = button(glm::vec2(2.f,3.75f), iconUp,
         blueprintElevationCallback);
     buttUp->inputAction = ActBPRaiseElevation;
     setPartTooltipValues(buttUp,
@@ -503,7 +505,7 @@ Part* blueprint_render(Line dim) {
     }
     r(result, buttUp);
 
-    Part* buttDown = button(vec2(3.f,3.75f), iconDown,
+    Part* buttDown = button(glm::vec2(3.f,3.75f), iconDown,
         blueprintElevationCallback);
     buttDown->inputAction = ActBPLowerElevation;
     setPartTooltipValues(buttDown,
@@ -516,18 +518,18 @@ Part* blueprint_render(Line dim) {
   }
 
   if (activeBP->flags & _blueprintExists) {
-    Part* bpPanel = blueprintPanel(vec2(0.f,1.25f), vec2(8.f,2.25f),
+    Part* bpPanel = blueprintPanel(glm::vec2(0.f,1.25f), glm::vec2(8.f,2.25f),
         activeBP, &draftTB, -1);
     r(result, bpPanel);
   } else {
-    r(result, icon(vec2(3.f,2.5f), vec2(1,1), iconBlueprintNew));
+    r(result, icon(glm::vec2(3.f,2.5f), glm::vec2(1,1), iconBlueprintNew));
   }
 
-  Part* tabPanel = panel(vec2(0,6), vec2(10,1));
+  Part* tabPanel = panel(glm::vec2(0,6), glm::vec2(10,1));
   tabPanel->flags |= _partLowered;
   r(result, tabPanel);
 
-  Part* buttNew = button(vec2(0.f, 0.f), iconBlueprintNew,
+  Part* buttNew = button(glm::vec2(0.f, 0.f), iconBlueprintNew,
       toggleBPSelectionMode);
   buttNew->inputAction = ActBPToggleCapture;
   setPartTooltipValues(buttNew,
@@ -537,7 +539,7 @@ Part* blueprint_render(Line dim) {
   }
   r(tabPanel, buttNew);
 
-  Part* buttImport = button(vec2(1.f, 0.f), iconBlueprintImport,
+  Part* buttImport = button(glm::vec2(1.f, 0.f), iconBlueprintImport,
       importBlueprint);
   buttImport->inputAction = ActBPImport;
   setPartTooltipValues(buttImport,
@@ -545,27 +547,27 @@ Part* blueprint_render(Line dim) {
   r(tabPanel, buttImport);
 
   if (numBlueprints() > 0) {
-    Part* buttExportLib = button(vec2(3.f, 0.f), iconBlueprintExportLibrary,
+    Part* buttExportLib = button(glm::vec2(3.f, 0.f), iconBlueprintExportLibrary,
         exportBlueprintLibrary);
     r(tabPanel, buttExportLib);
   }
 
   if (!isBPSelectionMode && (activeBP->flags & _blueprintExists)) {
-    Part* buttExport = button(vec2(2.f, 0.f), iconBlueprintExport,
+    Part* buttExport = button(glm::vec2(2.f, 0.f), iconBlueprintExport,
         exportBlueprint);
     buttExport->inputAction = ActBPExport;
     setPartTooltipValues(buttExport,
       TooltipType::BluExport);
     r(tabPanel, buttExport);
 
-    Part* buttSave = button(vec2(4.f, 0.f), iconSave, saveBlueprint);
+    Part* buttSave = button(glm::vec2(4.f, 0.f), iconSave, saveBlueprint);
     buttSave->inputAction = ActBPSave;
     setPartTooltipValues(buttSave,
       TooltipType::BluSave);
     r(tabPanel, buttSave);
   }
 
-  Part* buttPlans = button(vec2(9.f, 0.f), iconCheck, togglePlanPanelBP);
+  Part* buttPlans = button(glm::vec2(9.f, 0.f), iconCheck, togglePlanPanelBP);
   setPartTooltipValues(buttPlans,
     TooltipType::BluPlan);
   if (isPlansEnabled()) {
@@ -580,7 +582,7 @@ void blueprintInstructionPanel(Part* panel) {
   if (isPlansEnabled()) {
     plansPanel(panel);
   } else {
-    r(panel, label(vec2(0,2), .85, isBPSelectionMode ?
+    r(panel, label(glm::vec2(0,2), .85, isBPSelectionMode ?
       strdup_s(bpInstructionMessage) : strdup_s(bpApplyInstructionMessage)));
   }
 }

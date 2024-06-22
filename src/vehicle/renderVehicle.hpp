@@ -1,5 +1,4 @@
-#ifndef RENDER_VEHICLE_H
-#define RENDER_VEHICLE_H
+#pragma once
 
 #include "../item.hpp"
 
@@ -10,4 +9,4 @@ void renderVehicleStyles();
 void setVehicleHighlight(item ndx, bool highlight);
 void resetVehicleRender();
 
-#endif
+

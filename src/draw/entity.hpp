@@ -1,12 +1,10 @@
 #pragma once
 
-#include "../main.hpp"
 #include "../item.hpp"
 #include "../line.hpp"
 
-#include "camera.hpp"
-#include "cull.hpp"
 #include "mesh.hpp"
+#include "cull.hpp"
 #include "shader.hpp"
 
 const uint32_t _entityExists          = 1 << 0;
@@ -36,8 +34,8 @@ typedef struct {
   float entitySize;
   float maxCameraDistance;
   float simpleDistance;
-  vec3 location;
-  vec3 rotScale;
+  glm::vec3 location;
+  glm::vec3 rotScale;
   float matrix[16];
   item mesh;
   item simpleMesh;
@@ -67,8 +65,8 @@ void setEntityRaise(item ndx, int amount);
 void setEntityClip(item ndx, Line cl);
 void removeEntity(item ndx);
 void removeEntityAndMesh(item ndx);
-void placeEntity(item ndx, vec3 location, float yaw, float pitch, float scale);
-void placeEntity(item ndx, vec3 location, float yaw, float pitch);
+void placeEntity(item ndx, glm::vec3 location, float yaw, float pitch, float scale);
+void placeEntity(item ndx, glm::vec3 location, float yaw, float pitch);
 void copyEntityPlacement(item fromNdx, item toNdx);
 void setCull(item ndx, float entitySize, float maxCameraDistance);
 
@@ -82,7 +80,7 @@ void resetEntities();
 item entitiesSize();
 item countEntities();
 void stopGuide();
-void setGuide(vec3 guide, float size);
+void setGuide(glm::vec3 guide, float size);
 void setGuideUniform(GLuint programID);
 float getMeshQuality();
 void setMeshQuality(float quality);

@@ -3,13 +3,12 @@
 #include "../color.hpp"
 #include "../string_proxy.hpp"
 #include "../time.hpp"
+#include "../game/constants.hpp"
 
-#include "button.hpp"
 #include "block.hpp"
 #include "label.hpp"
 #include "panel.hpp"
-
-#include "spdlog/spdlog.h"
+#include <glm/glm.hpp>
 
 static const float scl = 0.8;
 
@@ -60,17 +59,17 @@ char* formatValue(Statistic stat, float val, bool asPercent) {
   }
 }
 
-void makeNotchline(Part* result, vec2 start, vec3 notch, float size,
+void makeNotchline(Part* result, glm::vec2 start, glm::vec3 notch, float size,
     Statistic stat, float val, bool asPercent, const char* pre) {
 
   notch.y -= 0.025;
-  Part* lineBlk = brightBox(vec2(notch), vec2(notch.z, 0.05));
+  Part* lineBlk = brightBox(glm::vec2(notch), glm::vec2(notch.z, 0.05));
   lineBlk->dim.start.z += 0.2;
   r(result, lineBlk);
 
   /*
   notch.y -= 0.05;
-  lineBlk = darkBlock(vec2(notch), vec2(notch.z, 0.2));
+  lineBlk = darkBlock(glm::vec2(notch), glm::vec2(notch.z, 0.2));
   lineBlk->dim.start.z += 0.2;
   r(result, lineBlk);
   */
@@ -78,10 +77,10 @@ void makeNotchline(Part* result, vec2 start, vec3 notch, float size,
   char* temp = formatValue(stat, val, asPercent);
   char* text = sprintf_o("%s%s", pre, temp);
   free(temp);
-  r(result, labelCenter(start, vec2(1, size), text));
+  r(result, labelCenter(start, glm::vec2(1, size), text));
 }
 
-Part* chart(vec2 start, vec2 size, item econ, Statistic stat,
+Part* chart(glm::vec2 start, glm::vec2 size, item econ, Statistic stat,
     item timePeriod, bool lbl, bool bar, float endDate) {
   Part* result = panel(start, size);
   result->flags |= _partLowered | _partClip;
@@ -97,11 +96,11 @@ Part* chart(vec2 start, vec2 size, item econ, Statistic stat,
     if (bar) {
       float ySize;
       char* lblText = sprintf_o("%s NO DATA", statName(stat));
-      r(result, multiline(vec2(.1f,.1f), vec2(size.x-1.5, labScl),
+      r(result, multiline(glm::vec2(.1f,.1f), glm::vec2(size.x-1.5, labScl),
           lblText, &ySize));
     } else {
-      r(result, labelCenter(vec2(inX, inY + (size.y-scl-inY)*.5f),
-            vec2(size.x-.2f, scl), strdup_s("NO DATA")));
+      r(result, labelCenter(glm::vec2(inX, inY + (size.y-scl-inY)*.5f),
+            glm::vec2(size.x-.2f, scl), strdup_s("NO DATA")));
     }
     return result;
   }
@@ -157,8 +156,8 @@ Part* chart(vec2 start, vec2 size, item econ, Statistic stat,
     //}
   }
 
-  min = mix(minPre, minPost, timeShift);
-  max = mix(maxPre, maxPost, timeShift);
+  min = glm::mix(minPre, minPost, timeShift);
+  max = glm::mix(maxPre, maxPost, timeShift);
   float currentVal = isStatRateCounter(stat) || endDate < getCurrentDateTime()-0.001 ? series.values[endT-1] : getStatistic(econ, stat);
   float current = convertStatistic(stat, currentVal);
   min = std::min(min, current);
@@ -172,7 +171,7 @@ Part* chart(vec2 start, vec2 size, item econ, Statistic stat,
       min = max*.8f;
     } else {
       min -= (max-min)*0.1;
-      min = clamp(min, 0.f, max);
+      min = glm::clamp(min, 0.f, max);
     }
   }
 
@@ -193,13 +192,13 @@ Part* chart(vec2 start, vec2 size, item econ, Statistic stat,
       lblText = strdup_s(statName(stat));
     }
 
-    r(result, multiline(vec2(.1f,.1f), vec2(size.x-1.5, labScl),
+    r(result, multiline(glm::vec2(.1f,.1f), glm::vec2(size.x-1.5, labScl),
         lblText, &ySize));
   }
 
   if (!bar && min > -0.02 && max < 0.002) {
-    r(result, labelCenter(vec2(inX, inY + (size.y-scl-inY)*.5f),
-          vec2(size.x-.2f, scl), strdup_s("NO DATA")));
+    r(result, labelCenter(glm::vec2(inX, inY + (size.y-scl-inY)*.5f),
+          glm::vec2(size.x-.2f, scl), strdup_s("NO DATA")));
     return result;
   }
 
@@ -210,26 +209,26 @@ Part* chart(vec2 start, vec2 size, item econ, Statistic stat,
     float xLoc = size.x * frac;
     Part* blk;
     if (current >= 0) {
-      blk = r(result, gradientBlock(vec2(0, 0), vec2(xLoc, size.y),
+      blk = r(result, gradientBlock(glm::vec2(0, 0), glm::vec2(xLoc, size.y),
         colorGoldGrad1, colorGoldGrad0));
     } else {
-      blk = r(result, gradientBlock(vec2(xLoc, 0), vec2(size.x-xLoc, size.y),
+      blk = r(result, gradientBlock(glm::vec2(xLoc, 0), glm::vec2(size.x-xLoc, size.y),
         colorRedGrad0, colorRedGrad1));
     }
     blk->dim.start.z -= 0.5;
     return result;
   }
 
-  makeNotchline(result, vec2(1, inY),
-      vec3(0, inY, 3.f),
+  makeNotchline(result, glm::vec2(1, inY),
+      glm::vec3(0, inY, 3.f),
       labScl, stat, max, asPercent, "Max ");
   float minY = inY + (1-(realMin-min)/(max-min))*inH;
-  makeNotchline(result, vec2(1, minY-labScl),
-      vec3(0, minY, 3.f),
+  makeNotchline(result, glm::vec2(1, minY-labScl),
+      glm::vec3(0, minY, 3.f),
       labScl, stat, realMin, asPercent, "Min ");
   float nowY = inY+inH*currentFraction;
-  makeNotchline(result, vec2(labelLocOuter, inY+currentFraction*(inH-labScl)),
-      vec3(labelLocOuter-1, nowY, 3.f),
+  makeNotchline(result, glm::vec2(labelLocOuter, inY+currentFraction*(inH-labScl)),
+      glm::vec3(labelLocOuter-1, nowY, 3.f),
       labScl, stat, current, asPercent, "Now ");
 
   float yrLblY = size.y - .5f;
@@ -238,15 +237,15 @@ Part* chart(vec2 start, vec2 size, item econ, Statistic stat,
   }
 
       /*
-        Part* lineBlk = block(vec2(xLoc, 1.f), vec2(lineWidth, size.y));
+        Part* lineBlk = block(glm::vec2(xLoc, 1.f), glm::vec2(lineWidth, size.y));
         lineBlk->dim.start.z += 0.25;
         r(result, lineBlk);
-  r(result, label(vec2(labelLocInner, inY), labScl,
+  r(result, label(glm::vec2(labelLocInner, inY), labScl,
     formatValue(stat, max, asPercent)));
-  r(result, label(vec2(labelLocInner, inY+inH-labScl), labScl,
+  r(result, label(glm::vec2(labelLocInner, inY+inH-labScl), labScl,
     formatValue(stat, min, asPercent)));
 
-  r(result, label(vec2(labelLocOuter, inY+currentFraction*(inH-labScl)), labScl,
+  r(result, label(glm::vec2(labelLocOuter, inY+currentFraction*(inH-labScl)), labScl,
     formatValue(stat, current, asPercent)));
   */
 
@@ -255,7 +254,7 @@ Part* chart(vec2 start, vec2 size, item econ, Statistic stat,
   float prevFraction = 1 - (series.values[startT] - min) / (max - min);
   float xYDiff = colorGoldGrad0.y - colorGoldGrad1.y;
   float zeroFrac = 1 + min / (max - min);
-  float clampedZeroFrac = clamp(zeroFrac, 0.001f, 1.f);
+  float clampedZeroFrac = glm::clamp(zeroFrac, 0.001f, 1.f);
   float zeroY = inH * zeroFrac;
   int year = series.startDate/oneYear-2;
 
@@ -278,7 +277,7 @@ Part* chart(vec2 start, vec2 size, item econ, Statistic stat,
 
     float fracDiff = prevFraction - fraction;
     float yStart, yEnd;
-    vec3 colr, endColr, vecData;
+    glm::vec3 colr, endColr, vecData;
 
     if (fraction < zeroFrac) {
       yStart = inH*fraction;
@@ -297,20 +296,20 @@ Part* chart(vec2 start, vec2 size, item econ, Statistic stat,
       float colorFrac = 1-(clampedZeroFrac - fraction) / clampedZeroFrac;
       float prevColorFrac = 1-
         (clampedZeroFrac - prevFraction) / clampedZeroFrac;
-      colr = mix(colorGoldGrad1, colorGoldGrad0, colorFrac);
-      vecData = vec3((prevColorFrac-colorFrac)*xYDiff, fracDiff*inH, 1);
+      colr = glm::mix(colorGoldGrad1, colorGoldGrad0, colorFrac);
+      vecData = glm::vec3((prevColorFrac-colorFrac)*xYDiff, fracDiff*inH, 1);
 
     } else  {
       colr = colorRedGrad0;
       float colorFrac = (fraction - clampedZeroFrac) / (1-clampedZeroFrac);
       float prevColorFrac = (prevFraction - clampedZeroFrac)
         / (1-clampedZeroFrac);
-      endColr = mix(colorRedGrad0, colorRedGrad1, colorFrac);
-      vecData = vec3((colorFrac-prevColorFrac)*xYDiff, fracDiff*inH, -1);
+      endColr = glm::mix(colorRedGrad0, colorRedGrad1, colorFrac);
+      vecData = glm::vec3((colorFrac-prevColorFrac)*xYDiff, fracDiff*inH, -1);
     }
 
     float yLoc = inY + yStart;
-    Part* blk = gradientBlock(vec2(xLoc, yLoc), vec2(colWidth*j, yEnd),
+    Part* blk = gradientBlock(glm::vec2(xLoc, yLoc), glm::vec2(colWidth*j, yEnd),
           colr, endColr);
     blk->renderMode = RenderGradientAdjusted;
     if (i == 0) {
@@ -325,8 +324,8 @@ Part* chart(vec2 start, vec2 size, item econ, Statistic stat,
       float frac = i / 2.f;
       if (abs(frac - fraction) > 0.1 && abs(frac - prevFraction) > 0.1)
         continue;
-      Part* lineBlk = block(vec2(xLoc-0.1, inY + inH*frac - lineWidth*.5f),
-          vec2(.2, lineWidth));
+      Part* lineBlk = block(glm::vec2(xLoc-0.1, inY + inH*frac - lineWidth*.5f),
+          glm::vec2(.2, lineWidth));
       lineBlk->dim.start.z += 0.25;
       r(result, lineBlk);
     }
@@ -335,7 +334,7 @@ Part* chart(vec2 start, vec2 size, item econ, Statistic stat,
     if (timePeriodLength[timePeriod] < 5) {
       float timeOfDay = time - (int)time;
       if (timeOfDay < 6*oneHour || timeOfDay > 18*oneHour) {
-        Part* shade = darkBlock(vec2(xLoc, 0), vec2(colWidth*stride, size.y));
+        Part* shade = darkBlock(glm::vec2(xLoc, 0), glm::vec2(colWidth*stride, size.y));
         shade->dim.start.z -= 0.5;
         r(result, shade);
       }
@@ -347,12 +346,12 @@ Part* chart(vec2 start, vec2 size, item econ, Statistic stat,
       year = newYear;
       if (xLoc < 0) xLoc = 0;
       if (xLoc >= lastYearX+1.1) {
-        Part* lineBlk = brightBox(vec2(xLoc, 1.f), vec2(lineWidth, size.y));
+        Part* lineBlk = brightBox(glm::vec2(xLoc, 1.f), glm::vec2(lineWidth, size.y));
         lineBlk->dim.start.z += 0.2;
         r(result, lineBlk);
-        vec2 yrLblLoc(xLoc + lineWidth*2, yrLblY-.5f);
+        glm::vec2 yrLblLoc(xLoc + lineWidth*2, yrLblY-.5f);
         if (yrLblLoc.x > inW-1) {
-          yrLblLoc = vec2(xLoc-1.1f, yrLblY);
+          yrLblLoc = glm::vec2(xLoc-1.1f, yrLblY);
         }
         Part* yearLabel = label(yrLblLoc, .5f,
               sprintf_o("%d", int(year + c(CStartYear))));
@@ -368,12 +367,12 @@ Part* chart(vec2 start, vec2 size, item econ, Statistic stat,
   return result;
 }
 
-Part* chart(vec2 start, vec2 size, item econ, Statistic stat,
+Part* chart(glm::vec2 start, glm::vec2 size, item econ, Statistic stat,
     item timePeriod, bool lbl, bool bar) {
   return chart(start, size, econ, stat, timePeriod, lbl, bar, getCurrentDateTime());
 }
 
-Part* chart(vec2 start, vec2 size, item econ, Statistic stat, item timePeriod) {
+Part* chart(glm::vec2 start, glm::vec2 size, item econ, Statistic stat, item timePeriod) {
   return chart(start, size, econ, stat, timePeriod, false, false);
 }
 

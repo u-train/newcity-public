@@ -3,25 +3,19 @@
 #include "color.hpp"
 #include "draw/entity.hpp"
 #include "draw/texture.hpp"
-#include "graph.hpp"
-#include "graph/stop.hpp"
 #include "graph/transit.hpp"
 #include "heatmap.hpp"
-#include "intersection.hpp"
 #include "person.hpp"
 #include "renderGraph.hpp"
 #include "renderUtils.hpp"
 #include "selection.hpp"
-#include "util.hpp"
 #include "vehicle/travelGroup.hpp"
 #include "vehicle/vehicle.hpp"
-
-#include "parts/root.hpp"
-
-#include "spdlog/spdlog.h"
+#include "game/constants.hpp"
+#include "draw/camera.hpp"
 
 void renderSelection(item entityNdx, int selectionType, item selected,
-    vector<item> lanes) {
+    std::vector<item> lanes) {
   if (!isRenderEnabled()) { return; }
 
   Entity* entity = getEntity(entityNdx);
@@ -30,7 +24,7 @@ void renderSelection(item entityNdx, int selectionType, item selected,
   //setEntityBringToFront(entityNdx, 3);
   setEntityHighlight(entityNdx, true);
   float zOff = 0;
-  vec3 location = getSelectionLocation();
+  glm::vec3 location = getSelectionLocation();
   createMeshForEntity(entityNdx);
   Mesh* mesh = getMeshForEntity(entityNdx);
   Route route;
@@ -59,7 +53,7 @@ void renderSelection(item entityNdx, int selectionType, item selected,
 
   } else if (selectionType == SelectionStop) {
     if (getHeatMap() != TransitHeatMap) {
-      renderStopDisc(mesh, selected, vec3(0,0,-4));
+      renderStopDisc(mesh, selected, glm::vec3(0,0,-4));
     }
   }
 
@@ -101,14 +95,14 @@ void renderSelection(item entityNdx, int selectionType, item selected,
 
     } else if (stepType == LocTransitLeg) {
       item stopNdx = getStopForLeg_g(step);
-      renderStopDisc(mesh, stopNdx, location+vec3(0,0,-4));
+      renderStopDisc(mesh, stopNdx, location+glm::vec3(0,0,-4));
 
       if (lastTransitLoc > 0) {
         item lineNdx = locationLineNdx(lastTransitLoc);
         if (lineNdx == locationLineNdx(step)) {
           item endNdx = locationLegNdx(step);
           for (int l = locationLegNdx(lastTransitLoc); l < endNdx; l++) {
-            renderTransitLeg(entity->mesh, lineNdx, l, location+vec3(0,0,-4));
+            renderTransitLeg(entity->mesh, lineNdx, l, location+glm::vec3(0,0,-4));
           }
         }
         lastTransitLoc = step;
@@ -145,12 +139,12 @@ void renderSelection(item entityNdx, int selectionType, item selected,
   }
 
   float coneSize = getCameraDistance()/10;
-  vec3 coneUp = vec3(0,0,coneSize*1.5-zOff);
-  vec3 coneDown = vec3(0,0,-coneSize);
-  vec3 color = getHeatMap() == TransitHeatMap ?
+  glm::vec3 coneUp = glm::vec3(0,0,coneSize*1.5-zOff);
+  glm::vec3 coneDown = glm::vec3(0,0,-coneSize);
+  glm::vec3 color = getHeatMap() == TransitHeatMap ?
     colorRed : colorTransparentWhite;
-  //makeCone(mesh, location + vec3(0,0,60-zOff),
-      //vec3(0,0,-48), 30, color, true);
+  //makeCone(mesh, location + glm::vec3(0,0,60-zOff),
+      //glm::vec3(0,0,-48), 30, color, true);
   makeCone(mesh, coneUp, coneDown,
       coneSize, color, true);
 
@@ -159,7 +153,7 @@ void renderSelection(item entityNdx, int selectionType, item selected,
         coneDown, coneSize, colorRed, true);
   }
 
-  placeEntity(entityNdx, location + vec3(0,0,zOff), 0, 0);
+  placeEntity(entityNdx, location + glm::vec3(0,0,zOff), 0, 0);
   bufferMesh(entity->mesh);
 }
 

@@ -4,16 +4,15 @@
 #include "cup.hpp"
 #include "console/conDisplay.hpp"
 #include "draw/camera.hpp"
-#include "game/game.hpp"
 #include "land.hpp"
-#include "util.hpp"
 #include "parts/toolbar.hpp"
 #include "parts/tooltip.hpp"
 #include "platform/binaryfilebuilder.hpp"
 #include "platform/binaryfilereader.hpp"
-#include "pillar.hpp"
+#include "platform/lua.hpp"
+#include "error.hpp"
 #include "plan.hpp"
-#include "thread.hpp"
+#include "main.hpp"
 
 #include "draw/entity.hpp"
 #include "draw/texture.hpp"
@@ -24,14 +23,14 @@
 #include "spdlog/spdlog.h"
 
 
-static mutex inputMutex;
+static std::mutex inputMutex;
 InputEvent lastEvent;
 Cup<InputEvent>* inputQueue = Cup<InputEvent>::newCup(100);
 std::atomic<bool> grabClipboard(false);
 char* sendToClipboardFront = 0;
 char* sendToClipboardBack = 0;
 char* clipboardContents = 0;
-vector<ClipboardCallback> clipboardCallbacks;
+std::vector<ClipboardCallback> clipboardCallbacks;
 
 static bool resetPos = false;   // Should we reset the mouse cursor position in collectInput()?
 static bool lockMouse = false;  // Should the mouse be locked to the window?
@@ -419,16 +418,16 @@ void mouseButtonEvent(GLFWwindow* window, int button, int action,
 }
 
 void scrollEvent(GLFWwindow* window, double xoffset, double yoffset) {
-  lastEvent.scroll = vec2(xoffset, yoffset);
+  lastEvent.scroll = glm::vec2(xoffset, yoffset);
   lastEvent.action = SCROLL;
   lastEvent.isMouse = true;
 
   inputQueue->push_back(lastEvent);
 }
 
-void mouseMoved(vec2 mouseLoc, Line mouseL) {
-  lastEvent.cameraSpaceMouseLoc = vec2(mouseLoc);
-  lastEvent.mouseLoc = transformMouseLoc(vec2(mouseLoc));
+void mouseMoved(glm::vec2 mouseLoc, Line mouseL) {
+  lastEvent.cameraSpaceMouseLoc = glm::vec2(mouseLoc);
+  lastEvent.mouseLoc = transformMouseLoc(glm::vec2(mouseLoc));
   lastEvent.action = MOUSE_MOVED_INPUT;
   lastEvent.mouseLine = mouseL;
   lastEvent.isMouse = true;
@@ -1360,8 +1359,8 @@ void renderMouseLine(Line ml) {
   Mesh* mesh = getMesh(mouseLineMesh);
   mesh->flags |= _meshStreamDraw;
   makeCylinder(mesh, ml.start, ml.end - ml.start, 12, 12, colorRed);
-  makeCube(mesh, ml.start, vec3(100, 100, 100), colorRed, true, true);
-  makeCube(mesh, ml.end, vec3(100, 100, 100), colorBlue, true, true);
+  makeCube(mesh, ml.start, glm::vec3(100, 100, 100), colorRed, true, true);
+  makeCube(mesh, ml.end, glm::vec3(100, 100, 100), colorBlue, true, true);
   bufferMesh(mouseLineMesh);
 }
 
@@ -1374,7 +1373,7 @@ void updateInput(double duration) {
   clipboardContents = 0;
 
   InputEvent lastEventCopy = lastEvent;
-  vector<InputEvent> events;
+  std::vector<InputEvent> events;
   for (int i = 0; i < inputQueue->size(); i++) {
     events.push_back(inputQueue->operator[](i));
   }
@@ -1441,42 +1440,42 @@ void collectInput() {
       glfwSetCursorPos(window, xpos, ypos);
   }
 
-  vec2 cursor = vec2(xpos, ypos);
+  glm::vec2 cursor = glm::vec2(xpos, ypos);
   Line mouseLine;
-  vec2 mouseLoc = vec2(
+  glm::vec2 mouseLoc = glm::vec2(
       (2.0f * xpos) / camera.window.x - 1.0f,
       -((2.0f * ypos) / camera.window.y - 1.0f));
 
   if (getFOV() == 0) {
-    vec4 cameraSpaceMouseRaySource = vec4(mouseLoc, 0, 1);
+    glm::vec4 cameraSpaceMouseRaySource = glm::vec4(mouseLoc, 0, 1);
 
-    vec3 mouseRaySource = vec3(
+    glm::vec3 mouseRaySource = glm::vec3(
       inverse(camera.viewProjection) *
       cameraSpaceMouseRaySource
     );
 
     float mapSize = getMapSize();
     mouseLine = line(
-      mouseRaySource - vec3(camera.direction) * mapSize * 2.f,
-      mouseRaySource + vec3(camera.direction) * mapSize * 2.f);
+      mouseRaySource - glm::vec3(camera.direction) * mapSize * 2.f,
+      mouseRaySource + glm::vec3(camera.direction) * mapSize * 2.f);
 
   } else {
-    vec4 cameraSpaceMouseRaySource = vec4(mouseLoc, -1, 1);
+    glm::vec4 cameraSpaceMouseRaySource = glm::vec4(mouseLoc, -1, 1);
 
     /*
-    vec3 mouseRaySource = vec3(
+    glm::vec3 mouseRaySource = glm::vec3(
       inverse(camera.viewProjection) *
       cameraSpaceMouseRaySource
     );
     */
 
-    vec4 mouseRaySource4 = inverse(camera.viewProjection) *
+    glm::vec4 mouseRaySource4 = inverse(camera.viewProjection) *
       cameraSpaceMouseRaySource;
-    vec3 mouseRaySource = vec3(mouseRaySource4)/mouseRaySource4.w;
+    glm::vec3 mouseRaySource = glm::vec3(mouseRaySource4)/mouseRaySource4.w;
 
     /*
-    vec4 cameraSpaceMouseRayDest = vec4(mouseLoc, 1, 1);
-    vec3 mouseRayDest = vec3(
+    glm::vec4 cameraSpaceMouseRayDest = glm::vec4(mouseLoc, 1, 1);
+    glm::vec3 mouseRayDest = glm::vec3(
       inverse(camera.viewProjection) *
       cameraSpaceMouseRayDest
     );
@@ -1491,10 +1490,10 @@ void collectInput() {
     //mouseRayDest *= 10000;
     //mouseRaySource *= camera.distance / (15 * getFOV());
 
-    vec3 mouseRayAlong = mouseRaySource - vec3(camera.position);
+    glm::vec3 mouseRayAlong = mouseRaySource - glm::vec3(camera.position);
     mouseRayAlong = normalize(mouseRayAlong);
     mouseRaySource -= mouseRayAlong * 20.f;
-    vec3 mouseRayDest = mouseRayAlong * (mapSize*2) + vec3(camera.position);
+    glm::vec3 mouseRayDest = mouseRayAlong * (mapSize*2) + glm::vec3(camera.position);
     mouseLine = line(mouseRaySource, mouseRayDest);
 
     /*
@@ -1549,4 +1548,102 @@ void collectInput() {
   inputMutex.unlock();
 }
 
-#include "inputCallbacks.cpp"
+
+std::vector<item> inputHandlers;
+
+int isKeyDown(lua_State* L) {
+  int numArgs = lua_gettop(L);
+  if (numArgs <= 0) return 0;
+  int key = luaL_checknumber(L, 1);
+
+  if (key < 0 || key > GLFW_KEY_LAST+1) {
+    lua_pushboolean(L, false);
+  } else {
+    lua_pushboolean(L, lastEvent.isKeyDown[key]);
+  }
+
+  return 1;
+}
+
+int getMouseLocation_screenspace(lua_State* L) {
+  glm::vec2 mouseLoc = lastEvent.cameraSpaceMouseLoc;
+
+  lua_newtable(L);
+  luaSetTableNumber(L, "x", mouseLoc.x);
+  luaSetTableNumber(L, "y", mouseLoc.y);
+
+  return 1;
+}
+
+int getMouseLocation_worldspace(lua_State* L) {
+  glm::vec3 mouseLoc = landIntersect(lastEvent.mouseLine);
+
+  lua_newtable(L);
+  luaSetTableNumber(L, "x", mouseLoc.x);
+  luaSetTableNumber(L, "y", mouseLoc.y);
+  luaSetTableNumber(L, "z", mouseLoc.z);
+
+  return 1;
+}
+
+int addInputHandler(lua_State* L) {
+  int numArgs = lua_gettop(L);
+  if (numArgs <= 0) return 0;
+  if (!lua_isfunction(L, 1)) handleError("addInputHandler takes a function");
+
+  lua_pushvalue(L, 1);
+  int func = luaL_ref(L, LUA_REGISTRYINDEX);
+  inputHandlers.push_back(func);
+  return 0;
+}
+
+void initLuaInputCallbacks() {
+  inputHandlers.clear();
+  addLuaCallback("isKeyDown", isKeyDown);
+  addLuaCallback("getMouseLocation_screenspace", getMouseLocation_screenspace);
+  addLuaCallback("getMouseLocation_worldspace", getMouseLocation_worldspace);
+  addLuaCallback("addInputHandler", addInputHandler);
+}
+
+bool callLuaEventFunction(int ref, InputEvent event) {
+  lua_State* L = getLuaState();
+
+  lua_rawgeti(L, LUA_REGISTRYINDEX, ref);
+
+  lua_newtable(L);
+  luaSetTableNumber(L, "button", event.button);
+  luaSetTableNumber(L, "key", event.key);
+  luaSetTableNumber(L, "scancode", event.scancode);
+  luaSetTableNumber(L, "action", event.action);
+  luaSetTableNumber(L, "mods", event.mods);
+  luaSetTableNumber(L, "unicode", event.unicode);
+
+  int error = lua_pcall(L, 1, 1, 0);
+
+  if (error) {
+    char* errorMsg = strdup_s(lua_tostring(L, -1));
+    lua_pop(L, 1);  /* pop error message from the stack */
+    SPDLOG_WARN("Error in event handler: {}", errorMsg);
+    free(errorMsg);
+    return false;
+
+  } else if (!lua_isboolean(L, -1)) {
+    SPDLOG_WARN("Error in event handler:"
+        " Function returned non-boolean.");
+    return false;
+
+  } else {
+    bool result = lua_toboolean(L, -1);
+    lua_pop(L, 1);
+    return result;
+  }
+}
+
+bool runLuaInputHandlers(InputEvent event) {
+  for (int i = 0; i < inputHandlers.size(); i++) {
+    bool result = callLuaEventFunction(inputHandlers[i], event);
+    if (result) return true;
+  }
+
+  return false;
+}

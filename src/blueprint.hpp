@@ -14,7 +14,7 @@ const int _blueprintNodePillar = 1 << 3;
 struct BlueprintNode {
   int flags;
   char zone;
-  vec3 loc;
+  glm::vec3 loc;
   Configuration config;
 };
 
@@ -29,16 +29,16 @@ struct Blueprint {
   int flags;
   char* name;
   money cost;
-  vector<BlueprintEdge> edges;
-  vector<BlueprintNode> nodes;
+  std::vector<BlueprintEdge> edges;
+  std::vector<BlueprintNode> nodes;
 };
 
 Line clampBPLine(Line l);
-vector<item> getBPElems(Line l);
+std::vector<item> getBPElems(Line l);
 Blueprint* getDraftBlueprint();
 Blueprint* getActiveBlueprint();
 Blueprint* getBufferBlueprint();
-vector<item> setBufferBlueprint(vector<item> graphElems, vector<item> lots);
+std::vector<item> setBufferBlueprint(std::vector<item> graphElems, std::vector<item> lots);
 void setDraftBlueprintToBuffer();
 void rotateDraftBlueprint();
 void flipDraftBlueprint();
@@ -51,9 +51,9 @@ item selectedBlueprint();
 Blueprint* getBlueprint(item ndx);
 TextBoxState* getBlueprintTB(item ndx);
 void selectBlueprint(item ndx);
-void applyDraftBlueprint(vec3 loc);
+void applyDraftBlueprint(glm::vec3 loc);
 void applyBlueprintZones();
-void queueBlueprintZones(Blueprint* bp, vec3 loc);
+void queueBlueprintZones(Blueprint* bp, glm::vec3 loc);
 void deleteBlueprint(item ndx);
 
 char* blueprintToString(Blueprint* bp);

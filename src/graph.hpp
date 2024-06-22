@@ -1,14 +1,14 @@
-#ifndef GRAPH_H
-#define GRAPH_H
+#pragma once
 
+#include <glm/vec3.hpp>
 #include "box.hpp"
 #include "configuration.hpp"
 #include "cup.hpp"
 #include "item.hpp"
 #include "lane.hpp"
 #include "line.hpp"
-#include "main.hpp"
 #include "serialize.hpp"
+#include "money.hpp"
 
 void updateGraph(double duration);
 void updateGraphVisuals(bool firstPass);
@@ -25,23 +25,23 @@ bool isOpen(item ndx);
 int getBridgeType(item node);
 const char* legalMessage(item ndx);
 Line getLine(item ndx);
-vec3 getElementLoc(item ndx);
-item nearestElement(vec3 loc, bool includePlanned);
+glm::vec3 getElementLoc(item ndx);
+item nearestElement(glm::vec3 loc, bool includePlanned);
 item nearestElement(Line line, bool includePlanned);
-item nearestElement(vec3 loc, bool includePlanned, Configuration config);
+item nearestElement(glm::vec3 loc, bool includePlanned, Configuration config);
 item nearestElement(Line line, bool includePlanned, Configuration config);
 void writeGraph(FileBuffer* file);
 void readGraph(FileBuffer* file, int version);
 money graphCostSimple(item ndx);
 money graphCostFull(item ndx);
-money edgeCost(vec3 c0, vec3 c1,
+money edgeCost(glm::vec3 c0, glm::vec3 c1,
     Configuration e, Configuration n0, Configuration n1);
 void removeElement(item ndx);
 int getSpeedLimit(item ndx);
 char* graphElementName(item ndx);
 bool split(item ndx);
 Configuration getElementConfiguration(item ndx);
-vector<item> getGraphCollisions(Box bbox);
+std::vector<item> getGraphCollisions(Box bbox);
 bool graphIntersect(Box box);
 bool graphIntersect(Box bbox, item exclude);
 bool graphIntersect(Box box, bool includeUnderground);
@@ -66,11 +66,11 @@ const int _graphIsColliding = 1 << 6;
 const int _graphIsDuplicate = 1 << 7;
 
 struct Node {
-  vec3 center;
+  glm::vec3 center;
   Cup<item> edges;
-  vector<item> laneBlocks;
-  vector<item> phaseMins;
-  vector<item> phaseMaxs;
+  std::vector<item> laneBlocks;
+  std::vector<item> phaseMins;
+  std::vector<item> phaseMaxs;
   item entity;
   item signEntity;
   item tunnelEntity;
@@ -87,9 +87,9 @@ item numNodes();
 item sizeNodes();
 Node* getNode(item ndx);
 item getRandomNode();
-item addNode(vec3 center, Configuration config);
-item getNodeAt(vec3 point);
-item getOrCreateNodeAt(vec3 point, Configuration config);
+item addNode(glm::vec3 center, Configuration config);
+item getNodeAt(glm::vec3 point);
+item getOrCreateNodeAt(glm::vec3 point, Configuration config);
 item getOrCreatePillarNodeAt(item pillarNdx, Configuration config);
 item addPillarNode(item pillarNdx, Configuration config);
 void removeNode(item ndx);
@@ -124,10 +124,10 @@ Edge* getEdge(item ndx);
 item addEdge(item end1ndx, item end2ndx, Configuration config);
 void removeEdgeFromNode(item ndx, item edge, bool deleteIfEmpty);
 void removeEdge(item ndx, bool deleteNode);
-item nearestEdge(vec3 loc, bool includePlanned);
+item nearestEdge(glm::vec3 loc, bool includePlanned);
 item nearestEdge(Line line, bool includePlanned);
 item nearestEdge(Line line, bool includePlanned, Configuration config);
-item nearestEdge(vec3 loc, bool includePlanned, Configuration config);
+item nearestEdge(glm::vec3 loc, bool includePlanned, Configuration config);
 void setupEdgeLanes(item ndx);
 float edgeWidth(item ndx);
 bool isEdgeUnderground(item ndx);
@@ -151,4 +151,4 @@ money laneCost(item type);
 void repairEdge(item ndx);
 item graphElementsToRender();
 
-#endif
+

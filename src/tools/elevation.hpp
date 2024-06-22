@@ -12,7 +12,7 @@ const float maxZOffset = 8;
 const float minZOffset = -7;
 
 bool elevationCallback(Part* part, InputEvent event);
-Part* elevationWidget(vec2 loc, Elevation* elevation);
+Part* elevationWidget(glm::vec2 loc, Elevation* elevation);
 Configuration elevate(Elevation elevation, Configuration config);
 void elevationSelect(bool select, Elevation* elevation);
 

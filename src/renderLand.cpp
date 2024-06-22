@@ -9,7 +9,6 @@
 #include "game/game.hpp"
 #include "graph.hpp"
 #include "heatmap.hpp"
-#include "icons.hpp"
 #include "import/mesh-import.hpp"
 #include "land.hpp"
 #include "lot.hpp"
@@ -18,16 +17,18 @@
 #include "thread.hpp"
 #include "time.hpp"
 #include "util.hpp"
+#include <chrono>
+#include "land.hpp"
 
 struct TileData {
-  vec3 l;
-  vec3 lw;
-  vec3 n;
-  vec3 x;
+  glm::vec3 l;
+  glm::vec3 lw;
+  glm::vec3 n;
+  glm::vec3 x;
 };
 
 //Colors
-static vec3 waterColorCurrent = colorWaterBlue;
+static glm::vec3 waterColorCurrent = colorWaterBlue;
 
 //Tree render
 const bool renderElevators = false; //LP_DEBUG;
@@ -46,8 +47,8 @@ bool continueRenderLoop = false;
 static bool treesVisible = true;
 static bool waterVisible = true;
 static bool undergroundView = false;
-static vector<char> isOnlyWater;
-static vector<char> isAnyWater;
+static std::vector<char> isOnlyWater;
+static std::vector<char> isAnyWater;
 static float zOffset = 0;
 static Cup<TileData> tileDataCache;
 
@@ -249,7 +250,7 @@ void renderSeemHider() {
   Entity* entity = getEntity(seemHiderEntity);
   entity->texture = paletteTexture;
   entity->flags |= _entityNoHeatmap;
-  placeEntity(seemHiderEntity, vec3(0,0,0), 0, 0);
+  placeEntity(seemHiderEntity, glm::vec3(0,0,0), 0, 0);
   setCull(seemHiderEntity, 1e12, 1e12);
   setEntityVisible(seemHiderEntity, true);
 
@@ -257,10 +258,10 @@ void renderSeemHider() {
   float z = -c(CMaxHeight) - 10;
   float mapSize = getMapSize();
 
-  makeQuad(mesh, vec3(0,0,z),
-      vec3(mapSize,0,z),
-      vec3(0,mapSize,z),
-      vec3(mapSize,mapSize,z),
+  makeQuad(mesh, glm::vec3(0,0,z),
+      glm::vec3(mapSize,0,z),
+      glm::vec3(0,mapSize,z),
+      glm::vec3(mapSize,mapSize,z),
       colorBrown, colorBrown);
 
   bufferMesh(entity->mesh);
@@ -271,7 +272,7 @@ bool isTileDense(RenderChunkIndex cNdx, item x, item y) {
     return getDesign(1)->minDensity >= c(CPavementDensity);
   } else {
     TileIndex ndx = normalize(tileIndex(cNdx, x, y));
-    vec3 loc = getTileLocation(ndx);
+    glm::vec3 loc = getTileLocation(ndx);
     return heatMapGet(Density, loc) > c(CPavementDensity) &&
         loc.z > 0 && !hasTrees(ndx.x, ndx.y);
   }
@@ -285,11 +286,11 @@ float getTerrainColorU(float z, float nz) {
 
   } else if (z < 0) {
     u = (z + 100)/100;
-    u = clamp(u*2+1, 1.f, 3.f);
+    u = glm::clamp(u*2+1, 1.f, 3.f);
 
   } else if (z < beachLine) {
     u = (z - beachLine + 1) / beachLine;
-    u = clamp(u*2+3, 3.f, 5.f);
+    u = glm::clamp(u*2+3, 3.f, 5.f);
 
   } else if (z > grassLine) {
     if (z > snowLine) {
@@ -297,24 +298,24 @@ float getTerrainColorU(float z, float nz) {
       /*
       float nz = td.n.z;
       nz = 1-nz;
-      nz = clamp(nz*3, 0, 1);
+      nz = glm::clamp(nz*3, 0, 1);
       //nz = 1-nz*nz;
       nz = 1-nz;
       */
 
       u = (z - snowLine) / 500;
-      u = clamp(u, 0.f, 2.f);
+      u = glm::clamp(u, 0.f, 2.f);
       //u *= nz;
-      u = clamp(u*2+9, 9.f, 11.f);
+      u = glm::clamp(u*2+9, 9.f, 11.f);
     } else {
       u = (z - grassLine) / (snowLine - grassLine);
-      u = clamp(u*2+7, 7.f, 9.f);
+      u = glm::clamp(u*2+7, 7.f, 9.f);
     }
 
   } else if (z > dryGrassLine) {
     z *= nz;
     u = (z - dryGrassLine) / (grassLine - dryGrassLine);
-    u = clamp(u*2+5, 5.f, 7.f);
+    u = glm::clamp(u*2+5, 5.f, 7.f);
 
   } else {
     u = 5;
@@ -338,11 +339,11 @@ TileData computeTileData(RenderChunkIndex ndx, item x, item y) {
   float z01 = getHeight(ndx, x,   y+1);
   float z90 = getHeight(ndx, x-1, y);
   float z09 = getHeight(ndx, x,   y-1);
-  td.n = normalize(vec3(z90 - z10, z09 - z01, 20));
+  td.n = normalize(glm::vec3(z90 - z10, z09 - z01, 20));
 
   // Adjust color for slope
   float nz = td.n.z;
-  nz = clamp(pow(nz*2, 0.2), 0.25, 1.5);
+  nz = glm::clamp(pow(nz*2, 0.2), 0.25, 1.5);
   float u = getTerrainColorU(z, nz);
   td.x = getTerrainColor(u, getLandConfig().flags & _landDesert);
 
@@ -371,7 +372,7 @@ TileData getTileData(RenderChunkIndex ndx, item x, item y) {
 
   int chunkSize = getRenderChunkSize();
   float chunkRenderSize = chunkSize * tileSize;
-  vec3 offset = vec3((ndx.x + 0.5f) * chunkRenderSize,
+  glm::vec3 offset = glm::vec3((ndx.x + 0.5f) * chunkRenderSize,
       (ndx.y + 0.5f) * chunkRenderSize, 0);
   td.l -= offset;
   td.lw = td.l;
@@ -386,7 +387,7 @@ TileData getTileData(RenderChunkIndex ndx, item x, item y, float z) {
 
   // Adjust color for slope
   float nz = td.n.z;
-  nz = clamp(pow(nz*2, 0.2), 0.25, 1.5);
+  nz = glm::clamp(pow(nz*2, 0.2), 0.25, 1.5);
   float u = getTerrainColorU(z, nz);
   td.x = getTerrainColor(u, getLandConfig().flags & _landDesert);
 
@@ -395,17 +396,17 @@ TileData getTileData(RenderChunkIndex ndx, item x, item y, float z) {
 
 void makeTileBox(RenderChunkIndex ndx, int xs, int xe, int ys, int ye,
     float tz00, float tz09, float tz90, float tz99, float zAdj,
-    Mesh* mesh, vec3 xp) {
+    Mesh* mesh, glm::vec3 xp) {
   if (!c(CShowLandTiling)) return;
   int chunkSize = getRenderChunkSize();
   float chunkRenderSize = chunkSize * tileSize;
-  vec3 offset = vec3((ndx.x + 0.5f) * chunkRenderSize,
+  glm::vec3 offset = glm::vec3((ndx.x + 0.5f) * chunkRenderSize,
       (ndx.y + 0.5f) * chunkRenderSize, 0);
   zAdj -= zOffset;
-  vec3 xAdjust = vec3(2, 0, 0);
-  vec3 yAdjust = vec3(0, 2, 0);
+  glm::vec3 xAdjust = glm::vec3(2, 0, 0);
+  glm::vec3 yAdjust = glm::vec3(0, 2, 0);
 
-  vec3 loc[4] = {
+  glm::vec3 loc[4] = {
     getTileLocation(ndx, xs, ys) - offset + xAdjust + yAdjust,
     getTileLocation(ndx, xs, ye) - offset + xAdjust - yAdjust,
     getTileLocation(ndx, xe, ye) - offset - xAdjust - yAdjust,
@@ -418,11 +419,11 @@ void makeTileBox(RenderChunkIndex ndx, int xs, int xe, int ys, int ye,
   loc[3].z = tz90 + zAdj;
 
   for (int i = 0; i < 4; i++) {
-    vec3 start = loc[i];
-    vec3 end = loc[(i+1)%4];
-    vec3 along = start - end;
-    vec3 right = -uzNormal(along)*1.f;
-    makeAngledCube(mesh, end, right, along, vec3(0,0,2),
+    glm::vec3 start = loc[i];
+    glm::vec3 end = loc[(i+1)%4];
+    glm::vec3 along = start - end;
+    glm::vec3 right = -uzNormal(along)*1.f;
+    makeAngledCube(mesh, end, right, along, glm::vec3(0,0,2),
       true, xp);
   }
 }
@@ -511,10 +512,10 @@ void renderTile(RenderChunkIndex ndx, int xs, int xe, int ys, int ye,
       v1 = 1;
     }
 
-    vec3 l0 = td[v0].l;
-    vec3 l1 = td[v1].l;
-    vec3 l2 = l0;
-    vec3 l3 = l1;
+    glm::vec3 l0 = td[v0].l;
+    glm::vec3 l1 = td[v1].l;
+    glm::vec3 l2 = l0;
+    glm::vec3 l3 = l1;
     l2.z = landBottom - zOffset;
     l3.z = landBottom - zOffset;
     if (dirtMesh != 0) {
@@ -524,16 +525,16 @@ void renderTile(RenderChunkIndex ndx, int xs, int xe, int ys, int ye,
     l0.z += zOffset;
     l1.z += zOffset;
     if (waterMesh != 0 && (l0.z < 0 || l1.z < 0)) {
-      vec3 along = l1-l0;
+      glm::vec3 along = l1-l0;
       float lngth = length(along);
       int tiles = lngth/tileSize;
       if (waterColorCurrent.z < 0) tiles /= simpleLandStride;
-      vec3 tAlong = along/float(tiles);
+      glm::vec3 tAlong = along/float(tiles);
       for (int k = 0; k < tiles; k++) {
-        vec3 lt0 = l0+tAlong*float(k);
-        vec3 lt1 = lt0+tAlong;
-        vec3 ltw0 = lt0;
-        vec3 ltw1 = lt1;
+        glm::vec3 lt0 = l0+tAlong*float(k);
+        glm::vec3 lt1 = lt0+tAlong;
+        glm::vec3 ltw0 = lt0;
+        glm::vec3 ltw1 = lt1;
         ltw0.z = 0;
         ltw1.z = 0;
         makeQuad(waterMesh, lt0, lt1, ltw0, ltw1,
@@ -583,10 +584,10 @@ void renderWaterTile(RenderChunkIndex ndx, int x, int y, int stride,
 
   if (numWater > 2 && waterMesh != 0) {
     setAnyWaterForChunk(ndx, true);
-    vec3 tx = colorWaterBlue;
+    glm::vec3 tx = colorWaterBlue;
     tx.z = uvz;
     if (numWater == 3) {
-      vector<vec3> waters;
+      std::vector<glm::vec3> waters;
       for (int i = 0; i < 4; i++) {
         if (isWater[i]) waters.push_back(td[i].lw);
       }
@@ -620,9 +621,9 @@ TileDiff getMaxTileDiff(RenderChunkIndex ndx, int xs, int xe, int ys, int ye,
   for (int x = xs+ee; x <= xe-ee; x ++) {
     for (int y = ys+ee; y <= ye-ee; y ++) {
       float z = getHeight(ndx, x, y);
-      float tz0 = mix(tz00, tz09, float(y-ys)/nonZero(ye-ys));
-      float tz1 = mix(tz90, tz99, float(y-ys)/nonZero(ye-ys));
-      float tz2 = mix(tz0, tz1, float(x-xs)/nonZero(xe-xs));
+      float tz0 = glm::mix(tz00, tz09, float(y-ys)/nonZero(ye-ys));
+      float tz1 = glm::mix(tz90, tz99, float(y-ys)/nonZero(ye-ys));
+      float tz2 = glm::mix(tz0, tz1, float(x-xs)/nonZero(xe-xs));
       float diff = z < tz2 ? c(CLandErrorConcaveFactor)*(tz2-z) : abs(tz2-z);
       /*
       if ((z < beachLine-1) != (tz2 < beachLine-1)) {
@@ -666,10 +667,10 @@ void renderInnerTileRecursive(RenderChunkIndex ndx, int xs, int xe, int ys, int 
     if (td.diff > maxDiff) {
       // Split the tile into four
       float tz55 = getHeight(ndx, td.x, td.y);
-      float tz05 = mix(tz00, tz09, float(td.y-ys)/(ye-ys));
-      float tz95 = mix(tz90, tz99, float(td.y-ys)/(ye-ys));
-      float tz50 = mix(tz00, tz90, float(td.x-xs)/(xe-xs));
-      float tz59 = mix(tz09, tz99, float(td.x-xs)/(xe-xs));
+      float tz05 = glm::mix(tz00, tz09, float(td.y-ys)/(ye-ys));
+      float tz95 = glm::mix(tz90, tz99, float(td.y-ys)/(ye-ys));
+      float tz50 = glm::mix(tz00, tz90, float(td.x-xs)/(xe-xs));
+      float tz59 = glm::mix(tz09, tz99, float(td.x-xs)/(xe-xs));
 
       renderTileRecursive(ndx, xs, td.x, ys, td.y,
           tz00, tz05, tz50, tz55,
@@ -693,10 +694,10 @@ void renderInnerTileRecursive(RenderChunkIndex ndx, int xs, int xe, int ys, int 
       landMesh, waterMesh, dirtMesh);
 }
 
-vector<item> getBreakpoints(RenderChunkIndex ndx, int ks, int ke, bool isY, int j,
+std::vector<item> getBreakpoints(RenderChunkIndex ndx, int ks, int ke, bool isY, int j,
     float tz0, float tz9, float maxDiff) {
 
-  if (ks == ke) return vector<item>();
+  if (ks == ke) return std::vector<item>();
 
   TileDiff td = isY ?
     getMaxTileDiff(ndx, j, j, ks, ke, tz0, tz9, tz0, tz9, 0) :
@@ -704,9 +705,9 @@ vector<item> getBreakpoints(RenderChunkIndex ndx, int ks, int ke, bool isY, int 
 
   if (td.diff > maxDiff) {
     float tz5 = getHeight(ndx, td.x, td.y);
-    vector<item> result0 = getBreakpoints(ndx, ks, isY ? td.y : td.x, isY,
+    std::vector<item> result0 = getBreakpoints(ndx, ks, isY ? td.y : td.x, isY,
         j, tz0, tz5, maxDiff);
-    vector<item> result1 = getBreakpoints(ndx, isY ? td.y : td.x, ke, isY,
+    std::vector<item> result1 = getBreakpoints(ndx, isY ? td.y : td.x, ke, isY,
         j, tz5, tz9, maxDiff);
     int k = isY ? td.y : td.x;
     result0.push_back(k);
@@ -714,7 +715,7 @@ vector<item> getBreakpoints(RenderChunkIndex ndx, int ks, int ke, bool isY, int 
     return result0;
   }
 
-  return vector<item>();
+  return std::vector<item>();
 }
 
 void renderTileRecursive(RenderChunkIndex ndx, int xs, int xe, int ys, int ye,
@@ -725,20 +726,20 @@ void renderTileRecursive(RenderChunkIndex ndx, int xs, int xe, int ys, int ye,
   makeTileBox(ndx, xs, xe, ys, ye, tz00, tz09, tz90, tz99, 0,
       landMesh, colorRed);
 
-  vector<item> bps[4] = {
+  std::vector<item> bps[4] = {
     getBreakpoints(ndx, xs, xe, false, ys, tz00, tz90, maxDiff),
     getBreakpoints(ndx, xs, xe, false, ye, tz09, tz99, maxDiff),
     getBreakpoints(ndx, ys, ye, true, xs, tz00, tz09, maxDiff),
     getBreakpoints(ndx, ys, ye, true, xe, tz90, tz99, maxDiff),
   };
 
-  vector<item> bpx = bps[0];
+  std::vector<item> bpx = bps[0];
   bpx.insert(bpx.end(), bps[1].begin(), bps[1].end());
   bpx.push_back(xs);
   bpx.push_back(xe);
   sort(bpx.begin(), bpx.end());
 
-  vector<item> bpy = bps[2];
+  std::vector<item> bpy = bps[2];
   bpy.insert(bpy.end(), bps[3].begin(), bps[3].end());
   bpy.push_back(ys);
   bpy.push_back(ye);
@@ -770,8 +771,8 @@ void renderTileRecursive(RenderChunkIndex ndx, int xs, int xe, int ys, int ye,
     for (int i = 0; i < 4; i++) {
       bool isY = i >= 2;
       bool isEnd = i%2;
-      vector<item> a = bps[i];
-      vector<item> b = bps[isY*2 + !isEnd];
+      std::vector<item> a = bps[i];
+      std::vector<item> b = bps[isY*2 + !isEnd];
       int aS = a.size();
 
       for (int k = 0; k < aS; k++) {
@@ -802,7 +803,7 @@ void renderTileRecursive(RenderChunkIndex ndx, int xs, int xe, int ys, int ye,
             tz9 = isEnd ? tz99 : (isY ? tz09 : tz90);
           }
         }
-        zs[x*cs + y] = mix(tz0, tz9, (b[k]-k0)/nonZero(k9-k0));
+        zs[x*cs + y] = glm::mix(tz0, tz9, (b[k]-k0)/nonZero(k9-k0));
       }
     }
 
@@ -845,7 +846,7 @@ void renderTileRecursive(RenderChunkIndex ndx, int xs, int xe, int ys, int ye,
     maxDiff, landMesh, waterMesh, dirtMesh);
 }
 
-void renderChunkInner(RenderChunkIndex ndx, int s, vec3 offset,
+void renderChunkInner(RenderChunkIndex ndx, int s, glm::vec3 offset,
     Mesh* landMesh, Mesh* waterMesh, Mesh* dirtMesh) {
   bool renderWater;
   int chunkSize = getRenderChunkSize();
@@ -853,13 +854,13 @@ void renderChunkInner(RenderChunkIndex ndx, int s, vec3 offset,
   float maxHeight = c(CMaxHeight);
 
   // Remember to dealloc! No early returns
-  vec3** ns = new vec3*[paddedChunkSize+1];
-  vec3** tx = new vec3*[paddedChunkSize+1];
-  vec3** lc = new vec3*[paddedChunkSize+1];
+  glm::vec3** ns = new glm::vec3*[paddedChunkSize+1];
+  glm::vec3** tx = new glm::vec3*[paddedChunkSize+1];
+  glm::vec3** lc = new glm::vec3*[paddedChunkSize+1];
   for (int i = 0; i < paddedChunkSize+1; i++) {
-    ns[i] = new vec3[paddedChunkSize+1];
-    tx[i] = new vec3[paddedChunkSize+1];
-    lc[i] = new vec3[paddedChunkSize+1];
+    ns[i] = new glm::vec3[paddedChunkSize+1];
+    tx[i] = new glm::vec3[paddedChunkSize+1];
+    lc[i] = new glm::vec3[paddedChunkSize+1];
   }
 
   for(int x = 0; x <= paddedChunkSize; x ++) {
@@ -870,13 +871,13 @@ void renderChunkInner(RenderChunkIndex ndx, int s, vec3 offset,
       float z01 = getHeight(ndx, x,   y+1);
       float z90 = getHeight(ndx, x-1, y);
       float z09 = getHeight(ndx, x,   y-1);
-      ns[x][y] = vec3(z90 - z10, z09 - z01, tileSize*2);
+      ns[x][y] = glm::vec3(z90 - z10, z09 - z01, tileSize*2);
       float z = getHeight(ndx, x, y);
       //float adjZ = z - offset.z;
       //if (adjZ < beachLine && adjZ != 0) {
         //adjZ = z < 0 ? z : beachLine;
       //}
-      vec3 loc = getTileLocation(ndx, x,y) - offset;
+      glm::vec3 loc = getTileLocation(ndx, x,y) - offset;
 
       loc.z = z - offset.z;
       lc[x][y] = loc;
@@ -888,25 +889,25 @@ void renderChunkInner(RenderChunkIndex ndx, int s, vec3 offset,
 
       } else if (z < 0) {
         u = (z + 100)/100;
-        u = clamp(u*2+1, 1.f, 3.f);
+        u = glm::clamp(u*2+1, 1.f, 3.f);
 
       } else if (z < beachLine) {
         u = (z - beachLine + 1) / 1;
-        u = clamp(u*2+3, 3.f, 5.f);
+        u = glm::clamp(u*2+3, 3.f, 5.f);
         renderWater = true;
 
       } else if (z > grassLine) {
         if (z > snowLine) {
           u = (z - snowLine) / 10;
-          u = clamp(u*2+9, 9.f, 11.f);
+          u = glm::clamp(u*2+9, 9.f, 11.f);
         } else {
           u = (z - grassLine) / (snowLine - grassLine);
-          u = clamp(u*2+7, 7.f, 9.f);
+          u = glm::clamp(u*2+7, 7.f, 9.f);
         }
 
       } else if (z > dryGrassLine) {
         u = (z - dryGrassLine) / (grassLine - dryGrassLine);
-        u = clamp(u*2+5, 5.f, 7.f);
+        u = glm::clamp(u*2+5, 5.f, 7.f);
 
       } else {
         u = 5;
@@ -955,19 +956,19 @@ void renderChunkInner(RenderChunkIndex ndx, int s, vec3 offset,
 
   for(int x = 0; x < chunkSize; x += s) {
     for(int y = 0; y < chunkSize; y += s) {
-      vec3 br = lc[x  ][y  ];
-      vec3 tr = lc[x  ][y+s];
-      vec3 bl = lc[x+s][y  ];
-      vec3 tl = lc[x+s][y+s];
+      glm::vec3 br = lc[x  ][y  ];
+      glm::vec3 tr = lc[x  ][y+s];
+      glm::vec3 bl = lc[x+s][y  ];
+      glm::vec3 tl = lc[x+s][y+s];
 
       bool dense = isTileDense(ndx, x, y) && isTileDense(ndx, x, y+s) &&
         isTileDense(ndx, x+s, y) && isTileDense(ndx, x+s, y+s);
 
       if (dense) {
-        vec3 bru = br;
-        vec3 blu = bl;
-        vec3 tru = tr;
-        vec3 tlu = tl;
+        glm::vec3 bru = br;
+        glm::vec3 blu = bl;
+        glm::vec3 tru = tr;
+        glm::vec3 tlu = tl;
         bru.z += c(CDensePavementZ);
         tru.z += c(CDensePavementZ);
         blu.z += c(CDensePavementZ);
@@ -1021,8 +1022,8 @@ void renderChunkInner(RenderChunkIndex ndx, int s, vec3 offset,
       }
 
       if (x == 0 && ndx.x == 0) {
-        vec3 ubr = br;
-        vec3 utr = tr;
+        glm::vec3 ubr = br;
+        glm::vec3 utr = tr;
         ubr.z = landBottom;
         utr.z = landBottom;
         if (dirtMesh != 0) {
@@ -1031,14 +1032,14 @@ void renderChunkInner(RenderChunkIndex ndx, int s, vec3 offset,
 
         if (waterMesh != 0 && (br.z < 0 || tr.z < 0)) {
           makeQuad(waterMesh, tr, br,
-            vec3(tr.x, tr.y, 0), vec3(br.x, br.y, 0),
+            glm::vec3(tr.x, tr.y, 0), glm::vec3(br.x, br.y, 0),
             colorWaterBlue, colorWaterBlue);
         }
       }
 
       if (y == 0 && ndx.y == 0) {
-        vec3 ubr = br;
-        vec3 ubl = bl;
+        glm::vec3 ubr = br;
+        glm::vec3 ubl = bl;
         ubr.z = landBottom;
         ubl.z = landBottom;
         if (dirtMesh != 0) {
@@ -1046,14 +1047,14 @@ void renderChunkInner(RenderChunkIndex ndx, int s, vec3 offset,
         }
         if (waterMesh != 0 && (br.z < 0 || bl.z < 0)) {
           makeQuad(waterMesh, br, bl,
-            vec3(br.x, br.y, 0), vec3(bl.x, bl.y, 0),
+            glm::vec3(br.x, br.y, 0), glm::vec3(bl.x, bl.y, 0),
             colorWaterBlue, colorWaterBlue);
         }
       }
 
       if (x+s >= chunkSize && ndx.x == numRenderChunks - 1) {
-        vec3 ubl = bl;
-        vec3 utl = tl;
+        glm::vec3 ubl = bl;
+        glm::vec3 utl = tl;
         ubl.z = landBottom;
         utl.z = landBottom;
         if (dirtMesh != 0) {
@@ -1061,14 +1062,14 @@ void renderChunkInner(RenderChunkIndex ndx, int s, vec3 offset,
         }
         if (waterMesh != 0 && (bl.z < 0 || tl.z < 0)) {
           makeQuad(waterMesh, bl, tl,
-            vec3(bl.x, bl.y, 0), vec3(tl.x, tl.y, 0),
+            glm::vec3(bl.x, bl.y, 0), glm::vec3(tl.x, tl.y, 0),
             colorWaterBlue, colorWaterBlue);
         }
       }
 
       if (y+s >= chunkSize && ndx.y == numRenderChunks - 1) {
-        vec3 utr = tr;
-        vec3 utl = tl;
+        glm::vec3 utr = tr;
+        glm::vec3 utl = tl;
         utr.z = landBottom;
         utl.z = landBottom;
         if (dirtMesh != 0) {
@@ -1076,7 +1077,7 @@ void renderChunkInner(RenderChunkIndex ndx, int s, vec3 offset,
         }
         if (waterMesh != 0 && (bl.z < 0 || tl.z < 0)) {
           makeQuad(waterMesh, tl, tr,
-            vec3(tl.x, tl.y, 0), vec3(tr.x, tr.y, 0),
+            glm::vec3(tl.x, tl.y, 0), glm::vec3(tr.x, tr.y, 0),
             colorWaterBlue, colorWaterBlue);
         }
       }
@@ -1116,16 +1117,16 @@ void makeUnderDirt(Mesh* mesh, RenderChunkIndex ndx, float zOffset) {
   if (mesh == 0) return;
 
   float chunkRenderSize = chunkSize * tileSize;
-  vec3 loc = vec3(-chunkRenderSize*.5f, -chunkRenderSize*.5f,
+  glm::vec3 loc = glm::vec3(-chunkRenderSize*.5f, -chunkRenderSize*.5f,
       landBottom - zOffset);
-  vec3 along = vec3(chunkRenderSize, 0, 0);
-  vec3 right = vec3(0, chunkRenderSize, 0);
+  glm::vec3 along = glm::vec3(chunkRenderSize, 0, 0);
+  glm::vec3 right = glm::vec3(0, chunkRenderSize, 0);
 
   //makeQuad(mesh, loc, loc+along, loc+right, loc+along+right,
       //colorBrown, colorBrown);
 }
 
-void renderTrees(RenderChunkIndex ndx, vec3 offset) {
+void renderTrees(RenderChunkIndex ndx, glm::vec3 offset) {
   float mapSize = getMapSize();
   RenderChunk* chunk = getRenderChunk(ndx);
   int chunkSize = getRenderChunkSize();
@@ -1134,34 +1135,34 @@ void renderTrees(RenderChunkIndex ndx, vec3 offset) {
   bool treeSimpleOnly = c(CTreeSimpleDistance) <= 0;
   float stepSize = c(CMinTreeSpacing);
   float stepDev = c(CTreeSpacingDeviation);
-  vector<Cup<vec4>*> treeData;
+  std::vector<Cup<glm::vec4>*> treeData;
 
   for (int i = 0; i < sizeTreeTypes(); i++) {
-    treeData.push_back(Cup<vec4>::newCup(0));
+    treeData.push_back(Cup<glm::vec4>::newCup(0));
   }
 
   for(int x = 0; x < chunkSize; x ++) {
     for(int y = 0; y < chunkSize; y ++) {
       item x0 = ndx.x*chunkSize + x;
       item y0 = ndx.y*chunkSize + y;
-      vec3 loc = getTileLocation(x0, y0);
+      glm::vec3 loc = getTileLocation(x0, y0);
 
       if (hasTrees(x0, y0)) {
         // Adjust color for slope
         TileData td = getTileData(ndx, x, y, 0);
         float nz = td.n.z;
-        nz = clamp(pow(nz*2, 0.2), 0.25, 1.5);
+        nz = glm::clamp(pow(nz*2, 0.2), 0.25, 1.5);
 
         item randomSeed = x0*100000 + y0*100 + 19;
         int k = 0;
-        vec3 tileOff = stepSize*vec3(randFloat(&randomSeed, -1, 0),
+        glm::vec3 tileOff = stepSize*glm::vec3(randFloat(&randomSeed, -1, 0),
             randFloat(&randomSeed, -1, 0), 0);
-        //vec3 tileOff = vec3(0,0,0);
+        //glm::vec3 tileOff = glm::vec3(0,0,0);
         for (float xm = 0; xm <= tileSize; xm +=stepSize) {
           k ++;
           for (float ym = 0; ym <= tileSize; ym +=stepSize) {
             if (randFloat(&randomSeed) < c(CTreeInnerFrequency)) {
-              vec3 treeLoc = loc + vec3(
+              glm::vec3 treeLoc = loc + glm::vec3(
                   xm + randFloat(&randomSeed, -stepDev, stepDev),
                   ym + randFloat(&randomSeed, -stepDev, stepDev)
                    + (k%2-.5f)*stepSize*.5f,
@@ -1182,7 +1183,7 @@ void renderTrees(RenderChunkIndex ndx, vec3 offset) {
               treeLoc.z -= 3;
               float size = (1 + .75f*randFloat(&randomSeed));
               item type = randomTreeType(randomSeed);
-              treeData[type-1]->push_back(vec4(treeLoc - offset, size));
+              treeData[type-1]->push_back(glm::vec4(treeLoc - offset, size));
             }
           }
         }
@@ -1207,7 +1208,7 @@ void renderTrees(RenderChunkIndex ndx, vec3 offset) {
 
     if (!treeSimpleOnly) {
       Mesh* treeMesh = getMesh(treeEntity->mesh);
-      insertMesh(treeMesh, import->mesh, vec3(0,0,0), 0, 0, vec3(1,1,1));
+      insertMesh(treeMesh, import->mesh, glm::vec3(0,0,0), 0, 0, glm::vec3(1,1,1));
 
       if (import->flags & _meshImportBillboard) {
         treeMesh->flags |= _meshBillboard;
@@ -1215,8 +1216,8 @@ void renderTrees(RenderChunkIndex ndx, vec3 offset) {
     }
 
     Mesh* simpleTreeMesh = getMesh(treeEntity->simpleMesh);
-    insertMesh(simpleTreeMesh, import->simpleMesh, vec3(0,0,0), 0, 0,
-        vec3(1,1,1));
+    insertMesh(simpleTreeMesh, import->simpleMesh, glm::vec3(0,0,0), 0, 0,
+        glm::vec3(1,1,1));
     if (import->flags & _meshImportSimpleBillboard) {
       simpleTreeMesh->flags |= _meshBillboard;
     }
@@ -1246,7 +1247,7 @@ void renderChunk(RenderChunkIndex ndx) {
   float chunkCullSize = chunkRenderSize*2;
   bool simpleOnly = c(CLandSimpleDistance) <= 0;
   bool waterSimpleOnly = c(CWaterSimpleDistance) <= 0;
-  vec3 offset = vec3((ndx.x + 0.5f) * chunkRenderSize,
+  glm::vec3 offset = glm::vec3((ndx.x + 0.5f) * chunkRenderSize,
       (ndx.y + 0.5f) * chunkRenderSize, 0);
 
   float zOff = 0;
@@ -1268,7 +1269,7 @@ void renderChunk(RenderChunkIndex ndx) {
         zOffset, zOff, chunkSize);
   }
 
-  vec3 placement = offset;
+  glm::vec3 placement = offset;
   setOnlyWaterForChunk(ndx, true);
   setAnyWaterForChunk(ndx, false);
 
@@ -1292,7 +1293,7 @@ void renderChunk(RenderChunkIndex ndx) {
 
   Entity* waterEntity = getEntity(chunk->waterEntity);
   waterEntity->texture = paletteTexture;
-  vec3 waterPlacement = placement;
+  glm::vec3 waterPlacement = placement;
   waterPlacement.z = 0;
   placeEntity(chunk->waterEntity, waterPlacement, 0, 0);
   setCull(chunk->waterEntity, chunkCullSize, c(CLandCull));
@@ -1345,7 +1346,7 @@ void renderChunk(RenderChunkIndex ndx) {
   //simpleWaterMesh->flags |= _meshDynDraw;
 
   if (c(CUseOldTerrainRendering)) {
-    renderChunkInner(ndx, simpleLandStride, offset - vec3(0,0,-1.9),
+    renderChunkInner(ndx, simpleLandStride, offset - glm::vec3(0,0,-1.9),
         simpleLandMesh, waterMesh, simpleDirtMesh);
     renderChunkInner(ndx, 1, offset,
         landMesh, 0, dirtMesh);

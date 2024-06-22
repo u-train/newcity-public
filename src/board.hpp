@@ -1,5 +1,4 @@
-#ifndef BOARD_H
-#define BOARD_H
+#pragma once
 
 #include "item.hpp"
 #include "serialize.hpp"
@@ -21,4 +20,4 @@ void resetBoards();
 void writeBoards(FileBuffer* file);
 void readBoards(FileBuffer* file, int version);
 
-#endif
+

@@ -5,8 +5,8 @@
 #include "spdlog/spdlog.h"
 #include <unordered_map>
 
-unordered_map<item, item> parents;
-unordered_map<item, vector<item>> children;
+std::unordered_map<item, item> parents;
+std::unordered_map<item, std::vector<item>> children;
 
 void resetGraphParents() {
   parents.clear();
@@ -28,7 +28,7 @@ void setGraphParent(item child, item parent) {
   children[parent].push_back(child);
 }
 
-vector<item> getGraphChildren(item parent) {
+std::vector<item> getGraphChildren(item parent) {
   return children[parent];
 }
 
@@ -39,7 +39,7 @@ void clearGraphChildren(item ndx) {
     parents.erase(ndx);
   }
 
-  vector<item>* childs = &children[ndx];
+  std::vector<item>* childs = &children[ndx];
   for (int i = 0; i < childs->size(); i++) {
     item child = childs->at(i);
     if (parents[child] == ndx) parents[child] = 0;

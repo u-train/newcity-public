@@ -1,7 +1,9 @@
 #pragma once
 
-#include "../main.hpp"
 #include "../cup.hpp"
+#include "../item.hpp"
+#include <GL/glew.h>
+
 
 enum Shader {
   // Pre Shaders

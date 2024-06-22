@@ -55,8 +55,8 @@ struct TransitSystem {
   float designDate;
   uint8_t maxCars;
   int numLines;
-  vector<item> features;
-  vector<TransitSystemBid> bids;
+  std::vector<item> features;
+  std::vector<TransitSystemBid> bids;
   char* name;
 };
 
@@ -68,8 +68,8 @@ item getCurrentLine();
 item addTransitLine(item system);
 TransitLine* getTransitLine(item ndx);
 item getTransitLineColor(item ndx);
-vec3 getTransitLineColorInPalette(item ndx);
-vector<item> suggestStationColors(item ndx);
+glm::vec3 getTransitLineColorInPalette(item ndx);
+std::vector<item> suggestStationColors(item ndx);
 
 void setCurrentTransitSystem(item s);
 item getCurrentTransitSystem();
@@ -92,7 +92,7 @@ void removeVehicleFromTransitLine_g(item vNdx);
 void removeTransitLine(item ndx);
 void setTransitVisible(bool visible);
 bool isTransitVisible();
-void renderTransitLeg(item mesh, item lineNdx, item leg, vec3 offset);
+void renderTransitLeg(item mesh, item lineNdx, item leg, glm::vec3 offset);
 item sizeTransitLines();
 item sizeTransitSystems();
 void finishTransit();

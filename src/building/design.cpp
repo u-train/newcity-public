@@ -6,16 +6,13 @@
 
 #include "../business.hpp"
 #include "../economy.hpp"
-#include "../draw/entity.hpp"
 #include "../game/feature.hpp"
 #include "../game/game.hpp"
 #include "../game/version.hpp"
-#include "../graph.hpp"
 #include "../error.hpp"
-#include "../land.hpp"
 #include "../parts/designOrganizerPanel.hpp"
 #include "../parts/mainMenu.hpp"
-#include "../parts/toolbar.hpp"
+#include "../time.hpp"
 #include "../platform/file.hpp"
 #include "../platform/lookup.hpp"
 #include "../platform/mod.hpp"
@@ -24,17 +21,20 @@
 #include "../util.hpp"
 #include "../vehicle/wanderer.hpp"
 #include "../zone.hpp"
-
+#include "../game/constants.hpp"
 #include "spdlog/spdlog.h"
 #include <unordered_map>
+#include <glm/glm.hpp>
+
+using glm::clamp;
 
 #include <experimental/filesystem>
 using namespace std::experimental::filesystem;
 
-vector<Design> designs;
-vector<Design> designerUndoHistory;
-vector<item> designerUndoHistoryNdxs;
-unordered_map<string, vector<item>> designsByNameMap;
+std::vector<Design> designs;
+std::vector<Design> designerUndoHistory;
+std::vector<item> designerUndoHistoryNdxs;
+std::unordered_map<std::string, std::vector<item>> designsByNameMap;
 item undoHistoryNdx = 0;
 bool structuresVisible = true;
 
@@ -159,7 +159,7 @@ item addDesign() {
   Design* design = getDesign(ndx);
   design->name = 0;
   design->zone = ResidentialZone;
-  design->size = vec3(1,1,0);
+  design->size = glm::vec3(1,1,0);
   design->numFamilies = 1;
   for (int i = 0; i < numBusinessTypes; i++) {
     design->numBusinesses[i] = 0;
@@ -205,32 +205,32 @@ void toggleStructuresVisible() {
   structuresVisible = !structuresVisible;
 }
 
-vec3 getStructureHandleLocation(item ndx, item handleType) {
+glm::vec3 getStructureHandleLocation(item ndx, item handleType) {
   Design* d = getDesign(getSelectedDesignNdx());
   Building* b = getBuilding(getSelectedDesignNdx());
-  if (ndx < 0 || ndx >= d->structures.size()) return vec3(0,0,0);
+  if (ndx < 0 || ndx >= d->structures.size()) return glm::vec3(0,0,0);
   Structure* s = &d->structures[ndx];
-  vec3 loc = b->location + s->location;
+  glm::vec3 loc = b->location + s->location;
 
   if (handleType == LocationHandle) {
     return loc;
 
   } else {
-    vec3 size = s->size;
+    glm::vec3 size = s->size;
     float cangle = cos(s->angle);
     float sangle = sin(s->angle);
-    vec3 right = vec3(-cangle, sangle, 0) * size.x * .5f;
-    vec3 along = vec3(sangle, cangle, 0) * size.y;
+    glm::vec3 right = glm::vec3(-cangle, sangle, 0) * size.x * .5f;
+    glm::vec3 along = glm::vec3(sangle, cangle, 0) * size.y;
 
     if (handleType == AngleHandle) {
       return loc + along;
 
     } else if (handleType == SizeHandle) {
-      return loc + right + vec3(0,0,size.z);
+      return loc + right + glm::vec3(0,0,size.z);
 
     } else if (handleType == SelectionPointHandle) {
       //float slopePart = s->roofType == FlatRoof ? 0 : size.x*.5f*s->roofSlope;
-      return loc + along*.5f + vec3(0,0,size.z);
+      return loc + along*.5f + glm::vec3(0,0,size.z);
 
     } else {
       handleError("Bad Handle Type");
@@ -239,24 +239,24 @@ vec3 getStructureHandleLocation(item ndx, item handleType) {
   }
 }
 
-vec3 getDecoHandleLocation(item ndx, item handleType) {
+glm::vec3 getDecoHandleLocation(item ndx, item handleType) {
   Design* d = getDesign(getSelectedDesignNdx());
   Building* b = getBuilding(getSelectedDesignNdx());
-  if (ndx < 0 || ndx >= d->decos.size()) return vec3(0,0,0);
+  if (ndx < 0 || ndx >= d->decos.size()) return glm::vec3(0,0,0);
   Deco* deco = &d->decos[ndx];
-  vec3 loc = b->location + deco->location;
+  glm::vec3 loc = b->location + deco->location;
 
   if (handleType == LocationHandle) {
     return loc;
 
   } else if (handleType == SelectionPointHandle) {
-    return loc + vec3(0,0, deco->scale);
+    return loc + glm::vec3(0,0, deco->scale);
 
   } else if (handleType == AngleHandle) {
     float cangle = cos(deco->yaw);
     float sangle = sin(deco->yaw);
-    vec3 ualong = vec3(cangle, sangle, 0);
-    vec3 along = ualong * deco->scale * 10.f;
+    glm::vec3 ualong = glm::vec3(cangle, sangle, 0);
+    glm::vec3 along = ualong * deco->scale * 10.f;
     return loc - along;
 
   } else {
@@ -339,8 +339,8 @@ item getRandomDesign(item zone, item econ, float density, float landValue) {
   return 0;
 }
 
-vector<item> getDesignsByName(std::string& name) {
-  vector<item> results = designsByNameMap[name]; // see if the result is cached
+std::vector<item> getDesignsByName(std::string& name) {
+  std::vector<item> results = designsByNameMap[name]; // see if the result is cached
 
   if (results.size() == 0) {
     // find designs that match name
@@ -365,14 +365,14 @@ vector<item> getDesignsByName(std::string& name) {
   return results;
 }
 
-vector<item> getDesignsByName(const char* name) {
+std::vector<item> getDesignsByName(const char* name) {
   std::string nameStr = name;
   return getDesignsByName(nameStr);
 }
 
 item numBuildingsForDesignKeyword(std::string& name) {
   item result = 0;
-  vector<item> matchingDesigns = getDesignsByName(name);
+  std::vector<item> matchingDesigns = getDesignsByName(name);
   for (int i = 0; i < matchingDesigns.size(); i++) {
     item dNdx = matchingDesigns[i];
     if (dNdx <= 0 || dNdx > sizeDesigns()) continue;
@@ -386,7 +386,7 @@ item numBuildingsForDesignKeyword(std::string& name) {
 item newestBuildingForDesignKeyword(const std::string& name) {
   item result = 0;
   float resultBuilt = -FLT_MAX;
-  vector<item> matchingDesigns = getDesignsByName(name.c_str());
+  std::vector<item> matchingDesigns = getDesignsByName(name.c_str());
 
   for (int i = sizeBuildings(); i > 0; i--) {
     Building* b = getBuilding(i);
@@ -411,7 +411,7 @@ item newestBuildingForDesignKeyword(const std::string& name) {
 }
 
 bool unlockGovDesignsByName(const char* name) {
-  vector<item> dNdxs = getDesignsByName(name);
+  std::vector<item> dNdxs = getDesignsByName(name);
   int64_t numItems = dNdxs.size();
 
   if(numItems == 0) {
@@ -510,7 +510,7 @@ money getDesignValue(item designNdx) {
 
   float commonness = designCommonness(designNdx);
   float commonnessFactor = 1-commonness/c(CMaxDesignCommonness);
-  commonnessFactor = clamp(commonnessFactor, 0.f, 1.f);
+  commonnessFactor = glm::clamp(commonnessFactor, 0.f, 1.f);
   if (d->numBuildings < 20) commonnessFactor = 1;
 
   float validDesignFactor = bool(d->flags & _designEnabled) &&
@@ -567,7 +567,7 @@ void readDesignDirectory(
 ) {
 
   /*
-  vector<char*> files;
+  std::vector<char*> files;
   if (c(CDisableDefaultBuildingSet)) {
     files = readDirectoryModAndWorkshopOnly(designDirectory(), designExtension());
     free(dir);
@@ -581,26 +581,26 @@ void readDesignDirectory(
 
   uint32_t lookupFlags = 0;
   if (c(CDisableDefaultBuildingSet)) lookupFlags |= _lookupExcludeBase;
-  vector<string> files = lookupDesigns(lookupFlags);
-  //vector<string> files = lookupDirectory(
+  std::vector<std::string> files = lookupDesigns(lookupFlags);
+  //vector<std::string> files = lookupDirectory(
       //designDirectory(), designExtension(), lookupFlags);
 
   for (int i = 0; i < files.size(); i++) {
-    string name = files[i];
+    std::string name = files[i];
     bool package = endsWith(name.c_str(), "/");
     if (package) name = name.substr(0, name.length()-1); // remove end slash
 
     if (streql(name.c_str(), "autosave")) continue;
 
     FILE* fileHandle;
-    string filePath = designDirectory();
+    std::string filePath = designDirectory();
     if (package) {
       filePath = filePath + name + "/design.design";
     } else {
       filePath = filePath + name + designExtension();
     }
-    string filename = lookupFile(filePath, lookupFlags);
-    string fixedFilename = fixDesignerPath(filename);
+    std::string filename = lookupFile(filePath, lookupFlags);
+    std::string fixedFilename = fixDesignerPath(filename);
     FileBuffer buf = readFromFile(fixedFilename.c_str());
     FileBuffer* file = &buf;
 
@@ -847,7 +847,7 @@ bool readDesign(FileBuffer* file, int version, Design* design,
   }
 
   if (version < 55) {
-    design->size = vec3(fread_vec2(file), 0);
+    design->size = glm::vec3(fread_vec2(file), 0);
   } else {
     design->size = fread_vec3(file);
   }
@@ -879,7 +879,7 @@ bool readDesign(FileBuffer* file, int version, Design* design,
       s->roofSlope = defaultRoofSlopeForType(s->roofType);
     }
     if (version < 55) {
-      s->location = vec3(fread_vec2(file), 0);
+      s->location = glm::vec3(fread_vec2(file), 0);
     } else {
       s->location = fread_vec3(file);
     }
@@ -911,7 +911,7 @@ bool readDesign(FileBuffer* file, int version, Design* design,
 
     design->decos[i].decoType = renumDeco(type);
     if (version < 55) {
-      design->decos[i].location = vec3(fread_vec2(file), 0);
+      design->decos[i].location = glm::vec3(fread_vec2(file), 0);
       design->decos[i].yaw = 0;
       design->decos[i].scale = 1;
     } else {
@@ -962,7 +962,7 @@ void readDesign(FileBuffer* file, int version, item ndx, const char* name) {
 }
 
 bool readDesign(const char* filename, Design* design) {
-  string fixedFilename = fixDesignerPath(filename);
+  std::string fixedFilename = fixDesignerPath(filename);
   FileBuffer buf = readFromFile(fixedFilename.c_str());
   FileBuffer* file = &buf;
 
@@ -1040,7 +1040,7 @@ void copyDesign(Design* dest, Design* source) {
 }
 
 void upgradeDesign(Design* design) {
-  vector<item> packageLinks;
+  std::vector<item> packageLinks;
   item solution = 0;
   for (int i = 1; i <= designs.size(); i++) {
     Design* original = getDesign(i);
@@ -1123,7 +1123,7 @@ void readDesigns(FileBuffer* file, int version) {
 
 bool loadDesign(const char* filename, bool isAutosave) {
   /*
-  string filePath = saveDirectory();
+  std::string filePath = saveDirectory();
   bool package = endsWith(filename, "/");
   if (package) {
     filePath = filePath + filename + "design.design";
@@ -1131,10 +1131,10 @@ bool loadDesign(const char* filename, bool isAutosave) {
   } else {
     filePath = filePath + filename + fileExtension();
   }
-  string fn = lookupFile(filePath, getLoadMenuLookupFlags());
+  std::string fn = lookupFile(filePath, getLoadMenuLookupFlags());
   */
 
-  string fn = filename;
+  std::string fn = filename;
   fn = fixDesignerPath(fn);
 
   resetAll();
@@ -1261,10 +1261,10 @@ void saveDesign(item dNdx) {
   asyncCompressAndWrite(file, getSaveFilename(d->name), 0);
 }
 
-string fixDesignerPath(string filePath) {
+std::string fixDesignerPath(std::string filePath) {
   filePath = lookupFile(filePath, getLoadMenuLookupFlags());
-  string pattern1 = "/design.design";
-  string pattern2 = ".design";
+  std::string pattern1 = "/design.design";
+  std::string pattern2 = ".design";
   for (int attemptsLeft = 5; attemptsLeft > 0; attemptsLeft--) {
     if (fileExists(filePath) && !is_directory(filePath)) return filePath;
     if (streql(filePath.c_str(), "autosave/design")) {

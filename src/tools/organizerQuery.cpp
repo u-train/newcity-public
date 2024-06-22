@@ -20,7 +20,7 @@ void organizerQuery_mouse_move_callback(InputEvent event) {
   querySelection = 0;
   querySelectionType = NoSelection;
   if (buildingNdx > 0) {
-    vec3 landPoint = landIntersect(mouseLine);
+    glm::vec3 landPoint = landIntersect(mouseLine);
     float dist = boxDistance(getBuildingBox(buildingNdx), landPoint);
     if (dist < minDist) {
       minDist = dist;
@@ -41,14 +41,14 @@ void organizerQuery_reset() {
 
 Part* organizerQuery_render(Line dim) {
   Part* result = panel(dim);
-  r(result, label(vec2(0,0), 1, strdup_s("Select")));
-  r(result, hr(vec2(0,1), dim.end.x-toolPad*2));
-  r(result, button(vec2(4.5f,3.5f), iconPointer, 0));
+  r(result, label(glm::vec2(0,0), 1, strdup_s("Select")));
+  r(result, hr(glm::vec2(0,1), dim.end.x-toolPad*2));
+  r(result, button(glm::vec2(4.5f,3.5f), iconPointer, 0));
   return result;
 }
 
 void organizerQueryInstructionPanel(Part* panel) {
-  r(panel, label(vec2(0,0), 1, strdup_s(
+  r(panel, label(glm::vec2(0,0), 1, strdup_s(
     "Use left click to select\n"
     "a building.")));
 }

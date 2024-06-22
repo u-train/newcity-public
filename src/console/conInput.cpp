@@ -1,4 +1,5 @@
 #include "conInput.hpp"
+#include "../game/constants.hpp"
 
 const int conMaxInputMem = 32;
 

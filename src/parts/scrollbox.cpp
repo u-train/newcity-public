@@ -2,6 +2,8 @@
 
 #include "panel.hpp"
 #include "slider.hpp"
+#include "../game/constants.hpp"
+#include "../main.hpp"
 
 #include <stdio.h>
 #include <algorithm>
@@ -40,14 +42,14 @@ bool scrollCallback(Part* part, InputEvent event) {
   return true;
 }
 
-Part* scrollbox(vec2 start, vec2 size) {
-  Part* result = panel(line(vec3(start,0), vec3(size,0)));
+Part* scrollbox(glm::vec2 start, glm::vec2 size) {
+  Part* result = panel(line(glm::vec3(start,0), glm::vec3(size,0)));
   result->renderMode = RenderTransparent;
   result->padding = 0.25;
   return result;
 }
 
-Part* scrollboxFrame(vec2 start, vec2 size, float innerSpace,
+Part* scrollboxFrame(glm::vec2 start, glm::vec2 size, float innerSpace,
   ScrollState* state, Part* scrollbox, bool inverted) {
 
   float innerSize = innerSpace;
@@ -64,8 +66,8 @@ Part* scrollboxFrame(vec2 start, vec2 size, float innerSpace,
 
   // Smooth scrolling
   float time = getCameraTime();
-  state->amount = mix(state->amount, state->target,
-      5*clamp(time - state->lastCameraTime, 0.f, 0.1f));
+  state->amount = glm::mix(state->amount, state->target,
+      5*glm::clamp(time - state->lastCameraTime, 0.f, 0.1f));
   if (abs(state->amount - state->target) < 0.02f) state->amount = state->target;
 
   state->lastCameraTime = time;
@@ -74,7 +76,7 @@ Part* scrollboxFrame(vec2 start, vec2 size, float innerSpace,
 
   Part* result = panel(start, size);
   result->onScroll = scrollCallback;
-  result->vecData = vec3(scrollFrac, hiddenSpace, 0);
+  result->vecData = glm::vec3(scrollFrac, hiddenSpace, 0);
   result->flags |= _partLowered | _partClip;
   result->flags &= ~_partFreePtr;
   result->ptrData = (void*)state;
@@ -84,7 +86,7 @@ Part* scrollboxFrame(vec2 start, vec2 size, float innerSpace,
 
   if(hiddenSpace > 0) {
     float sliderX = inverted ? 0 : size.x - 0.5;
-    Part* sldr = vslider(vec2(sliderX, 0), vec2(0.51, size.y),
+    Part* sldr = vslider(glm::vec2(sliderX, 0), glm::vec2(0.51, size.y),
       scrollFrac, scrollClickCallback);
     sldr->dim.start.z += 10;
     sldr->ptrData = (void*)state;
@@ -97,7 +99,7 @@ Part* scrollboxFrame(vec2 start, vec2 size, float innerSpace,
   return result;
 }
 
-Part* scrollboxFrame(vec2 start, vec2 size, ScrollState* state,
+Part* scrollboxFrame(glm::vec2 start, glm::vec2 size, ScrollState* state,
     Part* scrollbox, bool inverted) {
 
   float innerSize = 0;
@@ -115,12 +117,12 @@ Part* scrollboxFrame(vec2 start, vec2 size, ScrollState* state,
   return scrollboxFrame(start, size, innerSize, state, scrollbox, inverted);
 }
 
-Part* scrollboxFrame(vec2 start, vec2 size, ScrollState* state,
+Part* scrollboxFrame(glm::vec2 start, glm::vec2 size, ScrollState* state,
     Part* scrollbox) {
   return scrollboxFrame(start, size, state, scrollbox, false);
 }
 
-Part* scrollboxFrame(vec2 start, vec2 size, float innerSpace,
+Part* scrollboxFrame(glm::vec2 start, glm::vec2 size, float innerSpace,
   ScrollState* state, Part* scrollbox) {
   return scrollboxFrame(start, size, innerSpace, state, scrollbox, false);
 }

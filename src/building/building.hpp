@@ -1,9 +1,9 @@
 #pragma once
 
-#include "../main.hpp"
 #include "../box.hpp"
 #include "../money.hpp"
 #include "../serialize.hpp"
+#include <glm/glm.hpp>
 
 const int _buildingExists = 1 << 0;
 const int _buildingLights = 1 << 1;
@@ -18,8 +18,8 @@ const item numBuildingColors = 15;
 
 struct Building {
   int flags;
-  vec3 location;
-  vec3 normal;
+  glm::vec3 location;
+  glm::vec3 normal;
   item design;
   item color;
   item econ;
@@ -32,10 +32,10 @@ struct Building {
   item iconEntity;
   item zone;
   item plan;
-  vector<item> businesses;
-  vector<item> families;
-  vector<item> peopleInside;
-  vector<item> lots;
+  std::vector<item> businesses;
+  std::vector<item> families;
+  std::vector<item> peopleInside;
+  std::vector<item> lots;
   char* name;
 };
 
@@ -53,9 +53,9 @@ enum IssueIcon {
 
 int numBuildings();
 int sizeBuildings();
-item addBuilding(vec3 bLoc, vec3 normal, item design, item zone);
+item addBuilding(glm::vec3 bLoc, glm::vec3 normal, item design, item zone);
 item addGovernmentBuilding(item lot, item design);
-item addCityBuilding(item cityNdx, vec3 loc, vec3 normal, item zone,
+item addCityBuilding(item cityNdx, glm::vec3 loc, glm::vec3 normal, item zone,
     float density, float landValue, bool render);
 void updateBuildings(double duration);
 void update1000Buildings(double duration);
@@ -65,22 +65,22 @@ void completeBuilding(item ndx);
 void removeBuilding(item ndx);
 void resetBuildings();
 item nearestBuilding(Line ml);
-item nearestBuilding(vec3 loc);
+item nearestBuilding(glm::vec3 loc);
 void initBuildingsEntities();
 void renderBuildings();
 IssueIcon getBuildingIssue(item ndx);
 money getBuildingTaxes(item ndx);
 money getBuildingValue(item buildingNdx);
 void updateBuildingValue(item buildingNdx);
-vec3 getBuildingCenter(item ndx);
-vec3 getBuildingTop(item ndx);
+glm::vec3 getBuildingCenter(item ndx);
+glm::vec3 getBuildingTop(item ndx);
 const char* buildingLegalMessage(item ndx);
-Box getBuildingBox(item designNdx, vec3 loc, vec3 normal);
+Box getBuildingBox(item designNdx, glm::vec3 loc, glm::vec3 normal);
 Box getBuildingBox(item buildingNdx);
-vector<item> collideBuilding(Box box0, item self);
-vector<item> collideBuilding(item buildingNdx);
+std::vector<item> collideBuilding(Box box0, item self);
+std::vector<item> collideBuilding(item buildingNdx);
 void removeCollidingBuildings(Box b);
-bool canPlaceBuilding(item design, vec3 loc, vec3 unorm);
+bool canPlaceBuilding(item design, glm::vec3 loc, glm::vec3 unorm);
 bool canRemoveBuilding(item ndx);
 
 void makeBuildingPayments(Budget* budget, double duration);

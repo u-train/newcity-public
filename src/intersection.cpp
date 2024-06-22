@@ -4,15 +4,11 @@
 #include "draw/entity.hpp"
 #include "draw/texture.hpp"
 #include "game/game.hpp"
-#include "name.hpp"
-#include "renderGraph.hpp"
-#include "string_proxy.hpp"
 #include "vehicle/laneLoc.hpp"
 #include "vehicle/vehicle.hpp"
 #include "vehicle/physics.hpp"
 #include "util.hpp"
-
-#include "spdlog/spdlog.h"
+#include "game/constants.hpp"
 #include <algorithm>
 
 const int maxPhases = 12;
@@ -29,10 +25,10 @@ Cup<item> nodeBlks;
 Cup<char> nodePhase;
 Cup<float> nodeTimeInPhase;
 
-vector<item> getCompletedEdges(item ndx, bool isRail) {
+std::vector<item> getCompletedEdges(item ndx, bool isRail) {
   Node* node = getNode(ndx);
   int numEdges = node->edges.size();
-  vector<item> result;
+  std::vector<item> result;
   for (int i = 0; i < numEdges; i++) {
     item eNdx = node->edges[i];
     Edge* e = getEdge(eNdx);
@@ -45,10 +41,10 @@ vector<item> getCompletedEdges(item ndx, bool isRail) {
   return result;
 }
 
-vector<item> getCompletedEdges(item ndx) {
+std::vector<item> getCompletedEdges(item ndx) {
   Node* node = getNode(ndx);
   int numEdges = node->edges.size();
-  vector<item> result;
+  std::vector<item> result;
   for (int i = 0; i < numEdges; i++) {
     item eNdx = node->edges[i];
     Edge* e = getEdge(eNdx);
@@ -59,7 +55,7 @@ vector<item> getCompletedEdges(item ndx) {
   return result;
 }
 
-vector<item> getRenderableEdges(item ndx) {
+std::vector<item> getRenderableEdges(item ndx) {
   Node* node = getNode(ndx);
   if (node->flags & _graphComplete) {
     return getCompletedEdges(ndx);
@@ -68,10 +64,10 @@ vector<item> getRenderableEdges(item ndx) {
   }
 }
 
-vector<item> getNodeInputs(item ndx, bool completed) {
+std::vector<item> getNodeInputs(item ndx, bool completed) {
   Node* node = getNode(ndx);
   int numEdges = node->edges.size();
-  vector<item> result;
+  std::vector<item> result;
   for (int i = 0; i < numEdges; i++) {
     item eNdx = node->edges[i];
     Edge* e = getEdge(eNdx);
@@ -84,10 +80,10 @@ vector<item> getNodeInputs(item ndx, bool completed) {
   return result;
 }
 
-vector<item> getNodeOutputs(item ndx, bool completed) {
+std::vector<item> getNodeOutputs(item ndx, bool completed) {
   Node* node = getNode(ndx);
   int numEdges = node->edges.size();
-  vector<item> result;
+  std::vector<item> result;
   for (int i = 0; i < numEdges; i++) {
     item eNdx = node->edges[i];
     Edge* e = getEdge(eNdx);
@@ -102,7 +98,7 @@ vector<item> getNodeOutputs(item ndx, bool completed) {
 
 void makeLaneBlocks(item nodeNdx, int i, int pair, bool isRail) {
   Node* node = getNode(nodeNdx);
-  vector<item> edges = getCompletedEdges(nodeNdx, isRail);
+  std::vector<item> edges = getCompletedEdges(nodeNdx, isRail);
   int numEdges = edges.size();
   int numEdgesTotal = getCompletedEdges(nodeNdx).size();
   item edgeNdx = edges[i];
@@ -170,7 +166,7 @@ void makeLaneBlocks(item nodeNdx, int i, int pair, bool isRail) {
   }
 }
 
-int getOddManOut(item nodeNdx, vector<item> edges) {
+int getOddManOut(item nodeNdx, std::vector<item> edges) {
   Node* node = getNode(nodeNdx);
   int numEdges = edges.size();
   if (numEdges == 1) {
@@ -180,14 +176,14 @@ int getOddManOut(item nodeNdx, vector<item> edges) {
   //Determine Odd Man Out
   int oddManOut = numEdges+1;
   if (numEdges % 2 == 1) {
-    vec3 *norms = (vec3*)alloca(sizeof(vec3)*numEdges);
+    glm::vec3 *norms = (glm::vec3*)alloca(sizeof(glm::vec3)*numEdges);
     int *laneNums = (int*)alloca(sizeof(int)*numEdges);
-    vec3 center = node->center;
+    glm::vec3 center = node->center;
     for(int i = 0; i < numEdges; i++) {
       Edge* edge = getEdge(edges[i]);
-      vec3 end = edge->ends[0] == nodeNdx ? edge->line.start : edge->line.end;
-      vec3 dir = end - center;
-      vec3 norm = normalize(dir);
+      glm::vec3 end = edge->ends[0] == nodeNdx ? edge->line.start : edge->line.end;
+      glm::vec3 dir = end - center;
+      glm::vec3 norm = normalize(dir);
       norms[i] = norm;
       laneNums[i] = edge->config.numLanes;
     }
@@ -238,10 +234,10 @@ void printIntersection(const char* title, Node* node, item ndx) {
 
 void rebuildJunction(item nodeNdx) {
   Node* node = getNode(nodeNdx);
-  vector<item> edges = getCompletedEdges(nodeNdx, false);
+  std::vector<item> edges = getCompletedEdges(nodeNdx, false);
   int numEdges = edges.size();
-  vector<item> inputs;
-  vector<item> outputs;
+  std::vector<item> inputs;
+  std::vector<item> outputs;
   int numInputLanes = 0;
   int numOutputLanes = 0;
   int oddManOutNum = getOddManOut(nodeNdx, edges);
@@ -334,7 +330,7 @@ void rebuildJunction(item nodeNdx) {
 void rebuildIntersection(item nodeNdx) {
   Node* node = getNode(nodeNdx);
   if (!(node->flags & _graphExists)) return;
-  vector<item> edges = node->edges.toVector();
+  std::vector<item> edges = node->edges.toVector();
   int numEdges = edges.size();
   printIntersection("before cleanup", node, nodeNdx);
 
@@ -447,7 +443,7 @@ void setStopLightPhaseTexture(item nodeNdx) {
 /*
 void spawnVehicle(item nodeNdx, bool force) {
   Node* node = getNode(nodeNdx);
-  vector<item> edges = getCompletedEdges(nodeNdx);
+  std::vector<item> edges = getCompletedEdges(nodeNdx);
 
   if (edges.size() != 1) {
     return;
@@ -472,7 +468,7 @@ void spawnVehicle(item nodeNdx, bool force) {
     item destNodeNdx = getRandomNode();
     if (destNodeNdx >= 0) continue;
     Node* destNode = getNode(destNodeNdx);
-    vector<item> destEdges = getCompletedEdges(destNodeNdx);
+    std::vector<item> destEdges = getCompletedEdges(destNodeNdx);
     if (destEdges.size() != 1) continue;
     Edge* destEdge = getEdge(destEdges[0]);
     int destSide = destEdge->ends[0] == destNodeNdx;
@@ -528,7 +524,7 @@ void swapOneIntersection_v(item nodeNdx, bool fromSave) {
     nodeTimeInPhase.set(arrNdx, 0);
   }
 
-  vector<item> edges = getCompletedEdges(nodeNdx);
+  std::vector<item> edges = getCompletedEdges(nodeNdx);
   int numEdges = edges.size();
   IntersectionStrategies strat = UnregulatedStrategy;
 
@@ -803,7 +799,7 @@ void updateIntersections(double duration) {
 /*
 void updateIntersection(item nodeNdx, float duration) {
   Node* node = getNode(nodeNdx);
-  vector<item> edges = getCompletedEdges(nodeNdx);
+  std::vector<item> edges = getCompletedEdges(nodeNdx);
 
   if (edges.size() <= 2) {
     if (getGameMode() != ModeGame && edges.size() == 1) {

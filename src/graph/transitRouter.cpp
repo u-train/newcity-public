@@ -5,19 +5,19 @@
 
 #include "../cup.hpp"
 #include "../util.hpp"
+#include "../game/constants.hpp"
 
 #include <boost/dynamic_bitset.hpp>
-#include "spdlog/spdlog.h"
 
 item numStops_r = 0;
 item numLines_r = 0;
 boost::dynamic_bitset<> stopExists_r(1);
-Cup<vec3> stopLoc_r;
+Cup<glm::vec3> stopLoc_r;
 Cup<item> legSlot_r;
 Cup<item> legSlot_v;
 Cup<float> legCost_r;
 Cup<float> legWaitCost_r;
-Cup<vector<Location>> legsForStop_r;
+Cup<std::vector<Location>> legsForStop_r;
 Cup<item> stopForLeg_r;
 Cup<item> stopForLeg_v;
 Cup<item> lineLength_r;
@@ -107,10 +107,10 @@ void swapTransitRouterData_g() {
         legsForStop_r.get(leg.stop)->push_back(legLoc);
         legWaitCost_r.push_back(line->headway[0]*.5f);
         stopForLeg_r.push_back(leg.stop);
-        //float cost = mix(leg.timeEstimate, leg.timeRecord,
+        //float cost = glm::mix(leg.timeEstimate, leg.timeRecord,
             //c(CRoutingTrafficAwareness));
         float cost = leg.timeEstimate;
-        cost = clamp(cost, 0.0000000001f, 1.f/24.f);
+        cost = glm::clamp(cost, 0.0000000001f, 1.f/24.f);
         legCost_r.push_back(cost);
 
         currentLegSlot ++;
@@ -124,12 +124,12 @@ item getNumStops_r() {
 }
 
 float getStopsDistance_r(item stop1, item stop2) {
-  vec3 loc1 = stopLoc_r[stop1];
-  vec3 loc2 = stopLoc_r[stop1];
+  glm::vec3 loc1 = stopLoc_r[stop1];
+  glm::vec3 loc2 = stopLoc_r[stop1];
   return vecDistance(loc1,loc2);
 }
 
-vec3 getStopLocation_r(item stopNdx) {
+glm::vec3 getStopLocation_r(item stopNdx) {
   return stopLoc_r[stopNdx];
 }
 
@@ -137,13 +137,13 @@ float transitRoutingEstimate_r(item stop1, item stop2) {
   return 0;
 }
 
-vector<item> getNearbyStops_r(vec3 loc1) {
-  vector<item> result;
+std::vector<item> getNearbyStops_r(glm::vec3 loc1) {
+  std::vector<item> result;
 
   for (int i = 1; i <= numStops_r; i++) {
     if (!stopExists_r[i]) continue;
 
-    vec3 loc2 = stopLoc_r[i];
+    glm::vec3 loc2 = stopLoc_r[i];
     float dist = vecDistance(loc1,loc2);
     //SPDLOG_INFO("getNearbyStops_r {} {} {} {}",
         //i, loc1.x, loc2.x, dist);
@@ -155,7 +155,7 @@ vector<item> getNearbyStops_r(vec3 loc1) {
   return result;
 }
 
-vector<item> getNearbyStops_r(item stopNdx) {
+std::vector<item> getNearbyStops_r(item stopNdx) {
   return getNearbyStops_r(stopLoc_r[stopNdx]);
 }
 
@@ -163,7 +163,7 @@ item walkingCostStops_r(item stop1, item stop2) {
   return getStopsDistance_r(stop1, stop2) / c(CWalkingSpeed);
 }
 
-vector<Location> getLegsForStop_r(item stopNdx) {
+std::vector<Location> getLegsForStop_r(item stopNdx) {
   return legsForStop_r[stopNdx];
 }
 

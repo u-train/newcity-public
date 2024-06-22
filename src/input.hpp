@@ -1,7 +1,5 @@
 #pragma once
 
-#include "main.hpp"
-#include "line.hpp"
 #include "inputEvent.hpp"
 
 #include <string>

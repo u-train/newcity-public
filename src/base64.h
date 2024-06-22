@@ -28,8 +28,7 @@
   YWxsIHlvdXIgYmFzZSBhcmUgYmVsb25nIHRvIHVz
 
 */
-#ifndef BASE64_H
-#define BASE64_H
+#pragma once
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -177,4 +176,4 @@ unsigned char* unbase64( const char* ascii, int len, int *flen )
   return bin ;
 }
 
-#endif
+

@@ -1,7 +1,5 @@
-#ifndef LAND_H
-#define LAND_H
+#pragma once
 
-#include "main.hpp"
 #include "item.hpp"
 #include "box.hpp"
 #include "game/constants.hpp"
@@ -68,17 +66,17 @@ item getChunkSize();
 float getMapSize();
 void initLandEntities();
 void renderLand();
-vec3 pointOnLand(vec3 point);
-vec3 pointOnLandNatural(vec3 point);
-vec3 unitize(vec3 vector);
-vec3 unitizeFine(vec3 vector);
-vec3 getChunkCenter(item x, item y);
+glm::vec3 pointOnLand(glm::vec3 point);
+glm::vec3 pointOnLandNatural(glm::vec3 point);
+glm::vec3 unitize(glm::vec3 vector);
+glm::vec3 unitizeFine(glm::vec3 vector);
+glm::vec3 getChunkCenter(item x, item y);
 float getNaturalHeight(item x, item y);
-float getNaturalHeight(vec3 loc);
+float getNaturalHeight(glm::vec3 loc);
 const float* getNaturalHeightMap();
 float getHeight(item x, item y);
-vec3 getTileLocation(item x, item y);
-vec3 landIntersect(Line line);
+glm::vec3 getTileLocation(item x, item y);
+glm::vec3 landIntersect(Line line);
 
 enum BridgeSegmentType {
   BSTTunnel, BSTBridge, BSTLand,
@@ -90,12 +88,12 @@ struct BridgeSegment {
   item type;
 };
 
-vector<BridgeSegment> getBridgeSegments(Line line);
+std::vector<BridgeSegment> getBridgeSegments(Line line);
 
 void clearTrees(Box b);
-bool addTrees(vec3 p);
-bool clearTrees(vec3 p);
-float setNaturalHeight(vec3 p, float radius, bool mound);
+bool addTrees(glm::vec3 p);
+bool clearTrees(glm::vec3 p);
+float setNaturalHeight(glm::vec3 p, float radius, bool mound);
 void addBuildingElevator(item it, bool assign);
 void addGraphElevator(item it, bool assign);
 void removeBuildingElevator(item it);
@@ -125,8 +123,8 @@ struct Chunk {
   ElevationData* elevationData;
 };
 
-vec3 getTileLocation(ChunkIndex cNdx, item xt, item yt);
+glm::vec3 getTileLocation(ChunkIndex cNdx, item xt, item yt);
 float getHeight(ChunkIndex ndx, item x, item y);
 Chunk* getChunk(ChunkIndex location);
 
-#endif
+

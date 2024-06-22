@@ -5,25 +5,23 @@
 #include "citipediaPanel.hpp"
 #include "chart.hpp"
 #include "economyPanel.hpp"
-#include "hr.hpp"
 #include "icon.hpp"
 #include "image.hpp"
-#include "label.hpp"
 #include "messageBoard.hpp"
 #include "panel.hpp"
 #include "span.hpp"
 
 #include "../color.hpp"
-#include "../draw/camera.hpp"
 #include "../economy.hpp"
 #include "../icons.hpp"
 #include "../md4c/md4c.h"
-#include "../platform/file.hpp"
 #include "../platform/lookup.hpp"
 #include "../platform/lua.hpp"
 #include "../string_proxy.hpp"
 #include "../tutorial.hpp"
 #include "../time.hpp"
+#include "../string.hpp"
+#include <glm/glm.hpp>
 
 #include "spdlog/spdlog.h"
 
@@ -47,11 +45,11 @@ struct PartCursor {
   ArticleRenderConfig config;
   float indent;
   float defaultScale;
-  vec2 size;
-  vec2 loc;
-  vec2 captionStart;
+  glm::vec2 size;
+  glm::vec2 loc;
+  glm::vec2 captionStart;
   char* linkTarget = 0;
-  vector<vec2> blockquotes;
+  std::vector<glm::vec2> blockquotes;
 };
 
 void nextLine(PartCursor* cursor) {
@@ -108,7 +106,7 @@ bool followLink(Part* part, InputEvent event) {
 FileBuffer readArticle(char** articleCode, ArticleRenderConfig* config) {
   if (*articleCode == 0) *articleCode = strdup_s("index");
   char* filename = sprintf_o("docs/%s.md", *articleCode);
-  string fn = lookupFile(filename, 0);
+  std::string fn = lookupFile(filename, 0);
   free(filename);
   FileBuffer result = readFromFile(fn.c_str());
 
@@ -193,7 +191,7 @@ void renderImage(PartCursor* cursor, MD_SPAN_IMG_DETAIL* det) {
     item econ = national ? nationalEconNdx() : ourCityEconNdx();
     item statItem = statistic*10 + timePeriod;
 
-    vec2 pinLoc = cursor->loc + vec2(cursor->size.x-1, 0);
+    glm::vec2 pinLoc = cursor->loc + glm::vec2(cursor->size.x-1, 0);
     Part* pin = r(cursor->part, button(pinLoc,
           iconPin, toggleChartMessage));
     pin->vecData.x = econ;
@@ -205,7 +203,7 @@ void renderImage(PartCursor* cursor, MD_SPAN_IMG_DETAIL* det) {
       pin->flags |= _partHighlight;
     }
 
-    Part* chrt = chart(cursor->loc, vec2(cursor->size.x, y), econ, statistic, timePeriod, true, isBar, endDate);
+    Part* chrt = chart(cursor->loc, glm::vec2(cursor->size.x, y), econ, statistic, timePeriod, true, isBar, endDate);
     chrt->onClick = selectChart;
     chrt->itemData = statItem;
     chrt->vecData.x = econ;
@@ -234,10 +232,10 @@ void renderImage(PartCursor* cursor, MD_SPAN_IMG_DETAIL* det) {
     cursor->flags &= ~_cursorCaptionApplied;
 
   } else { // it's an icon
-    vec3 ico = getIcon(src);
+    glm::vec3 ico = getIcon(src);
     free(src);
     float size = cursor->size.y*0.85f;
-    vec2 loc;
+    glm::vec2 loc;
 
     if (cursor->loc.x + size >= cursor->size.x - 0.25) {
       cursor->loc.x = cursor->indent;
@@ -245,14 +243,14 @@ void renderImage(PartCursor* cursor, MD_SPAN_IMG_DETAIL* det) {
     }
 
     if (cursor->config.flags & _articleCenter) {
-      loc = vec2((cursor->size.x-size)*.5f, cursor->loc.y);
+      loc = glm::vec2((cursor->size.x-size)*.5f, cursor->loc.y);
       cursor->loc.y += cursor->size.y;
     } else {
       loc = cursor->loc;
       cursor->loc.x += size;
     }
 
-    vec2 icoSize = vec2(size, size);
+    glm::vec2 icoSize = glm::vec2(size, size);
     Part* icoPart = r(cursor->part, icon(loc, icoSize, ico));
 
     if (cursor->linkTarget != 0) {
@@ -275,7 +273,7 @@ void renderImageCaption(PartCursor* cursor) {
     cursor->loc.y += captionPadding;
     nextLine(cursor);
     yDiff = cursor->loc.y - cursor->captionStart.y;
-    vec2 size = vec2(cursor->size.x, yDiff);
+    glm::vec2 size = glm::vec2(cursor->size.x, yDiff);
     r(cursor->part, gradientBlock(cursor->captionStart, size,
           cursor->config.captionBackground));
 
@@ -295,7 +293,7 @@ int renderEnterBlock(MD_BLOCKTYPE type, void* detail, void* userdata) {
       case MD_BLOCK_DOC:      break;
       case MD_BLOCK_QUOTE:    {
         //float size = cursor->size.y;
-        //cursor->blockquotes.push_back(cursor->loc + vec2(0,size));
+        //cursor->blockquotes.push_back(cursor->loc + glm::vec2(0,size));
         cursor->blockquotes.push_back(cursor->loc);
         cursor->indent ++;
         cursor->loc.x ++;
@@ -308,7 +306,7 @@ int renderEnterBlock(MD_BLOCKTYPE type, void* detail, void* userdata) {
 
       case MD_BLOCK_LI:       {
         nextLine(cursor);
-        vec2 icoSize = vec2(cursor->size.y, cursor->size.y);
+        glm::vec2 icoSize = glm::vec2(cursor->size.y, cursor->size.y);
         r(cursor->part, icon(cursor->loc, icoSize, iconDotSmall));
         cursor->indent ++;
         cursor->loc.x ++;
@@ -317,7 +315,7 @@ int renderEnterBlock(MD_BLOCKTYPE type, void* detail, void* userdata) {
 
       case MD_BLOCK_HR:       {
         float y = cursor->size.y*0.1;
-        r(cursor->part, gradientBlock(cursor->loc, vec2(cursor->size.x-cursor->loc.x, y), cursor->config.captionBackground));
+        r(cursor->part, gradientBlock(cursor->loc, glm::vec2(cursor->size.x-cursor->loc.x, y), cursor->config.captionBackground));
         cursor->loc.y += y*2;
         doNextLine = false;
       } break;
@@ -357,10 +355,10 @@ int renderLeaveBlock(MD_BLOCKTYPE type, void* detail, void* userdata) {
       case MD_BLOCK_QUOTE:    {
         float size = cursor->size.y;
         if (cursor->blockquotes.size() > 0) {
-          vec2 lastQuote = cursor->blockquotes.back();
+          glm::vec2 lastQuote = cursor->blockquotes.back();
           lastQuote.x += 0.75;
           cursor->loc.y += captionPadding;
-          vec2 blockSize = vec2(cursor->size.x - lastQuote.x, cursor->loc.y - lastQuote.y);
+          glm::vec2 blockSize = glm::vec2(cursor->size.x - lastQuote.x, cursor->loc.y - lastQuote.y);
           blockSize.x = cursor->size.x-lastQuote.x;
           //blockSize.x = lastQuote.x+0.75;
           //lastQuote.x = 0;
@@ -475,7 +473,7 @@ void renderTextInner(MD_TEXTTYPE type, char* text, PartCursor* cursor) {
     return;
   }
 
-  vec2 endCursor(0,0);
+  glm::vec2 endCursor(0,0);
   Part* line;
   if (cursor->config.flags & _articleCenter) {
     line = spanCenter(cursor->loc, cursor->indent, cursor->size,
@@ -502,12 +500,12 @@ void renderTextInner(MD_TEXTTYPE type, char* text, PartCursor* cursor) {
   for (int i = 0; i < 2; i++) {
     if (i == 0 && !underline) continue;
     if (i == 1 && !(cursor->flags & _cursorStrikethrough)) continue;
-    vec2 offset = vec2(0, (i ? .4f : .7f) * cursor->size.y);
+    glm::vec2 offset = glm::vec2(0, (i ? .4f : .7f) * cursor->size.y);
 
     for (int c = line->numContents-1; c >= 0; c --) {
       Part* cont = line->contents[c];
-      vec2 loc = vec2(cont->dim.start) + offset;
-      vec2 size = vec2(cont->dim.end.x, cursor->size.y*0.1);
+      glm::vec2 loc = glm::vec2(cont->dim.start) + offset;
+      glm::vec2 size = glm::vec2(cont->dim.end.x, cursor->size.y*0.1);
 
       if (cursor->config.flags & _articleCenter) {
         float sx = stringWidth(cont->text)*(cursor->size.y-0.2);
@@ -559,7 +557,7 @@ void renderDebug(const char* msg, void* userdata) {
   SPDLOG_WARN("Markdown Parsing Error: {}", msg);
 }
 
-Part* articleText(vec2 loc, vec2 size, char* text,
+Part* articleText(glm::vec2 loc, glm::vec2 size, char* text,
     int textLength, ArticleRenderConfig config) {
   Part* result = panel(loc, size);
   result->renderMode = RenderTransparent;
@@ -570,8 +568,8 @@ Part* articleText(vec2 loc, vec2 size, char* text,
   PartCursor cursor;
   cursor.config = config;
   cursor.part = result;
-  cursor.size = size - vec2(pad,pad)*2.f;
-  cursor.loc = vec2(0,0);
+  cursor.size = size - glm::vec2(pad,pad)*2.f;
+  cursor.loc = glm::vec2(0,0);
   cursor.indent = 0;
   cursor.defaultScale = size.y;
   cursor.linkTarget = 0;
@@ -603,11 +601,11 @@ Part* articleText(vec2 loc, vec2 size, char* text,
   return result;
 }
 
-Part* articleText(vec2 loc, vec2 size, char* text, ArticleRenderConfig config) {
+Part* articleText(glm::vec2 loc, glm::vec2 size, char* text, ArticleRenderConfig config) {
   return articleText(loc, size, text, strlength(text), config);
 }
 
-Part* article(vec2 loc, vec2 size, char** articleCode, char** title,
+Part* article(glm::vec2 loc, glm::vec2 size, char** articleCode, char** title,
     ArticleRenderConfig config) {
 
   FileBuffer file = readArticle(articleCode, &config);

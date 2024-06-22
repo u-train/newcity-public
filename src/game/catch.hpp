@@ -1959,7 +1959,7 @@ namespace Catch {
         return ::Catch::Detail::rangeToString( begin( range ), end( range ) );
     }
 
-    // Handle vector<bool> specially
+    // Handle std::vector<bool> specially
     template<typename Allocator>
     std::string rangeToString( std::vector<bool, Allocator> const& v ) {
         ReusableStringStream rss;
@@ -3127,7 +3127,7 @@ namespace Catch {
     std::string trim( std::string const& str );
 
     // !!! Be aware, returns refs into original string - make sure original string outlives them
-    std::vector<StringRef> splitStringRef( StringRef str, char delimiter );
+    std::vector<std::stringRef> splitStringRef( StringRef str, char delimiter );
     bool replaceInPlace( std::string& str, std::string const& replaceThis, std::string const& withThis );
 
     struct pluralise {
@@ -3463,7 +3463,7 @@ namespace Matchers {
 namespace Catch {
 namespace Matchers {
 
-    namespace Vector {
+    namespace std::vector {
         template<typename T>
         struct ContainsElementMatcher : MatcherBase<std::vector<T>> {
 
@@ -3593,34 +3593,34 @@ namespace Matchers {
             std::vector<T> const& m_target;
         };
 
-    } // namespace Vector
+    } // namespace std::vector
 
     // The following functions create the actual matcher objects.
     // This allows the types to be inferred
 
     template<typename T>
-    Vector::ContainsMatcher<T> Contains( std::vector<T> const& comparator ) {
-        return Vector::ContainsMatcher<T>( comparator );
+    std::vector::ContainsMatcher<T> Contains( std::vector<T> const& comparator ) {
+        return std::vector::ContainsMatcher<T>( comparator );
     }
 
     template<typename T>
-    Vector::ContainsElementMatcher<T> VectorContains( T const& comparator ) {
-        return Vector::ContainsElementMatcher<T>( comparator );
+    std::vector::ContainsElementMatcher<T> std::vectorContains( T const& comparator ) {
+        return std::vector::ContainsElementMatcher<T>( comparator );
     }
 
     template<typename T>
-    Vector::EqualsMatcher<T> Equals( std::vector<T> const& comparator ) {
-        return Vector::EqualsMatcher<T>( comparator );
+    std::vector::EqualsMatcher<T> Equals( std::vector<T> const& comparator ) {
+        return std::vector::EqualsMatcher<T>( comparator );
     }
 
     template<typename T>
-    Vector::ApproxMatcher<T> Approx( std::vector<T> const& comparator ) {
-        return Vector::ApproxMatcher<T>( comparator );
+    std::vector::ApproxMatcher<T> Approx( std::vector<T> const& comparator ) {
+        return std::vector::ApproxMatcher<T>( comparator );
     }
 
     template<typename T>
-    Vector::UnorderedEqualsMatcher<T> UnorderedEquals(std::vector<T> const& target) {
-        return Vector::UnorderedEqualsMatcher<T>(target);
+    std::vector::UnorderedEqualsMatcher<T> UnorderedEquals(std::vector<T> const& target) {
+        return std::vector::UnorderedEqualsMatcher<T>(target);
     }
 
 } // namespace Matchers
@@ -13030,14 +13030,14 @@ namespace Catch {
     };
 
     ReusableStringStream::ReusableStringStream()
-    :   m_index( Singleton<StringStreams>::getMutable().add() ),
-        m_oss( Singleton<StringStreams>::getMutable().m_streams[m_index].get() )
+    :   m_index( Singleton<std::stringStreams>::getMutable().add() ),
+        m_oss( Singleton<std::stringStreams>::getMutable().m_streams[m_index].get() )
     {}
 
     ReusableStringStream::~ReusableStringStream() {
         static_cast<std::ostringstream*>( m_oss )->str("");
         m_oss->clear();
-        Singleton<StringStreams>::getMutable().release( m_index );
+        Singleton<std::stringStreams>::getMutable().release( m_index );
     }
 
     auto ReusableStringStream::str() const -> std::string {
@@ -13114,8 +13114,8 @@ namespace Catch {
         return replaced;
     }
 
-    std::vector<StringRef> splitStringRef( StringRef str, char delimiter ) {
-        std::vector<StringRef> subStrings;
+    std::vector<std::stringRef> splitStringRef( StringRef str, char delimiter ) {
+        std::vector<std::stringRef> subStrings;
         std::size_t start = 0;
         for(std::size_t pos = 0; pos < str.size(); ++pos ) {
             if( str[pos] == delimiter ) {
@@ -13162,7 +13162,7 @@ namespace {
 
 namespace Catch {
     StringRef::StringRef( char const* rawChars ) noexcept
-    : StringRef( rawChars, static_cast<StringRef::size_type>(std::strlen(rawChars) ) )
+    : StringRef( rawChars, static_cast<std::stringRef::size_type>(std::strlen(rawChars) ) )
     {}
 
     StringRef::operator std::string() const {
@@ -13179,7 +13179,7 @@ namespace Catch {
         if( !isSubstring() )
             return m_start;
 
-        const_cast<StringRef *>( this )->takeOwnership();
+        const_cast<std::stringRef *>( this )->takeOwnership();
         return m_data;
     }
     auto StringRef::currentData() const noexcept -> char const* {

@@ -1,11 +1,14 @@
 #include "config.hpp"
-
-#include "../pool.hpp"
 #include "../platform/lua.hpp"
+#include "../pool.hpp"
+#include "../string_proxy.hpp"
+#include <string>
+#include <unordered_map>
+#include <vector>
 
 Pool<GraphFeature> features;
-vector<vector<item>> featuresByType;
-unordered_map<string, item> featuresByCode;
+std::vector<std::vector<item>> featuresByType;
+std::unordered_map<std::string, item> featuresByCode;
 
 void resetGraphConfig() {
   features.clear();
@@ -13,22 +16,21 @@ void resetGraphConfig() {
   featuresByCode.clear();
 }
 
-GraphFeature* getGraphFeature(item ndx) {
-  return features.get(ndx);
-}
+GraphFeature *getGraphFeature(item ndx) { return features.get(ndx); }
 
-int addGraphFeature(lua_State* L) {
+int addGraphFeature(lua_State *L) {
   int numArgs = lua_gettop(L);
-  if (numArgs <= 0) return 0;
+  if (numArgs <= 0)
+    return 0;
   item ndx = features.create();
-  GraphFeature* feature = features.get(ndx);
+  GraphFeature *feature = features.get(ndx);
   feature->code = luaFieldString(L, "code");
   feature->name = luaFieldString(L, "name");
   feature->text = luaFieldString(L, "text");
   feature->icon = luaFieldVec3(L, "icon");
   feature->maxCars = luaFieldNumber(L, "maxCars");
 
-  char* type = luaFieldString(L, "type");
+  char *type = luaFieldString(L, "type");
   if (type == 0) {
     feature->type = 0;
   } else if (streql(type, "traction")) {
@@ -47,25 +49,15 @@ int addGraphFeature(lua_State* L) {
   return ndx;
 }
 
-int addGraphClass(lua_State* L) {
-  return 0;
-}
+int addGraphClass(lua_State *L) { return 0; }
 
-int addGraphConfiguration(lua_State* L) {
-  return 0;
-}
+int addGraphConfiguration(lua_State *L) { return 0; }
 
-int addGraphVehicle(lua_State* L) {
-  return 0;
-}
+int addGraphVehicle(lua_State *L) { return 0; }
 
-vector<item> getGraphFeatures(item type) {
-  return featuresByType[type];
-}
+std::vector<item> getGraphFeatures(item type) { return featuresByType[type]; }
 
-item getGraphFeature(const char* code) {
-  return featuresByCode[code];
-}
+item getGraphFeature(const char *code) { return featuresByCode[code]; }
 
 void initGraphConfigCallbacks() {
   featuresByType.resize(numFeatureTypes);
@@ -73,4 +65,3 @@ void initGraphConfigCallbacks() {
   addLuaCallback("addGraphClass", addGraphClass);
   addLuaCallback("addGraphConfiguration", addGraphConfiguration);
 }
-

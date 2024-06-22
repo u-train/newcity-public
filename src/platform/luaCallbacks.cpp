@@ -1,6 +1,6 @@
 #include "../amenity.hpp"
 #include "../business.hpp"
-#include "../building/design.hpp"
+#include "../game/game.hpp"
 #include "../draw/texture.hpp"
 #include "../draw/image.hpp"
 #include "../economy.hpp"
@@ -11,6 +11,12 @@
 #include "../person.hpp"
 #include "../time.hpp"
 #include "../util.hpp"
+#include "../string_proxy.hpp"
+#include "../error.hpp"
+#include "../building/design.hpp"
+
+#include "spdlog/spdlog.h"
+#include "lua.hpp"
 
 int luaCB_inflate(lua_State* L) {
   int numArgs = lua_gettop(L);
@@ -312,7 +318,7 @@ int luaCB_amenityEnabled(lua_State* L) {
   if (numArgs < 1) return 0;
 
   const char* param = luaL_checkstring(L, 1);
-  vector<item> dNdxs = getDesignsByName(param);
+  std::vector<item> dNdxs = getDesignsByName(param);
   bool enabled = false;
   for (int i = 0; i < dNdxs.size(); i++) {
     if (getGovBuildingAvailable(dNdxs[i])) {
@@ -329,7 +335,7 @@ int luaCB_amenitiesBuilt(lua_State* L) {
   if (numArgs < 1) return 0;
 
   const char* param = luaL_checkstring(L, 1);
-  vector<item> dNdxs = getDesignsByName(param);
+  std::vector<item> dNdxs = getDesignsByName(param);
   item num = 0;
   for (int i = 0; i < dNdxs.size(); i++) {
     num += getGovBuildingsPlaced(dNdxs[i]);
@@ -572,7 +578,7 @@ int luaCB_getTerrainElevation(lua_State* L) {
   int numArgs = lua_gettop(L);
   if (numArgs <= 0) return 0;
 
-  vec3 target;
+  glm::vec3 target;
   target.x = luaFieldNumber(L, "x");
   target.y = luaFieldNumber(L, "y");
   target.z = 0;
@@ -589,7 +595,7 @@ int luaCB_sampleBlueNoise(lua_State* L) {
   float y = luaFieldNumber(L, "y");
 
   Image blueNoise = getBlueNoiseImage();
-  vec4 result = samplePixel(blueNoise, x, y);
+  glm::vec4 result = samplePixel(blueNoise, x, y);
 
   lua_newtable(L);
   luaSetTableNumber(L, "x", result.x);
@@ -753,7 +759,7 @@ int luaCB_selectRandom(lua_State* L) {
   int numArgs = lua_gettop(L);
   if (numArgs < 1) return 0;
 
-  vector<const char*> results;
+  std::vector<const char*> results;
   for (int i = 0; i < numArgs; i++) {
     results.push_back(luaL_checkstring(L, i+1));
   }
@@ -845,7 +851,7 @@ void initLuaGeneralCallbacks() {
   setLuaGlobal("NumFeatures", numFeatures);
 
   for (int i = 0; i < numEffects; i ++) {
-    string code = getEffectString(i);
+    std::string code = getEffectString(i);
     code = code + "Score";
     setLuaGlobal(code.c_str(), i);
   }

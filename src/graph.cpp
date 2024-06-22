@@ -1,7 +1,6 @@
 #include "graph.hpp"
 
 #include "graph/graphParent.hpp"
-#include "graph/stop.hpp"
 
 #include "building/building.hpp"
 #include "collisionTable.hpp"
@@ -16,7 +15,6 @@
 #include "line.hpp"
 #include "lot.hpp"
 #include "money.hpp"
-#include "name.hpp"
 #include "pillar.hpp"
 #include "plan.hpp"
 #include "pool.hpp"
@@ -25,17 +23,38 @@
 #include "selection.hpp"
 #include "string_proxy.hpp"
 #include "time.hpp"
-#include "tools/road.hpp"
-#include "tutorial.hpp"
 #include "util.hpp"
 #include "vehicle/laneLoc.hpp"
 #include "vehicle/update.hpp"
 #include "zone.hpp"
+#include "string_proxy.hpp"
+#include "graph/stop.hpp"
+#include "name.hpp"
+#include "tools/road.hpp"
 
 #include "parts/messageBoard.hpp"
 
+#include "spdlog/spdlog.h"
 #include <algorithm>
+
+#include <unordered_map>
 #include <stdio.h>
+#include <vector>
+
+typedef std::set<item> itemset;
+typedef itemset::iterator itemsetIter;
+static itemset toRender;
+static std::vector<item> toFree;
+static itemset toSimplify;
+static itemset toElevate;
+static itemset toCollide;
+static itemset toName;
+static itemset toSetupLaneNodes;
+static itemset toSetupLaneEdges;
+static itemset toMakeLots;
+static itemset toResizeNodes;
+static itemset toResizeEdges;
+static itemset toRepositionEdges;
 
 const float roadShine = .4f;
 const double wearRate = 1e-7;
@@ -48,7 +67,7 @@ const float minIntersectionSize = 8;
 const float sampleLength = tileSize*5;
 float maxWear = 0;
 static int completeEdges = 0;
-static unordered_map<item, vector<item>> collideBuildingCache;
+static std::unordered_map<item, std::vector<item>> collideBuildingCache;
 static bool automaticBridgesEnabled = true;
 static bool areTunnelsVisible = true;
 static item lastVisualUpdate = 0;
@@ -57,12 +76,8 @@ static bool leftHandTraffic = false;
 Pool<Node>* nodes = Pool<Node>::newPool(2000);
 Pool<Edge>* edges = Pool<Edge>::newPool(2000);
 
-void complete(item ndx, bool deintersect, Configuration config);
-item detectDuplicate(item ndx);
-void repositionEdge(item edgeNdx);
-void resizeNode(item nodeNdx);
-void resizeEdge(item edgeNdx);
-#include "graphModify.cpp"
+// TODO: I don't want to deal with the ordering here.
+void complete(item ndx, bool deintersect, Configuration nodeConfig);
 
 void setAutomaticBridges(bool val) {
   automaticBridgesEnabled = val;
@@ -176,7 +191,7 @@ Edge* getEdge(item ndx) {
   return edges->get(ndx);
 }
 
-item addNode(vec3 center, Configuration config) {
+item addNode(glm::vec3 center, Configuration config) {
   //if (center.z < beachLine+1) center.z = beachLine+1;
   item ndx = -nodes->create();
   Node* node = getNode(ndx);
@@ -212,7 +227,7 @@ item addNode(vec3 center, Configuration config) {
 
 item addPillarNode(item pillarNdx, Configuration config) {
   Pillar* pillar = getPillar(pillarNdx);
-  vec3 center = pillar->location;
+  glm::vec3 center = pillar->location;
   if (!validate(pillar->location)) handleError("NaN pillar loc");
   item ndx = addNode(center, config);
   Node* node = getNode(ndx);
@@ -265,12 +280,12 @@ void sortEdgesInNode(item ndx) {
   float* thetas = (float*) alloca(sizeof(float)*numEdges);
   int* indices = (int*) alloca(sizeof(int)*numEdges);
   int* itemNdxs = (int*) alloca(sizeof(int)*numEdges);
-  vec3 center = node->center;
+  glm::vec3 center = node->center;
 
   for(int i = 0; i < numEdges; i++) {
     Edge* edge = getEdge(node->edges[i]);
     item otherEnd = edge->ends[0] == ndx ? edge->ends[1] : edge->ends[0];
-    vec3 dir = getNode(otherEnd)->center - center;
+    glm::vec3 dir = getNode(otherEnd)->center - center;
     float theta = atan2(dir.x, dir.y);
     thetas[i] = theta;
     indices[i] = i;
@@ -356,13 +371,13 @@ EndDescriptor getNodeEndDescriptor(item edgeNdx, item nodeNdx) {
   int end = edge->ends[0] == nodeNdx;
   Node* node0 = getNode(edge->ends[!end]);
   Node* node1 = getNode(edge->ends[end]);
-  vec3 center = node0->center;
+  glm::vec3 center = node0->center;
 
   EndDescriptor result;
   result.location = end ? edge->line.start : edge->line.end;
-  vec3 otherEnd = !end ? edge->line.start : edge->line.end;
-  vec3 dir = normalize(otherEnd - result.location);
-  result.normal = vec3(dir.y, -dir.x, 0) *
+  glm::vec3 otherEnd = !end ? edge->line.start : edge->line.end;
+  glm::vec3 dir = normalize(otherEnd - result.location);
+  result.normal = glm::vec3(dir.y, -dir.x, 0) *
     float(isLeftHandTraffic() ? -1 : 1);
 
   if (edge->config.flags & _configOneWay) {
@@ -411,7 +426,7 @@ bool nameEdge(item edgeNdx, item endNdx) {
 
   item nodeNdx = edge->ends[endNdx];
   Node* node = getNode(nodeNdx);
-  vector<item> edges = node->edges.toVector();
+  std::vector<item> edges = node->edges.toVector();
   item oddManOut = getOddManOut(nodeNdx, edges);
   int numEdges = edges.size();
   if (numEdges <= 1) {
@@ -465,8 +480,8 @@ bool nameEdge(item edgeNdx, item endNdx) {
   }
 
   //Don't take name if >=90 deg angle
-  vec3 v0 = edge->line.end - edge->line.start;
-  vec3 v1 = otherEdge->line.end - otherEdge->line.start;
+  glm::vec3 v0 = edge->line.end - edge->line.start;
+  glm::vec3 v1 = otherEdge->line.end - otherEdge->line.start;
   float neg = otherEdge->ends[0] == edge->ends[0] ||
     otherEdge->ends[1] == edge->ends[1] ? -1 : 1;
   if (glm::dot(v0, v1) * neg <= 0.1) {
@@ -513,7 +528,7 @@ void chainRenameEdge(item edgeNdx, bool followCorners) {
       item end = cursor->ends[0] == lastEnd ? 1 : 0;
       item nodeNdx = cursor->ends[end];
       Node* node = getNode(nodeNdx);
-      vector<item> edges = node->edges.toVector();
+      std::vector<item> edges = node->edges.toVector();
       item oddManOut = getOddManOut(nodeNdx, edges);
       int numEdges = edges.size();
       if (numEdges <= 1) {
@@ -545,8 +560,8 @@ void chainRenameEdge(item edgeNdx, bool followCorners) {
 
       if (!followCorners) {
         //Don't take name if >=90 deg angle
-        vec3 v0 = cursor->line.end - cursor->line.start;
-        vec3 v1 = other->line.end - other->line.start;
+        glm::vec3 v0 = cursor->line.end - cursor->line.start;
+        glm::vec3 v1 = other->line.end - other->line.start;
         float neg = other->ends[0] == cursor->ends[0] ||
           other->ends[1] == cursor->ends[1] ? -1 : 1;
         if (glm::dot(v0, v1) * neg <= 0.1) {
@@ -568,7 +583,7 @@ void chainRenameEdge(item edgeNdx, bool followCorners) {
 void addEdgeToNode(item nodeNdx, item edgeNdx) {
   Node* node = getNode(nodeNdx);
   Edge* edge = getEdge(edgeNdx);
-  vec3 center = node->center;
+  glm::vec3 center = node->center;
 
   if (edge->config.type != ConfigTypeExpressway &&
       node->config.type == ConfigTypeExpressway) {
@@ -601,21 +616,21 @@ void addEdgeToNode(item nodeNdx, item edgeNdx) {
   //nameEdge(edgeNdx);
 }
 
-bool areClose(vec3 l0, vec3 l1, float dist) {
+bool areClose(glm::vec3 l0, glm::vec3 l1, float dist) {
   return distance2DSqrd(l0, l1) < dist*dist &&
     abs(l0.z-l1.z) < c(CZTileSize)*.75f;
 }
 
-bool areClose(vec3 l0, vec3 l1) {
+bool areClose(glm::vec3 l0, glm::vec3 l1) {
   return areClose(l0, l1, c(CMinNodeDistance));
 }
 
-bool areClose(vec3 p, Line l, float dist) {
-  vec3 lp = nearestPointOnLine(p, l);
+bool areClose(glm::vec3 p, Line l, float dist) {
+  glm::vec3 lp = nearestPointOnLine(p, l);
   return areClose(p, lp, dist);
 }
 
-bool areClose(vec3 p, Line l) {
+bool areClose(glm::vec3 p, Line l) {
   return areClose(p, l, c(CMinNodeDistance));
 }
 
@@ -661,34 +676,34 @@ item detectSemiDuplicate(item ndx) {
 }
 
 /*
-vec3 getRepositionLoc(item eNdx, item oNdx, item nNdx) {
+glm::vec3 getRepositionLoc(item eNdx, item oNdx, item nNdx) {
   Edge* edge = getEdge(eNdx);
   Node* node = getNode(nNdx);
-  vec3 center = node->center;
+  glm::vec3 center = node->center;
   int end = edge->ends[1] == nNdx;
   Node* oNode = getNode(edge->ends[!end]);
-  vec3 eAlong = node->center - oNode->center;
+  glm::vec3 eAlong = node->center - oNode->center;
   float eAlongLength = length(eAlong);
-  vec3 eALngthC = (eAlongLength - node->intersectionSize)/eAlongLength;
-  vec3 eLoc = oNode->center + eAlong * eALngthC;
+  glm::vec3 eALngthC = (eAlongLength - node->intersectionSize)/eAlongLength;
+  glm::vec3 eLoc = oNode->center + eAlong * eALngthC;
   float eWidth = edgeWidth(edgeNdx)*.5f;
-  //vec3 eNorm = normalize(zNormal(center - eLoc)) * eWidth;
+  //glm::vec3 eNorm = normalize(zNormal(center - eLoc)) * eWidth;
 
   Edge* other = getEdge(oNdx);
   float oWidth = edgeWidth(oNdx)*.5f;
-  vec3 oLoc = other->ends[1] == nodeNdx ?
+  glm::vec3 oLoc = other->ends[1] == nodeNdx ?
     other->line.end : other->line.start;
-  vec3 diff = eLoc - oLoc;
+  glm::vec3 diff = eLoc - oLoc;
 
   if (length(diff) > oWidth + eWidth + minIntersectionSpacing) {
     return eLoc;
   }
 
-  vec3 oLLoc = other->ends[0] == nodeNdx ?
+  glm::vec3 oLLoc = other->ends[0] == nodeNdx ?
     other->line.end : other->line.start;
-  vec3 oNorm = uzNormal(oOLoc - oLoc) * oWidth;
+  glm::vec3 oNorm = uzNormal(oOLoc - oLoc) * oWidth;
 
-  vec3 result = cross(oNorm, diff) + oLoc;
+  glm::vec3 result = cross(oNorm, diff) + oLoc;
   return result;
 }
 */
@@ -709,10 +724,10 @@ void repositionEdge(item edgeNdx) {
     item nodeNdx = edge->ends[end];
     toRender.insert(nodeNdx);
     Node* node = getNode(nodeNdx);
-    vec3 center = node->center;
-    vec3 eLoc = end ? edge->line.end : edge->line.start;
+    glm::vec3 center = node->center;
+    glm::vec3 eLoc = end ? edge->line.end : edge->line.start;
     float eWidth = edgeWidth(edgeNdx)*.5f;
-    vec3 eNorm = normalize(zNormal(center - eLoc)) * eWidth;
+    glm::vec3 eNorm = normalize(zNormal(center - eLoc)) * eWidth;
 
     for (int i = 0; i < node->edges.size(); i++) {
       item oNdx = node->edges[i];
@@ -720,9 +735,9 @@ void repositionEdge(item edgeNdx) {
       if (oNdx == dupe) continue;
       Edge* other = getEdge(oNdx);
       float oWidth = edgeWidth(oNdx)*.5f;
-      vec3 oLoc = other->ends[1] == nodeNdx ?
+      glm::vec3 oLoc = other->ends[1] == nodeNdx ?
         other->line.end : other->line.start;
-      vec3 diff = eLoc - oLoc;
+      glm::vec3 diff = eLoc - oLoc;
       if (other->plan != 0) {
         rerenderPlan(other->plan);
       }
@@ -754,14 +769,14 @@ void resizeEdge(item edgeNdx) {
     item nodeNdx = edge->ends[end];
     Node* node = getNode(nodeNdx);
 
-    vec2 center = vec2(node->center);
+    glm::vec2 center = glm::vec2(node->center);
     float z = node->center.z;
     float size = node->intersectionSize;
-    vec2 basis = vec2(end ? edge->line.start : edge->line.end);
-    vec2 loc = vec2(!end ? edge->line.start : edge->line.end);
-    vec2 along = loc - basis;
-    vec2 ray = basis - center;
-    vec2 solution;
+    glm::vec2 basis = glm::vec2(end ? edge->line.start : edge->line.end);
+    glm::vec2 loc = glm::vec2(!end ? edge->line.start : edge->line.end);
+    glm::vec2 along = loc - basis;
+    glm::vec2 ray = basis - center;
+    glm::vec2 solution;
 
     float a = dot(along, along);
     float b = 2.f * dot(ray, along);
@@ -778,7 +793,7 @@ void resizeEdge(item edgeNdx) {
       solution = t1*along + basis;
     }
 
-    vec3 eLoc = vec3(solution, z);
+    glm::vec3 eLoc = glm::vec3(solution, z);
     if (!validate(eLoc)) handleError("NaN edge loc");
     if (end) {
       edge->line.end = eLoc;
@@ -864,7 +879,7 @@ void resizeNode(item ndx) {
   Node* node = getNode(ndx);
 
   float newSize = minIntersectionSize;
-  vector<item> edges = getRenderableEdges(ndx);
+  std::vector<item> edges = getRenderableEdges(ndx);
   int numEdges = edges.size();
   int numLanes = 0;
   int numRail = 0;
@@ -908,17 +923,17 @@ item addEdge(item end0ndx, item end1ndx, Configuration config) {
 
   Node* n0 = getNode(end0ndx);
   Node* n1 = getNode(end1ndx);
-  vec3 c0 = n0->center;
-  vec3 c1 = n1->center;
-  vec3 along = c1 - c0;
+  glm::vec3 c0 = n0->center;
+  glm::vec3 c1 = n1->center;
+  glm::vec3 along = c1 - c0;
   float lngth = length(along);
   if (lngth < 0.0001) {
     //handleError("Zero length edge");
     return 0;
   }
-  vec3 ualong = along / lngth;
-  vec3 offset0 = -ualong * n0->intersectionSize;
-  vec3 offset1 = ualong * n1->intersectionSize;
+  glm::vec3 ualong = along / lngth;
+  glm::vec3 offset0 = -ualong * n0->intersectionSize;
+  glm::vec3 offset1 = ualong * n1->intersectionSize;
   offset0.z = 0;
   offset1.z = 0;
 
@@ -978,14 +993,14 @@ money elevatorCost(Configuration config, float z) {
       (z > 0 ? c(CEmbankmentCost) : c(CTrenchCost)));
 }
 
-money edgeCost(vec3 c0, vec3 c1,
+money edgeCost(glm::vec3 c0, glm::vec3 c1,
     Configuration e, Configuration n0, Configuration n1) {
   float width = edgeWidth(e);
   float ln = length(c1-c0);
   money landCost = 0;
   int num = ln/tileSize;
   for (int i = 0; i < num; i++) {
-    float z = mix(c0.z, c1.z, float(i)/num);
+    float z = glm::mix(c0.z, c1.z, float(i)/num);
     landCost += elevatorCost(e, z);
   }
   float platform = (e.flags & _configPlatform) ?
@@ -1003,11 +1018,11 @@ money graphCostPlusElevation(item ndx) {
     //landDiff = abs(pointOnLand(node->center).z - node->center.z);
   } else if (ndx > 0) {
     Edge* edge = getEdge(ndx);
-    vec3 cursor = edge->line.start;
-    vec3 along = edge->line.end - edge->line.start;
+    glm::vec3 cursor = edge->line.start;
+    glm::vec3 along = edge->line.end - edge->line.start;
     float dist = length(along);
     int num = dist/tileSize;
-    vec3 ualong = along*(tileSize/dist);
+    glm::vec3 ualong = along*(tileSize/dist);
     for (int k = 0; k < num; k++) {
       cursor += ualong;
       float natH = std::max(getNaturalHeight(cursor), 0.f);
@@ -1026,12 +1041,12 @@ bool isElementUnderground(item ndx) {
   else return false;
 }
 
-vector<item> collideBuildingWithGraph(item ndx) {
-  if (isElementUnderground(ndx)) return vector<item>();
+std::vector<item> collideBuildingWithGraph(item ndx) {
+  if (isElementUnderground(ndx)) return std::vector<item>();
   auto result = collideBuildingCache.find(ndx);
   if (result == collideBuildingCache.end()) {
     Box b = getGraphBox(ndx);
-    vector<item> collisions = collideBuilding(b, 0);
+    std::vector<item> collisions = collideBuilding(b, 0);
     collideBuildingCache[ndx] = collisions;
     return collisions;
   } else {
@@ -1041,7 +1056,7 @@ vector<item> collideBuildingWithGraph(item ndx) {
 
 money graphCostFull(item ndx) {
   float eminentDomainCost = 0;
-  vector<item> collisions = collideBuildingWithGraph(ndx);
+  std::vector<item> collisions = collideBuildingWithGraph(ndx);
   for (int i = 0; i < collisions.size(); i++) {
     Building* b = getBuilding(collisions[i]);
     if (b->zone == GovernmentZone) {
@@ -1083,7 +1098,7 @@ money graphCostFull(item ndx) {
     Node* node = getNode(ndx);
     item collider = nearestEdge(node->center, false);
     if (collider != 0) {
-      vec3 loc = nearestPointOnLine(node->center, getLine(collider));
+      glm::vec3 loc = nearestPointOnLine(node->center, getLine(collider));
       if (vecDistance(loc, node->center) < 1) {
         return strategyCost(node->config.strategy)*2 + eminentDomainCost;
       }
@@ -1120,13 +1135,13 @@ money graphCostSimple(item ndx) {
 }
 
 Box getInflatedGraphBox(item i);
-vector<item> findCollisions(item ndx) {
-  vector<item> collisions;
+std::vector<item> findCollisions(item ndx) {
+  std::vector<item> collisions;
   Line l0 = getLine(ndx);
-  vector<item> ignorable;
+  std::vector<item> ignorable;
   float matchDistance = 0;
   bool isExpwy = getElementConfiguration(ndx).type == ConfigTypeExpressway;
-  vec3 along = l0.end - l0.start;
+  glm::vec3 along = l0.end - l0.start;
   float dist2D = sqrt(along.x*along.x + along.y*along.y);
   float z0base = l0.start.z;// - pointOnLandNatural(l0.start).z;
   float z0end = l0.end.z;// - pointOnLandNatural(l0.end).z;
@@ -1161,7 +1176,7 @@ vector<item> findCollisions(item ndx) {
 
   //for (int i = -nodes->size(); i <= edges->size(); i ++) {
   Box bbox = getInflatedGraphBox(ndx);
-  vector<item> boxCollisions = getCollisions(GraphCollisions, bbox, 0);
+  std::vector<item> boxCollisions = getCollisions(GraphCollisions, bbox, 0);
   for (int k = 0; k < boxCollisions.size(); k++) {
     item i = boxCollisions[k];
     if (i == ndx || i == 0) continue;
@@ -1187,10 +1202,10 @@ vector<item> findCollisions(item ndx) {
         continue;
       }
 
-      vec3 pa = pointOfIntersection(l0, l1);
-      vec3 pb = nearestPointOnLine(pa, l1);
+      glm::vec3 pa = pointOfIntersection(l0, l1);
+      glm::vec3 pb = nearestPointOnLine(pa, l1);
       float z1 = pb.z;// - pointOnLandNatural(pb).z;
-      vec3 along1 = pa - l0.start;
+      glm::vec3 along1 = pa - l0.start;
       float dist2D1 = sqrt(along1.x*along1.x + along1.y*along1.y);
       float z0 = z0base + z0slope * dist2D1;
       if (abs(z1-z0) < c(CZTileSize)*.75f) {
@@ -1204,9 +1219,9 @@ vector<item> findCollisions(item ndx) {
 class sort_distances
 {
    private:
-     vec3 orig;
+     glm::vec3 orig;
    public:
-     sort_distances(vec3 orig1) : orig(orig1) {}
+     sort_distances(glm::vec3 orig1) : orig(orig1) {}
      bool operator()(int i, int j) const {
        float d0 = vecDistance(getNode(i)->center, orig);
        float d1 = vecDistance(getNode(j)->center, orig);
@@ -1314,19 +1329,19 @@ void split(item nodeNdx, item edgeNdx, Configuration nodeConfig) {
   e1->name = name;
 }
 
-float getSlope(vec3 l0, vec3 l1) {
+float getSlope(glm::vec3 l0, glm::vec3 l1) {
   float length = distance2D(l0, l1);
   float z = l1.z - l0.z;
   if (length < 0.0001) return z;
   return z / length;
 }
 
-vector<vec3> getLengthSplits(vec3 h0, vec3 h1) {
-  vec3 along = h1 - h0;
+std::vector<glm::vec3> getLengthSplits(glm::vec3 h0, glm::vec3 h1) {
+  glm::vec3 along = h1 - h0;
   float dist2D = sqrt(along.x*along.x + along.y*along.y);
   float lastDev = 0;
 
-  if (dist2D < sampleLength) return vector<vec3>();
+  if (dist2D < sampleLength) return std::vector<glm::vec3>();
 
   float hz0 = h0.z;
   float hz1 = h1.z;
@@ -1336,14 +1351,14 @@ vector<vec3> getLengthSplits(vec3 h0, vec3 h1) {
   float dist = length(along);
   float sampleAlpha = sampleLength / dist2D;
   float segmentLength = dist*sampleAlpha;
-  vec3 segAlong = along/dist * segmentLength;
-  vec3 cursor = h0;
+  glm::vec3 segAlong = along/dist * segmentLength;
+  glm::vec3 cursor = h0;
   int numSegments = dist2D / sampleLength;
   if (length(along - segAlong*float(numSegments)) < tileSize*2) {
     numSegments -= 1;
   }
 
-  vec3 *cs = (vec3*)alloca(sizeof(vec3)*numSegments);
+  glm::vec3 *cs = (glm::vec3*)alloca(sizeof(glm::vec3)*numSegments);
   float *lzs = (float*)alloca(sizeof(float)*numSegments);
   //float *minzs = (float*)alloca(sizeof(float)*numSegments);
   //float *maxzs = (float*)alloca(sizeof(float)*numSegments);
@@ -1384,7 +1399,7 @@ vector<vec3> getLengthSplits(vec3 h0, vec3 h1) {
     float maxDev = -1;
     for (int k = 1; k < numSegments; k++) {
       float dev = abs(cs[k].z - lzs[k]);
-      vec3 lk = cs[k];
+      glm::vec3 lk = cs[k];
       lk.z = lzs[k];
       float slope0 = abs(getSlope(cs[0], lk));
       float slope1 = abs(getSlope(lk, cs[numSegments-1]));
@@ -1396,15 +1411,15 @@ vector<vec3> getLengthSplits(vec3 h0, vec3 h1) {
         maxDev = dev;
       }
     }
-    if (maxDev < c(CZTileSize)*.5f) return vector<vec3>();
+    if (maxDev < c(CZTileSize)*.5f) return std::vector<glm::vec3>();
   }
 
-  if (best < 0) return vector<vec3>();
+  if (best < 0) return std::vector<glm::vec3>();
 
-  vec3 ba = cs[best];
+  glm::vec3 ba = cs[best];
   ba.z = lzs[best];
-  vector<vec3> r0 = getLengthSplits(h0, ba);
-  vector<vec3> r1 = getLengthSplits(ba, h1);
+  std::vector<glm::vec3> r0 = getLengthSplits(h0, ba);
+  std::vector<glm::vec3> r1 = getLengthSplits(ba, h1);
   r0.insert(r0.end(), r1.begin(), r1.end());
   r0.push_back(ba);
   return r0;
@@ -1412,7 +1427,7 @@ vector<vec3> getLengthSplits(vec3 h0, vec3 h1) {
 
 bool split(item ndx, Configuration nodeConfig, bool doComplete) {
   if (ndx < 0) {
-    vector<item> collisions = findCollisions(ndx);
+    std::vector<item> collisions = findCollisions(ndx);
     if (collisions.size() > 0) {
       for (int i = 0; i < collisions.size(); i ++) {
         if (collisions[i] < 0) continue;
@@ -1427,7 +1442,7 @@ bool split(item ndx, Configuration nodeConfig, bool doComplete) {
     }
 
   } else if (ndx > 0) {
-    vector<item> collisions = findCollisions(ndx);
+    std::vector<item> collisions = findCollisions(ndx);
     Edge* edge = getEdge(ndx);
     if (!(edge->flags & _graphExists)) return false;
 
@@ -1436,9 +1451,9 @@ bool split(item ndx, Configuration nodeConfig, bool doComplete) {
       Node* n0 = getNode(edge->ends[0]);
       Node* n1 = getNode(edge->ends[1]);
       if (n0->pillar != 0 || n1->pillar != 0) return false;
-      vec3 c0 = n0->center;
-      vec3 c1 = n1->center;
-      vector<vec3> splits = getLengthSplits(c0, c1);
+      glm::vec3 c0 = n0->center;
+      glm::vec3 c1 = n1->center;
+      std::vector<glm::vec3> splits = getLengthSplits(c0, c1);
       if (splits.size() == 0) {
         return false;
       }
@@ -1446,9 +1461,9 @@ bool split(item ndx, Configuration nodeConfig, bool doComplete) {
     */
 
     float eWidth = edgeWidth(ndx);
-    vector<item> nodes;
+    std::vector<item> nodes;
     Configuration edgeConfig = edge->config;
-    vec3 end0 = getNode(edge->ends[0])->center;
+    glm::vec3 end0 = getNode(edge->ends[0])->center;
     Line edgeLine = edge->line;
     nodes.push_back(edge->ends[0]);
     nodes.push_back(edge->ends[1]);
@@ -1467,7 +1482,7 @@ bool split(item ndx, Configuration nodeConfig, bool doComplete) {
       } else if (collisions[i] > 0) {
         Edge* e = getEdge(collisions[i]);
         Line collLine = e->line;
-        vec3 poi = pointOfIntersection(collLine, edgeLine);
+        glm::vec3 poi = pointOfIntersection(collLine, edgeLine);
         if (poi.x >= 0 || poi.y >= 0) {
           float cWidth = edgeWidth(collisions[i]);
           float mWidth = cWidth + eWidth + tileSize;
@@ -1498,12 +1513,12 @@ bool split(item ndx, Configuration nodeConfig, bool doComplete) {
       Node* n1 = getNode(nodes[i+1]);
       if (n0->pillar != 0 || n1->pillar != 0) continue;
       //if ((n0->flags & _graphCity) || (n1->flags & _graphCity)) continue;
-      vec3 c0 = n0->center;
-      vec3 c1 = n1->center;
-      vector<vec3> splits = getLengthSplits(c0, c1);
+      glm::vec3 c0 = n0->center;
+      glm::vec3 c1 = n1->center;
+      std::vector<glm::vec3> splits = getLengthSplits(c0, c1);
       for (int j = 0; j < splits.size(); j++) {
-        vec3 point = splits[j];
-        vec2 normed = vec2(point)/getMapSize();
+        glm::vec3 point = splits[j];
+        glm::vec2 normed = glm::vec2(point)/getMapSize();
         if (normed.x < 0 || normed.x > 1 ||
           normed.y < 0 || normed.y > 1) continue;
         nodes.push_back(getOrCreateNodeAt(splits[j], nodeConfig));
@@ -1588,10 +1603,6 @@ bool split(item ndx) {
   return split(ndx, getElementConfiguration(ndx), false);
 }
 
-void complete(item ndx, Configuration nodeConfig) {
-  complete(ndx, getGameMode() != ModeBuildingDesigner, nodeConfig);
-}
-
 void complete(item ndx, bool deintersect, Configuration nodeConfig) {
   if (ndx < 0) {
     Node* node = getNode(ndx);
@@ -1665,7 +1676,10 @@ void complete(item ndx, bool deintersect, Configuration nodeConfig) {
   } else {
     handleError("Trying to complete null graphLoc");
   }
+}
 
+void complete(item ndx, Configuration nodeConfig) {
+  complete(ndx, getGameMode() != ModeBuildingDesigner, nodeConfig);
 }
 
 Configuration getElementConfiguration(item ndx) {
@@ -1680,7 +1694,7 @@ Configuration getElementConfiguration(item ndx) {
   }
 }
 
-item getNodeAt(vec3 point) {
+item getNodeAt(glm::vec3 point) {
   for(int i = 0; i < nodes->size(); i ++) {
     item ndx = -i-1;
     Node* node = getNode(ndx);
@@ -1692,7 +1706,7 @@ item getNodeAt(vec3 point) {
   return 0;
 }
 
-item getOrCreateNodeAt(vec3 point, Configuration nodeConfig) {
+item getOrCreateNodeAt(glm::vec3 point, Configuration nodeConfig) {
   item ndx = getNodeAt(point);
   if (ndx < 0) {
     return ndx;
@@ -1708,7 +1722,7 @@ item getOrCreateNodeAt(vec3 point, Configuration nodeConfig) {
     } else if (elemNdx > 0) {
       Line l = getLine(elemNdx);
       if (areClose(point, l)) {
-        vec3 loc = nearestPointOnLine(point, l);
+        glm::vec3 loc = nearestPointOnLine(point, l);
         item nodeNdx = addNode(loc, nodeConfig);
         Node* node = getNode(nodeNdx);
         node->flags |= _graphIsColliding;
@@ -1937,7 +1951,7 @@ void switchDirection(item ndx) {
   edge->ends[0] = edge->ends[1];
   edge->ends[1] = swap;
 
-  vec3 swapVec = edge->line.start;
+  glm::vec3 swapVec = edge->line.start;
   edge->line.start = edge->line.end;
   edge->line.end = swapVec;
 
@@ -1993,7 +2007,7 @@ void initGraphEntities() {
       node->signEntity = addEntity(SignShader);
       createMeshForEntity(node->entity);
       createMeshForEntity(node->signEntity);
-      vec3 nodePt = node->center;
+      glm::vec3 nodePt = node->center;
       if (isNodeUnderground(i)) {
         node->tunnelEntity = addEntity(SignShader);
         createMeshForEntity(node->tunnelEntity);
@@ -2015,8 +2029,8 @@ void initGraphEntities() {
       createMeshForEntity(edge->wearEntity);
       createMeshForEntity(edge->textEntity);
       createMeshForEntity(edge->signEntity);
-      vec3 edgePtStart = edge->line.start;
-      vec3 edgePtEnd = edge->line.end;
+      glm::vec3 edgePtStart = edge->line.start;
+      glm::vec3 edgePtEnd = edge->line.end;
       if (isEdgeUnderground(i)) {
         edge->tunnelEntity = addEntity(SignShader);
         createMeshForEntity(edge->tunnelEntity);
@@ -2036,7 +2050,7 @@ void rerenderGraph() {
   updateGraphVisuals(true);
 }
 
-vec3 getElementLoc(item ndx) {
+glm::vec3 getElementLoc(item ndx) {
   if (ndx < 0) {
     return getNode(ndx)->center;
   } else if (ndx > 0) {
@@ -2044,20 +2058,20 @@ vec3 getElementLoc(item ndx) {
     return (l.start + l.end)*.5f;
   } else {
     handleError("Trying to get location of null graphLoc");
-    return vec3(0,0,0);
+    return glm::vec3(0,0,0);
   }
 }
 
 Line getLine(item ndx) {
   if (ndx < 0) {
     Node* node = getNode(ndx);
-    return line(node->center, node->center + vec3(0.01, 0, 0));
+    return line(node->center, node->center + glm::vec3(0.01, 0, 0));
   } else if (ndx > 0) {
     Edge* edge = getEdge(ndx);
     return edge->line;
   } else {
     handleError("Trying to get line of null graphLoc");
-    return line(vec3(0,0,0), vec3(0,0,0));
+    return line(glm::vec3(0,0,0), glm::vec3(0,0,0));
   }
 }
 
@@ -2092,7 +2106,7 @@ const char* legalMessage(item ndx) {
     Node* node = getNode(ndx);
 
     if (!(node->flags & _graphCity)) {
-      vec2 centerNormed = vec2(node->center)/getMapSize();
+      glm::vec2 centerNormed = glm::vec2(node->center)/getMapSize();
       if (centerNormed.x < 0 || centerNormed.x > 1 ||
         centerNormed.y < 0 || centerNormed.y > 1) {
         return "Beyond City Limits";
@@ -2138,7 +2152,7 @@ const char* legalMessage(item ndx) {
       float *thetas = (float*)alloca(sizeof(float)*numEdges);
       bool *isOutput = (bool*)alloca(sizeof(bool)*numEdges);
       bool *isInput = (bool*)alloca(sizeof(bool)*numEdges);
-      vec3 center = node->center;
+      glm::vec3 center = node->center;
       int numInputs = 0;
       int numOutputs = 0;
 
@@ -2147,7 +2161,7 @@ const char* legalMessage(item ndx) {
         Edge* edge = getEdge(node->edges[i]);
         item end = edge->ends[1] == ndx;
         item otherEnd = edge->ends[!end];
-        vec3 dir = getNode(otherEnd)->center - center;
+        glm::vec3 dir = getNode(otherEnd)->center - center;
         float theta = atan2(dir.x, dir.y);
         thetas[i] = theta;
         if (edge->config.flags & _configOneWay) {
@@ -2226,13 +2240,13 @@ const char* legalMessage(item ndx) {
     }
 
     /*
-    vector<item> collisions = findCollisions(ndx);
+    std::vector<item> collisions = findCollisions(ndx);
     if (collisions.size() > 0) {
       for (int i = 0; i < collisions.size(); i++) {
         if (collisions[i] > 0) {
           item elem = collisions[i];
           Edge* edge = getEdge(elem);
-          vec3 p = nearestPointOnLine(node->center, getLine(elem));
+          glm::vec3 p = nearestPointOnLine(node->center, getLine(elem));
           if (vecDistance(p, edge->line.start) < minRoadLength ||
             vecDistance(p, edge->line.end) < minRoadLength) {
 
@@ -2244,7 +2258,7 @@ const char* legalMessage(item ndx) {
     */
 
     /*
-    vector<item> buildingCollisions = collideBuildingWithGraph(ndx);
+    std::vector<item> buildingCollisions = collideBuildingWithGraph(ndx);
     for (int i = 0; i < buildingCollisions.size(); i ++) {
       Building* b = getBuilding(buildingCollisions[i]);
       if (b->zone == GovernmentZone || b->flags & _buildingHistorical) {
@@ -2287,7 +2301,7 @@ const char* legalMessage(item ndx) {
       return "Too Steep";
     }
 
-    vector<item> buildingCollisions = collideBuildingWithGraph(ndx);
+    std::vector<item> buildingCollisions = collideBuildingWithGraph(ndx);
     for (int i = 0; i < buildingCollisions.size(); i ++) {
       Building* b = getBuilding(buildingCollisions[i]);
       if (b->zone == GovernmentZone || b->flags & _buildingHistorical) {
@@ -2310,7 +2324,7 @@ const char* legalMessage(item ndx) {
   }
 }
 
-item nearestEdge(vec3 location, bool includePlanned) {
+item nearestEdge(glm::vec3 location, bool includePlanned) {
   float bestDistance = FLT_MAX;
   item bestIndex = 0;
   for (int i = 1; i <= edges->size(); i ++) {
@@ -2366,7 +2380,7 @@ item nearestEdge(Line l, bool includePlanned, Configuration config) {
   return bestIndex;
 }
 
-item nearestEdge(vec3 loc, bool includePlanned, Configuration config) {
+item nearestEdge(glm::vec3 loc, bool includePlanned, Configuration config) {
   float bestDistance = FLT_MAX;
   item bestIndex = 0;
   for (int i = 1; i <= edges->size(); i ++) {
@@ -2386,7 +2400,7 @@ item nearestEdge(vec3 loc, bool includePlanned, Configuration config) {
   return bestIndex;
 }
 
-item nearestNode(vec3 location, bool includePlanned) {
+item nearestNode(glm::vec3 location, bool includePlanned) {
   float bestDistance = FLT_MAX;
   item bestIndex = 0;
   for (int i = 1; i <= nodes->size(); i ++) {
@@ -2404,7 +2418,7 @@ item nearestNode(vec3 location, bool includePlanned) {
   return bestIndex;
 }
 
-item nearestNode(vec3 location, bool includePlanned, Configuration config) {
+item nearestNode(glm::vec3 location, bool includePlanned, Configuration config) {
   float bestDistance = FLT_MAX;
   item bestIndex = 0;
   for (int i = 1; i <= nodes->size(); i ++) {
@@ -2462,7 +2476,7 @@ item nearestNode(Line l, bool includePlanned, Configuration config) {
   return bestIndex;
 }
 
-item nearestElement(vec3 location, bool includePlanned) {
+item nearestElement(glm::vec3 location, bool includePlanned) {
   item node = nearestNode(location, includePlanned);
   item edge = nearestEdge(location, includePlanned);
   if (node == 0) return edge;
@@ -2471,7 +2485,7 @@ item nearestElement(vec3 location, bool includePlanned) {
     pointLineDistance(location, getLine(edge)) ?  node : edge;
 }
 
-item nearestElement(vec3 location, bool includePlanned, Configuration config) {
+item nearestElement(glm::vec3 location, bool includePlanned, Configuration config) {
   item node = nearestNode(location, includePlanned, config);
   item edge = nearestEdge(location, includePlanned, config);
   if (node == 0) return edge;
@@ -2484,16 +2498,16 @@ Box getGraphBox(item i) {
   if (i < 0) {
     Node* node = getNode(i);
     float size = node->intersectionSize*2;
-    vec2 axis0 = vec2(size, 0);
-    vec2 axis1 = vec2(0, size);
-    vec2 start = vec2(node->center) - .5f*(axis0 + axis1);
+    glm::vec2 axis0 = glm::vec2(size, 0);
+    glm::vec2 axis1 = glm::vec2(0, size);
+    glm::vec2 start = glm::vec2(node->center) - .5f*(axis0 + axis1);
     return box(start, axis0, axis1);
   } else if (i > 0) {
     Edge* e = getEdge(i);
     return box(e->line, edgeWidth(i)*.5f);
   } else {
     handleError("getGraphBox(0)\n");
-    return box(line(vec3(0,0,0), vec3(0,0,0)), 0);
+    return box(line(glm::vec3(0,0,0), glm::vec3(0,0,0)), 0);
   }
 }
 
@@ -2501,9 +2515,9 @@ Box getInflatedGraphBox(item i) {
   if (i < 0) {
     Node* node = getNode(i);
     float size = node->intersectionSize*4;
-    vec2 axis0 = vec2(size, 0);
-    vec2 axis1 = vec2(0, size);
-    vec2 start = vec2(node->center) - .5f*(axis0 + axis1);
+    glm::vec2 axis0 = glm::vec2(size, 0);
+    glm::vec2 axis1 = glm::vec2(0, size);
+    glm::vec2 start = glm::vec2(node->center) - .5f*(axis0 + axis1);
     return box(start, axis0, axis1);
   } else if (i > 0) {
     Edge* e = getEdge(i);
@@ -2511,17 +2525,17 @@ Box getInflatedGraphBox(item i) {
     return box(l, edgeWidth(i));
   } else {
     handleError("getGraphBox(0)\n");
-    return box(line(vec3(0,0,0), vec3(0,0,0)), 0);
+    return box(line(glm::vec3(0,0,0), glm::vec3(0,0,0)), 0);
   }
 }
 
-vector<item> getGraphCollisions(Box bbox) {
+std::vector<item> getGraphCollisions(Box bbox) {
   return getCollisions(GraphCollisions, bbox, 0);
 }
 
 bool graphIntersect(Box bbox, item exclude, bool includeUnderground) {
   // Disable node collision for now
-  vector<item> collisions = getGraphCollisions(bbox);
+  std::vector<item> collisions = getGraphCollisions(bbox);
   int size = collisions.size();
   for (int i = 0; i < size; i++) {
     item coll = collisions[i];
@@ -2764,7 +2778,7 @@ void updateGraphVisuals(bool firstPass) {
 
     Entity* entity = 0;
     Configuration config;
-    vector<item> laneBlocks;
+    std::vector<item> laneBlocks;
     bool culdesac = false;
 
     if (i == 0) {
@@ -2816,10 +2830,10 @@ void updateGraphVisuals(bool firstPass) {
           ratio = traversalTime / timeEstimate;
         }
 
-        accum += clamp(ratio - 2, 0.f, 100.f);
+        accum += glm::clamp(ratio - 2, 0.f, 100.f);
       }
 
-      float k = clamp(accum/laneBlocks.size()*0.05f, 0.f, 1.f);
+      float k = glm::clamp(accum/laneBlocks.size()*0.05f, 0.f, 1.f);
       k = k*k;
       if (culdesac) k = 0; // Supress a bug where culdesacs appear to have traffic
       entity->dataFlags &= ~(255 << 16);
@@ -3027,3 +3041,430 @@ void readGraph(FileBuffer* file, int version) {
   }
 }
 
+void queueCollide(item ndx) { toCollide.insert(ndx); }
+
+bool canSimplifyNode(item ndx, bool byPlayer) {
+  Node *node = getNode(ndx);
+  if (node->flags & _graphCity)
+    return false;
+  if (node->pillar != 0)
+    return false;
+  if (node->edges.size() != 2)
+    return false;
+  if (isCutTool())
+    return false;
+
+  item e0ndx = node->edges[0];
+  item e1ndx = node->edges[1];
+  Edge *e0 = getEdge(e0ndx);
+  Edge *e1 = getEdge(e1ndx);
+  if ((e0->flags & _graphComplete) != (e1->flags & _graphComplete)) {
+    return false;
+  }
+  Configuration config = e0->config;
+  if (!configsEqualEdge(config, e1->config))
+    return false;
+
+  item end0 = e0->ends[0] == ndx;
+  item end1 = e1->ends[0] == ndx;
+  if ((config.flags & _configOneWay) && end0 == end1)
+    return false;
+  if (detectSemiDuplicate(e0ndx) != 0)
+    return false;
+
+  Line l0 = e0->line;
+  Line l1 = e1->line;
+  glm::vec3 a0 = l0.start;
+  glm::vec3 a1 = l0.end;
+  glm::vec3 b0 = l1.start;
+  glm::vec3 b1 = l1.end;
+  glm::vec3 A = normalize(a1 - a0);
+  glm::vec3 B = normalize(b1 - b0);
+  glm::vec3 crossVec = cross(A, B);
+  float denom0 = length(cross(A, B));
+  float denom1 = length(cross(A, -B));
+  float denom = std::min(denom0, denom1);
+  float threshold = byPlayer ? 0.05 : 0.01;
+  if (denom > threshold)
+    return false;
+
+  // Node is overcomplex, delete it
+  item n0 = end0 ? e0->ends[1] : e0->ends[0];
+  item n1 = end1 ? e1->ends[1] : e1->ends[0];
+  if (n0 == ndx || n1 == ndx || n0 == n1)
+    return false; // Sanity check
+  return true;
+}
+
+bool simplifyNode(item ndx, bool byPlayer) {
+  if (!canSimplifyNode(ndx, byPlayer))
+    return false;
+  Node *node = getNode(ndx);
+  item e0ndx = node->edges[0];
+  item e1ndx = node->edges[1];
+  Edge *e0 = getEdge(e0ndx);
+  Edge *e1 = getEdge(e1ndx);
+  Configuration config = e0->config;
+  item end0 = e0->ends[0] == ndx;
+  item end1 = e1->ends[0] == ndx;
+  item n0 = end0 ? e0->ends[1] : e0->ends[0];
+  item n1 = end1 ? e1->ends[1] : e1->ends[0];
+  removeEdge(e0ndx, false);
+  removeEdge(e1ndx, false);
+  removeNode(ndx);
+  item newEdge = end0 ? addEdge(n1, n0, config) : addEdge(n0, n1, config);
+  complete(newEdge, false, config);
+  return true;
+}
+
+void simplifyNodeIter(item ndx, int flags) { simplifyNode(ndx, false); }
+
+void resizeNode(item ndx, int flags) { resizeNode(ndx); }
+
+void resizeEdge(item ndx, int flags) { resizeEdge(ndx); }
+
+void repositionEdge(item ndx, int flags) { repositionEdge(ndx); }
+
+void makeLots(item ndx, int flags) {
+  if (!(flags & _graphComplete))
+    return;
+  if (flags & _graphCity)
+    return;
+  if (getElementConfiguration(ndx).type != ConfigTypeRoad)
+    return;
+
+  if (ndx < 0) {
+    Node *node = getNode(ndx);
+    std::vector<item> edges = getCompletedEdges(ndx);
+    if (edges.size() == 0)
+      return;
+    Line el = getLine(edges[0]);
+    glm::vec3 norm = el.end - el.start;
+    norm.z = 0;
+    norm = normalize(norm) * (node->intersectionSize + c(CBuildDistance));
+    makeNodeLots(node->center, norm, ndx);
+
+  } else {
+    float width = edgeWidth(ndx);
+    Line line = getLine(ndx);
+    makeLots(line, width / 2 + tileSize * .25f, ndx);
+  }
+}
+
+void setupLanes(item ndx, int flags) {
+  if (!(flags & _graphComplete))
+    return;
+
+  if (ndx < 0) {
+    Node *node = getNode(ndx);
+    int numEdges = node->edges.size();
+    if (numEdges > 0) {
+      rebuildIntersection(ndx);
+      for (int i = 0; i < node->laneBlocks.size(); i++) {
+        setLaneBlockState(node->laneBlocks[i]);
+      }
+    }
+
+  } else if (ndx > 0) {
+    Edge *edge = getEdge(ndx);
+    Configuration config = edge->config;
+
+    if (config.type == ConfigTypePedestrian) {
+      if (edge->laneBlocks[0] != 0)
+        removeLaneBlock(edge->laneBlocks[0]);
+      if (edge->laneBlocks[1] != 0)
+        removeLaneBlock(edge->laneBlocks[1]);
+      edge->laneBlocks[0] = 0;
+      edge->laneBlocks[1] = 0;
+      return;
+    }
+
+    item end0ndx = edge->ends[0];
+    item end1ndx = edge->ends[1];
+    EndDescriptor endDesc0 = getEdgeEndDescriptor(ndx, end0ndx);
+    EndDescriptor endDesc1 = getEdgeEndDescriptor(ndx, end1ndx);
+
+    if (edge->laneBlocks[0] == 0) {
+      edge->laneBlocks[0] =
+          addLaneBlock(ndx, endDesc0, endDesc1, config.numLanes);
+    } else {
+      reconfigureLaneBlock(edge->laneBlocks[0], endDesc0, endDesc1,
+                           config.numLanes);
+    }
+
+    if (edge->config.flags & _configOneWay) {
+      if (edge->laneBlocks[1] != 0) {
+        removeLaneBlock(edge->laneBlocks[1]);
+        edge->laneBlocks[1] = 0;
+      }
+    } else if (edge->laneBlocks[1] == 0) {
+      edge->laneBlocks[1] =
+          addLaneBlock(ndx, endDesc1, endDesc0, config.numLanes);
+    } else {
+      reconfigureLaneBlock(edge->laneBlocks[1], endDesc1, endDesc0,
+                           config.numLanes);
+    }
+
+    setLaneBlockState(edge->laneBlocks[0]);
+    setLaneBlockState(edge->laneBlocks[1]);
+  }
+}
+
+void setupEdgeLanes(item ndx) { setupLanes(ndx, getEdge(ndx)->flags); }
+
+void resetCollisions(item ndx, int flags) {
+  if (flags & _graphCity)
+    return;
+  removeFromCollisionTable(GraphCollisions, ndx);
+  Box b = getGraphBox(ndx);
+  addToCollisionTable(GraphCollisions, b, ndx);
+  if (!(flags & _graphComplete))
+    return;
+  if (flags & _graphUnderground)
+    return;
+  removeLots(b);
+  removeCollidingBuildings(b);
+}
+
+bool isNodeUnderground(item ndx) {
+  Node *node = getNode(ndx);
+  if (node->flags & _graphCity)
+    return false;
+  return (node->config.flags & _configDontMoveEarth) &&
+         pointOnLand(node->center).z + 2 > node->center.z &&
+         pointOnLandNatural(node->center).z > node->center.z;
+}
+
+bool isEdgeUnderground(item ndx) {
+  Edge *edge = getEdge(ndx);
+  return (edge->config.flags & _configDontMoveEarth) &&
+         (isNodeUnderground(edge->ends[0]) || isNodeUnderground(edge->ends[1]));
+}
+
+void addGraphElevator(item ndx, int flags) {
+  if (!(flags & _graphComplete))
+    return;
+  if (flags & _graphCity)
+    return;
+  if (ndx < 0) {
+    if (!(getElementConfiguration(ndx).flags & _configDontMoveEarth)) {
+      addGraphElevator(ndx, true);
+    } else {
+      clearTrees(getGraphBox(ndx));
+    }
+
+  } else if (ndx > 0) {
+    Edge *edge = getEdge(ndx);
+    // bool n0u = isNodeUnderground(edge->ends[0]);
+    // bool n1u = isNodeUnderground(edge->ends[1]);
+    bool edme = edge->config.flags & _configDontMoveEarth;
+    if (!edme) {
+      addGraphElevator(ndx, true);
+    } else {
+      clearTrees(getGraphBox(ndx));
+    }
+
+    /*
+    if (edge->config.type == ConfigTypePedestrian && edme) {
+      edge->config.flags |= _configDontMoveEarth;
+
+    } else if (!edme || (n0u && !n1u) || (!n0u && n1u)) {
+      edge->config.flags &= ~_configDontMoveEarth;
+      addGraphElevator(ndx, true);
+
+    } else {
+      edge->config.flags |= _configDontMoveEarth;
+    }
+    */
+  }
+}
+
+/*
+void resetGraphElevator(item ndx, int flags) {
+  removeGraphElevator(ndx);
+  addGraphElevator(ndx, flags);
+}
+*/
+
+void clearName(item edgeNdx, int flags) {
+  Edge *edge = getEdge(edgeNdx);
+  if (edge->name != 0)
+    free(edge->name);
+  edge->name = strdup_s("");
+}
+
+bool nameEdge(item edgeNdx, item end);
+void nameEdgeCallback(item edgeNdx, int flags) {
+  Edge *edge = getEdge(edgeNdx);
+  // if (edge->flags & _graphComplete) return;
+  // SPDLOG_INFO("edge {}:start", edgeNdx);
+  if (!nameEdge(edgeNdx, 0)) {
+    // SPDLOG_INFO("edge {}:end", edgeNdx);
+    if (!nameEdge(edgeNdx, 1)) {
+      // SPDLOG_INFO("edge {}:try again", edgeNdx);
+      toName.insert(edgeNdx);
+      // edge->name = randomName(RoadName);
+    }
+  }
+}
+
+static void iterate(itemset &s, void (*callback)(item ndx, int flags),
+                    bool clear) {
+
+  for (itemsetIter it = s.begin(); it != s.end(); it++) {
+    item el = *it;
+    if (el == 0)
+      continue;
+    int flags = el < 0 ? getNode(el)->flags : getEdge(el)->flags;
+    if (!(flags & _graphExists))
+      continue;
+    callback(el, flags);
+  }
+
+  if (clear)
+    s.clear();
+}
+
+static void iterate(itemset &s, void (*callback)(item ndx, int flags)) {
+  iterate(s, callback, true);
+}
+
+void finishGraph() {
+  bool doRepositionTransitStops =
+      toFree.size() > 0 || toRepositionEdges.size() > 0;
+
+  iterate(toSimplify, simplifyNodeIter);
+  iterate(toResizeNodes, resizeNode);
+  iterate(toResizeEdges, resizeEdge);
+  iterate(toRepositionEdges, repositionEdge);
+  iterate(toSetupLaneEdges, setupLanes);
+  iterate(toSetupLaneNodes, setupLanes);
+  // iterate(toReelevate, resetGraphElevator);
+  iterate(toElevate, addGraphElevator);
+  iterate(toCollide, resetCollisions);
+  iterate(toMakeLots, makeLots);
+  collideBuildingCache.clear();
+
+  if (doRepositionTransitStops) {
+    repositionTransitStops();
+    finishLots();
+  }
+
+  int toNameS = toName.size();
+  // if (toNameS > 0) SPDLOG_INFO("\n\n\n ### naming");
+  iterate(toName, clearName, false);
+  while (toNameS > 0) {
+    itemset toNameTemp = toName;
+    toName.clear();
+    // SPDLOG_INFO("\n# to name {}", toNameS);
+    iterate(toNameTemp, nameEdgeCallback, false);
+
+    if (toNameS == toName.size()) {
+      item ndx = *toName.begin();
+      Edge *edge = getEdge(ndx);
+      edge->name = randomName(RoadName);
+      // SPDLOG_INFO("force naming edge {}:{}", ndx, edge->name);
+      toName.erase(ndx);
+    }
+    toNameS = toName.size();
+  }
+
+  // Free
+  for (int i = 0; i < toFree.size(); i++) {
+    item ndx = toFree[i];
+    if (ndx < 0) {
+      nodes->free(-ndx);
+    } else if (ndx > 0) {
+      clearGraphChildren(ndx);
+      edges->free(ndx);
+    }
+  }
+  toFree.clear();
+
+  freeLaneBlocks();
+}
+
+void renderGraph() {
+  // Render
+  for (itemsetIter it = toRender.begin(); it != toRender.end(); it++) {
+    item el = *it;
+    if (el < 0) {
+      renderNode(el);
+    } else {
+      renderEdge(el);
+      item plan = getEdge(el)->plan;
+      if (plan != 0) {
+        updatePlan(plan);
+      }
+    }
+  }
+  toRender.clear();
+}
+
+item graphElementsToRender() { return toRender.size(); }
+
+void renderGraphElement(item ndx) { toRender.insert(ndx); }
+
+glm::vec3 edgeCutsStartPoint;
+
+struct compareCuts : std::binary_function<glm::vec3, glm::vec3, bool> {
+  bool operator()(glm::vec3 const &x, glm::vec3 const &y) const {
+    return vecDistance(edgeCutsStartPoint, x) <
+           vecDistance(edgeCutsStartPoint, y);
+  }
+};
+
+void trimEdge(item ndx, Box bbox) {
+  Edge *original = getEdge(ndx);
+  if (!(original->flags & _graphExists))
+    return;
+
+  bbox = growBox(bbox, tileSize);
+  Line l = getLine(ndx);
+  std::vector<glm::vec3> cuts = boxLineIntersect(bbox, l);
+  SPDLOG_INFO("trimEdge({}, box) {} cuts", ndx, cuts.size());
+
+  if (cuts.size() == 0) {
+    // No intersection, let's check if it's inside the box
+    float dist = boxDistance(bbox, l.start);
+    dist = std::min(dist, boxDistance(bbox, l.end));
+    if (dist <= 0) {
+      removeEdge(ndx, true);
+    }
+    return;
+  }
+
+  edgeCutsStartPoint = l.start;
+  compareCuts comparator;
+  sort(cuts.begin(), cuts.end(), comparator);
+  std::vector<item> newEdges;
+  item runningEdge = ndx;
+  Configuration config = getElementConfiguration(ndx);
+
+  for (int i = 0; i < cuts.size(); i++) {
+    item nodeNdx = getOrCreateNodeAt(cuts[i], config);
+    if (nodeNdx == 0)
+      continue;
+    split(nodeNdx, runningEdge, config);
+    Node *node = getNode(nodeNdx);
+    SPDLOG_INFO("split node#{} {} edges", nodeNdx, node->edges.size());
+    if (node->edges.size() > 1) {
+      runningEdge = node->edges[1];
+      newEdges.push_back(node->edges[0]);
+    }
+  }
+  newEdges.push_back(runningEdge);
+
+  for (int i = 0; i < newEdges.size(); i++) {
+    item newEdgeNdx = newEdges[i];
+    Edge *newEdge = getEdge(newEdgeNdx);
+    if (!(newEdge->flags & _graphExists))
+      continue;
+    Line nl = getLine(newEdgeNdx);
+    float dist = boxDistance(bbox, nl.start);
+    dist = std::min(dist, boxDistance(bbox, nl.end));
+    if (dist <= 0) {
+      removeEdge(newEdgeNdx, true);
+    }
+  }
+}

@@ -242,18 +242,18 @@ Vehicle* getVehicleAhead(item ndx) {
 void updateVehicleTrailer(item ndx, float duration) {
   Vehicle* vehicle = getVehicle(ndx);
   Vehicle* trailing = getVehicle(vehicle->trailing);
-  vec3 pilotVector = trailing->location - vehicle->location;
+  glm::vec3 pilotVector = trailing->location - vehicle->location;
 
   if (length(pilotVector) < 1) {
-    vehicle->velocity = vec3(0,0,0);
+    vehicle->velocity = glm::vec3(0,0,0);
     return;
   }
 
-  vec3 nextLoc = trailing->location - normalize(pilotVector) *
+  glm::vec3 nextLoc = trailing->location - normalize(pilotVector) *
     (.5f * (vehicleLength(vehicle) + vehicleLength(trailing)) +
      trailerDistance);
-  vec3 advance = (nextLoc - vehicle->location);
-  vec3 velocity = advance / duration;
+  glm::vec3 advance = (nextLoc - vehicle->location);
+  glm::vec3 velocity = advance / duration;
 
   vehicle->velocity = velocity;
   vehicle->location = nextLoc;
@@ -293,21 +293,21 @@ void updateVehicleTrailer(item ndx, float duration) {
 void updateVehiclePhysicsSimple(item ndx,
     float duration, float mergeSpeed, item nextLane) {
   Vehicle* vehicle = getVehicle(ndx);
-  vec3 pilotVector = getLocation(vehicle->pilot) - vehicle->location;
+  glm::vec3 pilotVector = getLocation(vehicle->pilot) - vehicle->location;
   GraphLocation laneLoc = vehicle->laneLoc;
   GraphLocation pilot = vehicle->pilot;
   Lane* pilotLane = getLane(pilot.lane);
-  vec3 laneOffset = getLocation(laneLoc) - vehicle->location;
+  glm::vec3 laneOffset = getLocation(laneLoc) - vehicle->location;
   LaneBlock* block = getLaneBlock(laneLoc);
   float pilotVectorLength = length(pilotVector);
-  vec3 pilotNorm = pilotVector / pilotVectorLength;
+  glm::vec3 pilotNorm = pilotVector / pilotVectorLength;
   float aggro = vehicle->aggressiveness;
-  vec3 location = vehicle->location;
+  glm::vec3 location = vehicle->location;
   float speed = length(vehicle->velocity);
   float oldSpeed = speed;
 
   if (pilotVectorLength < 0.1) {
-    vehicle->velocity = vec3(0,0,0);
+    vehicle->velocity = glm::vec3(0,0,0);
     return;
   }
 
@@ -358,25 +358,25 @@ void updateVehiclePhysicsSimple(item ndx,
 
   targetSpeed = std::min(targetSpeed, advanceSpeed +
     sqrt(2*staticFriction*g*maxAdvance) / aggro);
-  speed = mix(speed, targetSpeed, duration*aggro);
+  speed = glm::mix(speed, targetSpeed, duration*aggro);
   speed = std::min(speed, (pilotVectorLength - 0.1f)/duration);
-  vec3 velocity = pilotNorm * speed;
-  vec3 advance = velocity * duration;
+  glm::vec3 velocity = pilotNorm * speed;
+  glm::vec3 advance = velocity * duration;
 
   vehicle->velocity = velocity;
-  vec3 oldLoc = vehicle->location;
-  vec3 physicalLoc = oldLoc + advance;
+  glm::vec3 oldLoc = vehicle->location;
+  glm::vec3 physicalLoc = oldLoc + advance;
   laneLoc = graphLocation(laneLoc.lane, physicalLoc);
   vehicle->laneLoc = laneLoc;
-  vec3 alignedLoc = getLocation(laneLoc) + laneOffset;
-  vec3 newLoc = mix(physicalLoc, alignedLoc, clamp(duration, 0.f, .5f));
+  glm::vec3 alignedLoc = getLocation(laneLoc) + laneOffset;
+  glm::vec3 newLoc = glm::mix(physicalLoc, alignedLoc, glm::clamp(duration, 0.f, .5f));
   vehicle->location = newLoc;
-  //vec3 laneVec = normalize(-getLocation(laneLoc) +
+  //glm::vec3 laneVec = normalize(-getLocation(laneLoc) +
       //getLocation(graphLocation(laneLoc.lane, laneLoc.dap+5)));
-  //vec3 movementVec = normalize(pilotNorm + newLoc - oldLoc);
-  //vec3 targetAngleVec = laneVec + movementVec*.1f;
-  vec3 oldAngleVec = vec3(sin(vehicle->yaw), cos(vehicle->yaw), 0);
-  vec3 angleVec = oldAngleVec + velocity;
+  //glm::vec3 movementVec = normalize(pilotNorm + newLoc - oldLoc);
+  //glm::vec3 targetAngleVec = laneVec + movementVec*.1f;
+  glm::vec3 oldAngleVec = glm::vec3(sin(vehicle->yaw), cos(vehicle->yaw), 0);
+  glm::vec3 angleVec = oldAngleVec + velocity;
   vehicle->yaw = atan2(angleVec.x, angleVec.y);
   if (vehicle->flags & _vehicleIsMerging) {
     vehicle->distanceSinceMerge += length(advance);
@@ -408,19 +408,19 @@ void updateVehiclePhysics(item ndx, float duration, float mergeSpeed,
   Lane* pilotLane = getLane(pilot);
   Lane* lane = getLane(laneLoc);
   Vehicle* vehicleAhead = getVehicleAhead(ndx);
-  vec3 velocity = vehicle->velocity;
-  vec3 location = vehicle->location;
+  glm::vec3 velocity = vehicle->velocity;
+  glm::vec3 location = vehicle->location;
 
-  vec3 pilotLoc = getLocation(pilot);
+  glm::vec3 pilotLoc = getLocation(pilot);
   GraphLocation dest = vehicle->destination;
-  vec3 laneVec = normalize(
+  glm::vec3 laneVec = normalize(
       getLocation(graphLocation(pilot.lane, pilot.dap+5)) -
       getLocation(pilot));
   if (pilot.lane == dest.lane && pilot.dap > dest.dap - 10) {
     pilotLoc -= zNormal(laneVec) * c(CLaneWidth);
   }
-  vec3 pilotVector = pilotLoc - vehicle->location;
-  vec3 upilot = normalize(pilotVector);
+  glm::vec3 pilotVector = pilotLoc - vehicle->location;
+  glm::vec3 upilot = normalize(pilotVector);
 
   float speed = length(velocity);
   float oldSpeed = speed;
@@ -455,21 +455,21 @@ void updateVehiclePhysics(item ndx, float duration, float mergeSpeed,
 
   } else if (length(pilotVector) < 0.01 ||
       (laneLoc.dap > pilot.dap && laneLoc.lane == pilot.lane)) {
-    vehicle->velocity = vec3(0,0,0);
+    vehicle->velocity = glm::vec3(0,0,0);
     float slope = upilot.z;
-    float slopeTheta = atan2(slope, length(vec2(upilot)));
+    float slopeTheta = atan2(slope, length(glm::vec2(upilot)));
     float pitch = vehicle->pitch*.9f;
     pitch += slopeTheta * .1f;
     pitch += (-oldSpeed)/duration*0.0002f;
-    pitch = clamp(pitch, -.25f, .25f);
+    pitch = glm::clamp(pitch, -.25f, .25f);
     vehicle->pitch = pitch;
     return;
   }
 
   //Steering
   if (speed > 0.01) {
-    vec3 unitVelocity = normalize(velocity);
-    vec3 steerTargetVector = upilot + laneVec;
+    glm::vec3 unitVelocity = normalize(velocity);
+    glm::vec3 steerTargetVector = upilot + laneVec;
     float turnAmount = 0;
 
     /*
@@ -493,7 +493,7 @@ void updateVehiclePhysics(item ndx, float duration, float mergeSpeed,
         } else {
           turnAmount *= randFloat(0.2, 0.8);
         }
-        turnAmount = clamp(turnAmount, -.5f, .5f);
+        turnAmount = glm::clamp(turnAmount, -.5f, .5f);
         yaw += turnAmount;
         if (yaw > pi_o*2) {
           yaw -= pi_o*2;
@@ -570,11 +570,11 @@ void updateVehiclePhysics(item ndx, float duration, float mergeSpeed,
   } else if (brakingDistance*2 > maxAdvance) {
     targetPedal = -2*brakingDistance / maxAdvance;
   } else {
-    targetPedal = clamp((targetSpeed - speed) / targetSpeed, -.5f, 1.f);
+    targetPedal = glm::clamp((targetSpeed - speed) / targetSpeed, -.5f, 1.f);
   }
 
   // Apply engine or brake energy
-  pedal = mix(pedal, targetPedal, pedal > targetPedal ? 0.2 : 0.05);
+  pedal = glm::mix(pedal, targetPedal, pedal > targetPedal ? 0.2 : 0.05);
   if (pedal > 0.1f) {
     engineEnergy = enginePower * duration * aggressiveness * pedal;
     energy += engineEnergy;
@@ -603,24 +603,24 @@ void updateVehiclePhysics(item ndx, float duration, float mergeSpeed,
   float syaw = sin(yaw);
   float cyaw = cos(yaw);
   float slope = upilot.z;
-  float slopeTheta = atan2(slope, length(vec2(upilot)));
+  float slopeTheta = atan2(slope, length(glm::vec2(upilot)));
   float sslope = sin(slopeTheta);
   float cslope = cos(slopeTheta);
-  velocity = vec3(cslope*syaw*speed, cslope*cyaw*speed, sslope*speed);
-  vec3 advance = velocity * duration;
+  velocity = glm::vec3(cslope*syaw*speed, cslope*cyaw*speed, sslope*speed);
+  glm::vec3 advance = velocity * duration;
   location += advance;
 
   // Pitch the vehicle
   float pitch = vehicle->pitch*.9f;
   pitch += slopeTheta * .1f;
   pitch += (speed-oldSpeed)/duration*0.0002f;
-  pitch = clamp(pitch, -.25f, .25f);
+  pitch = glm::clamp(pitch, -.25f, .25f);
 
   // Write everything back to the vehicle
   vehicle->yaw = yaw;
   vehicle->pitch = pitch;
   vehicle->velocity = velocity;
-  vehicle->acceleration = vec2(brakeLight, pedal);
+  vehicle->acceleration = glm::vec2(brakeLight, pedal);
   vehicle->location = location;
   vehicle->laneLoc = graphLocation(laneLoc.lane, location);
   /* if (vehicle->laneLoc.lane == vehicle->pilot.lane &&

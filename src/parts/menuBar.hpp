@@ -1,5 +1,4 @@
-#ifndef PART_MENU_BAR_H
-#define PART_MENU_BAR_H
+#pragma once
 
 #include "part.hpp"
 
@@ -13,4 +12,4 @@ void setFPSMode(int mode);
 bool toggleUI(Part* part, InputEvent event);
 Part* menuBar(float uiX, float uiY, bool showUI);
 
-#endif
+

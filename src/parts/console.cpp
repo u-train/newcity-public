@@ -6,7 +6,7 @@ const int conDimZ = 14;
 static bool conClicked = false;
 static bool conFocusText = false;
 static float lastMLSize = 0;
-static vec2 conSourceMousePos = vec2(0, 0);
+static glm::vec2 conSourceMousePos = glm::vec2(0, 0);
 static ScrollState conScrollState;
 static TextBoxState conTextBoxState;
 uint32_t conCursorIndex = 0;
@@ -146,9 +146,9 @@ bool consolePanelDrag(Part* part, InputEvent event) {
     return false;
   }
 
-  vec2 newMousePos = transformMouseLoc(event.cameraSpaceMouseLoc);
+  glm::vec2 newMousePos = transformMouseLoc(event.cameraSpaceMouseLoc);
   if(newMousePos != conSourceMousePos) {
-    vec2 offset = conSourceMousePos - consolePos();
+    glm::vec2 offset = conSourceMousePos - consolePos();
     conSourceMousePos = newMousePos;
     consoleSetPos(newMousePos - offset);
   }
@@ -161,19 +161,19 @@ Part* console() {
   float center = uiGridSizeX * aspectRatio * .5f;
   float conWidth = center-9;
   float conHeight = 9.0f;
-  vec2 conPos = vec2(center,uiGridSizeX-conHeight);
-  vec2 conSize = vec2(conWidth, conHeight);
+  glm::vec2 conPos = glm::vec2(center,uiGridSizeX-conHeight);
+  glm::vec2 conSize = glm::vec2(conWidth, conHeight);
 
   Part* conPanel = panel(conPos, conSize);
   conPanel->itemData = CONSOLE_VAL;
   conPanel->dim.start.z = conDimZ;
   conPanel->dim.end.z = conDimZ;
 
-  vec2 scrollStart = vec2(0,0);
-  vec2 scrollSize = vec2(conWidth, conSize.y-conScaleText);
+  glm::vec2 scrollStart = glm::vec2(0,0);
+  glm::vec2 scrollSize = glm::vec2(conWidth, conSize.y-conScaleText);
 
   float mlSize = 0.0f;
-  Part* conML = multiline(vec2(0,0),vec2(conWidth, conScaleText),
+  Part* conML = multiline(glm::vec2(0,0),glm::vec2(conWidth, conScaleText),
     strdup_s(consoleGetText().c_str()), &mlSize);
   conML->itemData = CONSOLE_VAL;
 
@@ -183,15 +183,15 @@ Part* console() {
   conML->dim.start.z = conDimZ;
   conML->dim.end.z = conDimZ;
 
-  Part* conScroll = scrollbox(vec2(0, 0),vec2(conWidth, scrollSize.y));
+  Part* conScroll = scrollbox(glm::vec2(0, 0),glm::vec2(conWidth, scrollSize.y));
   conScroll->itemData = CONSOLE_VAL;
   conScroll->dim.start.z = conDimZ;
   conScroll->dim.end.z = conDimZ;
 
   r(conScroll, conML);
 
-  Part* conTextBox = textBox(vec2(0,scrollSize.y),
-    vec2(conWidth, conScaleText), strdup_s(conTextEntry.c_str()),
+  Part* conTextBox = textBox(glm::vec2(0,scrollSize.y),
+    glm::vec2(conWidth, conScaleText), strdup_s(conTextEntry.c_str()),
     conCursorIndex);
   conTextBox->onClick = consoleEntryClick;
   conTextBox->onKeyDown = consoleEntryKey;
@@ -213,7 +213,7 @@ Part* console() {
   return conPanel;
 }
 
-Part* console(vec2 pos) {
+Part* console(glm::vec2 pos) {
   consoleSetPos(pos);
   return console();
 }

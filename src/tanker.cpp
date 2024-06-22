@@ -1,5 +1,6 @@
 #include "tanker.hpp"
-
+#include "error.hpp"
+#include "item.hpp"
 #include "util.hpp"
 
 item randomInTanker(Tanker* tanker) {

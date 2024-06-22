@@ -4,23 +4,23 @@ const int _rpIsEnd = 1 << 0;
 
 struct RingPoint {
   uint32_t flags;
-  vec3 place;
-  vec3 norm;
-  vec3 normTrap;
+  glm::vec3 place;
+  glm::vec3 norm;
+  glm::vec3 normTrap;
   float normTrapDist;
 };
 
 struct Ring {
-  vec3 center;
-  vec3 offset;
-  vector<RingPoint> points;
+  glm::vec3 center;
+  glm::vec3 offset;
+  std::vector<RingPoint> points;
 };
 
 Mesh* mesh;
 Ring ring;
 
-RingPoint ringPoint(Ring* ring, vec3 place, vec3 norm,
-    vec3 normTrapLoc, uint32_t flags) {
+RingPoint ringPoint(Ring* ring, glm::vec3 place, glm::vec3 norm,
+    glm::vec3 normTrapLoc, uint32_t flags) {
   RingPoint result;
   result.flags = flags;
   result.place = place;
@@ -31,30 +31,30 @@ RingPoint ringPoint(Ring* ring, vec3 place, vec3 norm,
   return result;
 }
 
-RingPoint ringPoint(Ring* ring, vec3 place, vec3 norm, uint32_t flags) {
+RingPoint ringPoint(Ring* ring, glm::vec3 place, glm::vec3 norm, uint32_t flags) {
   RingPoint result;
   result.flags = flags;
   result.place = place;
   result.norm = normalize(norm);
-  result.normTrap = vec3(0,0,0);
+  result.normTrap = glm::vec3(0,0,0);
   result.normTrapDist = -1;
   ring->points.push_back(result);
   return result;
 }
 
-vector<vec3> getRingVec3s(Ring ring) {
-  vector<vec3> result;
+std::vector<glm::vec3> getRingVec3s(Ring ring) {
+  std::vector<glm::vec3> result;
   for (int i = 0; i < ring.points.size(); i++) {
     result.push_back(ring.points[i].place);
   }
   return result;
 }
 
-vec3 convertRingPoint(Ring ring, int i, vec3 place) {
+glm::vec3 convertRingPoint(Ring ring, int i, glm::vec3 place) {
   RingPoint p = ring.points[i];
   float x = place.x;
-  vec3 loc = p.place;
-  vec3 norm = p.norm;
+  glm::vec3 loc = p.place;
+  glm::vec3 norm = p.norm;
 
   if (p.normTrapDist > 0 && x > p.normTrapDist) {
     loc = p.normTrap;
@@ -68,21 +68,21 @@ vec3 convertRingPoint(Ring ring, int i, vec3 place) {
   return loc;
 }
 
-vec3 covertRingNorm(Ring ring, int i, vec3 along) {
+glm::vec3 covertRingNorm(Ring ring, int i, glm::vec3 along) {
   RingPoint p = ring.points[i];
-  return normalize(p.norm*along.x + vec3(0,0,1)*along.z);
+  return normalize(p.norm*along.x + glm::vec3(0,0,1)*along.z);
 }
 
-void makeCenterRing(vec3 place, vec3 tx) {
+void makeCenterRing(glm::vec3 place, glm::vec3 tx) {
   int ringSize = ring.points.size();
-  vec3 center = ring.center - ring.offset;
+  glm::vec3 center = ring.center - ring.offset;
   SPDLOG_INFO("makeCenterRing ringSize:{}", ringSize);
   for (int i = 0; i < ringSize; i++) {
     int i1 = (i+1) % ringSize;
-    vec3 r0 = convertRingPoint(ring, i, place) - ring.offset;
-    vec3 r1 = convertRingPoint(ring, i1, place) - ring.offset;
-    vec3 upn0 = up + ring.points[i].norm * roadMound;
-    vec3 upn1 = up + ring.points[i1].norm * roadMound;
+    glm::vec3 r0 = convertRingPoint(ring, i, place) - ring.offset;
+    glm::vec3 r1 = convertRingPoint(ring, i1, place) - ring.offset;
+    glm::vec3 upn0 = up + ring.points[i].norm * roadMound;
+    glm::vec3 upn1 = up + ring.points[i1].norm * roadMound;
     Triangle t = {{
       {r0, upn0, tx},
       {center, up, tx},
@@ -92,21 +92,21 @@ void makeCenterRing(vec3 place, vec3 tx) {
   }
 }
 
-void makeRing(vec3 start, vec3 along, vec3 tx) {
+void makeRing(glm::vec3 start, glm::vec3 along, glm::vec3 tx) {
   int ringSize = ring.points.size();
-  vec3 center = ring.center - ring.offset;
+  glm::vec3 center = ring.center - ring.offset;
   SPDLOG_INFO("makeRing ringSize:{}", ringSize);
   for (int i = 0; i < ringSize; i++) {
     int i1 = (i+1) % ringSize;
-    vec3 r0 = convertRingPoint(ring, i, start) - ring.offset;
-    vec3 r1 = convertRingPoint(ring, i1, start) - ring.offset;
-    vec3 r2 = convertRingPoint(ring, i, start+along) - ring.offset;
-    vec3 r3 = convertRingPoint(ring, i1, start+along) - ring.offset;
-    vec3 n0 = covertRingNorm(ring, i, along);
-    vec3 n1 = covertRingNorm(ring, i1, along);
+    glm::vec3 r0 = convertRingPoint(ring, i, start) - ring.offset;
+    glm::vec3 r1 = convertRingPoint(ring, i1, start) - ring.offset;
+    glm::vec3 r2 = convertRingPoint(ring, i, start+along) - ring.offset;
+    glm::vec3 r3 = convertRingPoint(ring, i1, start+along) - ring.offset;
+    glm::vec3 n0 = covertRingNorm(ring, i, along);
+    glm::vec3 n1 = covertRingNorm(ring, i1, along);
 
-    vec3 upn0 = up + ring.points[i].norm * roadMound;
-    vec3 upn1 = up + ring.points[i1].norm * roadMound;
+    glm::vec3 upn0 = up + ring.points[i].norm * roadMound;
+    glm::vec3 upn1 = up + ring.points[i1].norm * roadMound;
     makeQuad(mesh, r0, r1, r2, r3, n0, n1, n0, n1, tx, tx);
   }
 }
@@ -116,7 +116,7 @@ Ring getEdgeRing(item edgeNdx) {
   Ring ring;
   ring.center = (edge->line.start + edge->line.end) * .5f;
   float width = edgeWidth(edgeNdx);
-  vec3 norm = uzNormal(edge->line.end - edge->line.start) * width;
+  glm::vec3 norm = uzNormal(edge->line.end - edge->line.start) * width;
   ringPoint(&ring, edge->line.start+norm,  norm, 0);
   ringPoint(&ring, edge->line.start-norm, -norm, _rpIsEnd);
   ringPoint(&ring, edge->line.end+norm,    norm, 0);
@@ -126,9 +126,9 @@ Ring getEdgeRing(item edgeNdx) {
 
 Ring getNodeRing(item nodeNdx, bool simple) {
   Node* node = getNode(nodeNdx);
-  vector<item> edges = getRenderableEdges(nodeNdx);
+  std::vector<item> edges = getRenderableEdges(nodeNdx);
   Ring ring;
-  vec3 center = node->center;
+  glm::vec3 center = node->center;
   ring.center = center;
   int numEdges = edges.size();
   int gameMode = getGameMode();
@@ -142,14 +142,14 @@ Ring getNodeRing(item nodeNdx, bool simple) {
 
     // make culdesac
     if (numEdges == 1) {
-      vec3 edgeLoc = edge->ends[0] == nodeNdx ?
+      glm::vec3 edgeLoc = edge->ends[0] == nodeNdx ?
         edge->line.start : edge->line.end;
-      vec3 nalong = edgeLoc - center;
-      vec3 dir = normalize(edgeLoc - center) *
+      glm::vec3 nalong = edgeLoc - center;
+      glm::vec3 dir = normalize(edgeLoc - center) *
         node->intersectionSize;
-      vec3 unorm = normalize(vec3(dir.y, -dir.x, 0));
-      vec3 norm = unorm * (edgeWidth(edges[i])*.5f);
-      vec3 loc = center + nalong;
+      glm::vec3 unorm = normalize(glm::vec3(dir.y, -dir.x, 0));
+      glm::vec3 norm = unorm * (edgeWidth(edges[i])*.5f);
+      glm::vec3 loc = center + nalong;
       ringPoint(&ring, loc - norm, -norm, 0);
       ringPoint(&ring, loc + norm,  norm, _rpIsEnd);
 
@@ -163,7 +163,7 @@ Ring getNodeRing(item nodeNdx, bool simple) {
         for(int i = 0; i < culdesacVerticies; i ++) {
           float theta =  - i * pi_o * 1.25 / (culdesacVerticies - 1 ) +
             pi_o * 0.625;
-          vec3 rdir = rotateZ(nalong, theta);
+          glm::vec3 rdir = rotateZ(nalong, theta);
           ringPoint(&ring, center - rdir, -rdir, 0);
         }
       }
@@ -173,7 +173,7 @@ Ring getNodeRing(item nodeNdx, bool simple) {
       Edge* other = getEdge(otherNdx);
       Edge* cornerEdges[2] = {edge, other};
       float widths[2] = {edgeWidth(edges[i]), edgeWidth(otherNdx)};
-      vec3 cnorms[2];
+      glm::vec3 cnorms[2];
       Line l[2];
 
       for (int j = 0; j < 2; j++) {
@@ -185,16 +185,16 @@ Ring getNodeRing(item nodeNdx, bool simple) {
 
         l[j].start.z = center.z;
         l[j].end.z = center.z;
-        vec3 along = l[j].end - l[j].start;
-        vec3 unorm = normalize(vec3(along.y, -along.x, 0));
+        glm::vec3 along = l[j].end - l[j].start;
+        glm::vec3 unorm = normalize(glm::vec3(along.y, -along.x, 0));
         if (j == 1) unorm *= -1;
-        vec3 norm = unorm * widths[j] * .5f;
+        glm::vec3 norm = unorm * widths[j] * .5f;
         cnorms[j] = norm;
         l[j].start += norm;
         l[j].end += norm;
       }
 
-      vec3 normTrap = pointOfIntersection(
+      glm::vec3 normTrap = pointOfIntersection(
           line(l[0].start, l[0].start+cnorms[0]*100.f),
           line(l[1].start, l[1].start+cnorms[1]*100.f));
       Spline s = spline(l[0], l[1]);
@@ -202,8 +202,8 @@ Ring getNodeRing(item nodeNdx, bool simple) {
       int numCurveSegments = simple ? 1 : 12;
       for (int j = 0; j <= numCurveSegments; j++) {
         float theta = float(j)/numCurveSegments;
-        vec3 loc = interpolateSpline(s, theta);
-        vec3 norm = cnorms[0] * (1-theta) + cnorms[1] * theta;
+        glm::vec3 loc = interpolateSpline(s, theta);
+        glm::vec3 norm = cnorms[0] * (1-theta) + cnorms[1] * theta;
         uint32_t flags = (j == 0) ? _rpIsEnd : 0;
         ringPoint(&ring, loc, norm, normTrap, 0);
       }
@@ -213,7 +213,7 @@ Ring getNodeRing(item nodeNdx, bool simple) {
   return ring;
 }
 
-void renderGraphElement(item ndx, vec3 node_tx) {
+void renderGraphElement(item ndx, glm::vec3 node_tx) {
 }
 
   /* push functions and arguments */
@@ -246,8 +246,8 @@ void renderNodeNew(item ndx) {
     node->signEntity = addEntity(SignShader);
   }
 
-  vec3 center = node->center;
-  vector<item> edges = getRenderableEdges(ndx);
+  glm::vec3 center = node->center;
+  std::vector<item> edges = getRenderableEdges(ndx);
   int numEdges = edges.size();
   bool isUnderground = isNodeUnderground(ndx);
   float landZ = pointOnLand(center).z;
@@ -267,7 +267,7 @@ void renderNodeNew(item ndx) {
   Entity* entity = getEntity(node->entity);
   item texture = isExpwy ? expresswayTexture :
     isRail ? railTexture : roadTexture;
-  vec3 node_tx = isRail ? node_x : isPed ? sidewalk_xs : node_x;
+  glm::vec3 node_tx = isRail ? node_x : isPed ? sidewalk_xs : node_x;
   entity->texture = texture;
   placeEntity(node->entity, node->center, 0, 0);
   setCull(node->entity, node->intersectionSize, 100000);
@@ -313,7 +313,7 @@ void renderNodeNew(item ndx) {
   }
 
   if (abs(node->center.z-pointOnLand(node->center).z) > c(CRoadRise)*4) {
-    makeSupportPillar(ndx, complexMesh, simpleMesh, vec3(0,0,0), node->center);
+    makeSupportPillar(ndx, complexMesh, simpleMesh, glm::vec3(0,0,0), node->center);
   }
 
   for (int simple = 0; simple < 2; simple++) {
@@ -322,13 +322,13 @@ void renderNodeNew(item ndx) {
     mesh = simple ? simpleMesh : complexMesh;
     renderGraphElement(ndx, node_tx);
 
-    makeCenterRing(vec3(0,0,0), node_tx);
+    makeCenterRing(glm::vec3(0,0,0), node_tx);
     if (drawSidewalk) {
-      makeRing(vec3(0, 0, 0), vec3(10, 0, 0), sidewalk_xs);
-      makeRing(vec3(10, 0, 0), vec3(10, 0, -10), sholder_xs);
+      makeRing(glm::vec3(0, 0, 0), glm::vec3(10, 0, 0), sidewalk_xs);
+      makeRing(glm::vec3(10, 0, 0), glm::vec3(10, 0, -10), sholder_xs);
     } else {
       // Sholder
-      makeRing(vec3(0, 0, 0), vec3(10, 0, -10), sholder_xs);
+      makeRing(glm::vec3(0, 0, 0), glm::vec3(10, 0, -10), sholder_xs);
     }
 
     if (!simple && node->config.strategy == TrafficLightStrategy) {

@@ -13,6 +13,10 @@
 #include "../string_proxy.hpp"
 #include "../time.hpp"
 #include "../zone.hpp"
+#include "../game/constants.hpp"
+#include <glm/glm.hpp>
+
+using glm::clamp;
 
 #include "spdlog/spdlog.h"
 #include "string.h"
@@ -40,23 +44,23 @@ struct BuildingTexture {
   item minYear = INT_MIN;
   item maxYear = INT_MAX;
   item textureNdx = buildingTexture;
-  vector<item> illumTextures;
-  vector<item> illumTextureID;
+  std::vector<item> illumTextures;
+  std::vector<item> illumTextureID;
   item normalTex = 0;
   item glID = 0;
-  vector<uint8_t> zones;
-  vector<char*> designName;
+  std::vector<uint8_t> zones;
+  std::vector<char*> designName;
 };
 
 const uint32_t _buildingTextureUniversity = 1 << 1;
 const uint32_t _buildingTextureInvalid = 1 << 2;
 
 Cup<BuildingTexture> buildingTextures;
-vector<item> buildingTexTable[numZoneTypes];
-vector<item> buildingsToPaint;
-vector<vector<item>> matchingTextures;
-static unordered_map<std::string, vector<item>> illumGroups;
-static unordered_map<std::string, item> normalGroups;
+std::vector<item> buildingTexTable[numZoneTypes];
+std::vector<item> buildingsToPaint;
+std::vector<std::vector<item>> matchingTextures;
+static std::unordered_map<std::string, std::vector<item>> illumGroups;
+static std::unordered_map<std::string, item> normalGroups;
 static float lightLevel = 2;
 static bool hasUniDesigns = false;
 
@@ -72,7 +76,7 @@ void resetBuildingTextures() {
     }
     tex->designName.clear();
 
-    vector<item> swap;
+    std::vector<item> swap;
     tex->illumTextures.swap(swap);
   }
 
@@ -120,7 +124,7 @@ float getBuildingTextureLightLevel() {
 void loadBuildingTextures() {
   buildingTextures.resize(1); // reserve zero for null
 
-  vector<string> files = lookupDirectory("textures/buildings", ".png",
+  std::vector<std::string> files = lookupDirectory("textures/buildings", ".png",
     c(CDisableDefaultBuildingTextures) ? _lookupExcludeBase : 0);
   for (int i = 0; i < files.size(); i ++) {
     BuildingTexture tex;
@@ -223,7 +227,7 @@ void loadBuildingTextures() {
       }
 
     } else if (tex.type == BTexIllumination) {
-      vector<item> group;
+      std::vector<item> group;
       std::string str(tex.illumGroup);
       auto result = illumGroups.find(str);
       if (result != illumGroups.end()) group = result->second;
@@ -297,8 +301,8 @@ bool doesTextureMatchBuilding(item buildingNdx, item texNdx) {
 }
 
 void findDesignTextures(item designNdx) {
-  vector<item> allMatches;
-  vector<item> nameMatches;
+  std::vector<item> allMatches;
+  std::vector<item> nameMatches;
   Design* d = getDesign(designNdx);
   item zone = d->zone;
   int size = buildingTexTable[zone].size();
@@ -338,7 +342,7 @@ item getBuildingTexture(item ndx, bool isSwap) {
       matchingTextures[b->design].size() == 0) {
     findDesignTextures(b->design);
   }
-  vector<item> matches = matchingTextures[b->design];
+  std::vector<item> matches = matchingTextures[b->design];
 
   item result = 0;
   item matchesS = matches.size();
@@ -361,7 +365,7 @@ item getBuildingTexture(item ndx, bool isSwap) {
   BuildingTexture* tex = buildingTextures.get(result);
   item numIllumTextures = tex->illumTextures.size();
   float targetIllum = getTargetIllumLevel(ndx);
-  targetIllum = clamp(targetIllum, 0.f, float(numIllumTextures-1));
+  targetIllum = glm::clamp(targetIllum, 0.f, float(numIllumTextures-1));
 
   //SPDLOG_INFO("{} illum{} numIllum{}",
       //ndx, targetIllum, numIllumTextures);
@@ -427,7 +431,7 @@ item numMatchingTextures(item ndx) {
       matchingTextures[b->design].size() == 0) {
     findDesignTextures(b->design);
   }
-  vector<item> matches = matchingTextures[b->design];
+  std::vector<item> matches = matchingTextures[b->design];
 
   item result = 0;
   item matchesS = matches.size();

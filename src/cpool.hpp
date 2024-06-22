@@ -4,7 +4,6 @@
 #include "cup.hpp"
 #include "serialize.hpp"
 #include "string_proxy.hpp"
-using namespace std;
 
 template <typename T>
 class CPool {

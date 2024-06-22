@@ -4,7 +4,6 @@
 #include "../draw/entity.hpp"
 #include "../draw/texture.hpp"
 #include "../game/game.hpp"
-#include "../main.hpp"
 #include "../selection.hpp"
 #include "../sound.hpp"
 #include "../string.hpp"
@@ -18,9 +17,9 @@ typedef set<item> itemset;
 typedef itemset::iterator itemsetIter;
 
 static itemset demBuildings;
-static vector<item> demGraphElems;
-static vector<item> demPillars;
-static vector<item> demStops;
+static std::vector<item> demGraphElems;
+static std::vector<item> demPillars;
+static std::vector<item> demStops;
 static float totalCost = 0;
 static float emDomCost = 0;
 static float assetSales = 0;
@@ -28,8 +27,8 @@ static bool isNodeSimplify = false;
 static bool mouseDown = false;
 static bool bullBoxActive = false;
 static item bulldozerText = 0;
-static vec3 bulldozerCursorLoc = vec3(0,0,0);
-static vec3 bullSelectionStart = vec3(0,0,0);
+static glm::vec3 bulldozerCursorLoc = glm::vec3(0,0,0);
+static glm::vec3 bullSelectionStart = glm::vec3(0,0,0);
 static Line bulldozerLine;
 static item bullBoxCursorEntity = 0;
 static float treesToAdd = 0;
@@ -52,7 +51,7 @@ static const char* dozerLabel[] = {
   "Earthworks", "Destroy", "Place Trees",
 };
 
-const vec3 iconDozer[] = {
+const glm::vec3 iconDozer[] = {
   iconEarthworks, iconBulldozer, iconTree,
 };
 
@@ -63,7 +62,7 @@ const float dozerBrushRadius[] = {
   3125.0f, // Large
 };
 
-const vec3 iconDozerBrush[] = {
+const glm::vec3 iconDozerBrush[] = {
   iconDotTiny,
   iconDotSmall,
   iconDotMedium,
@@ -163,7 +162,7 @@ void renderBulldozerText() {
     }
   }
 
-  renderString(textMesh, text, vec3(0,-fontSize,0), fontSize);
+  renderString(textMesh, text, glm::vec3(0,-fontSize,0), fontSize);
   free(text);
 
   bufferMesh(textEntity->mesh);
@@ -187,14 +186,14 @@ void renderBulldozerBox() {
   setEntityTransparent(bullBoxCursorEntity, true);
   setEntityHighlight(bullBoxCursorEntity, getLightLevel() < 0.5);
   createMeshForEntity(bullBoxCursorEntity);
-  vec3 offset = bulldozerCursorLoc;
+  glm::vec3 offset = bulldozerCursorLoc;
   placeEntity(bullBoxCursorEntity, offset, 0, 0);
 
   Mesh* mesh = getMeshForEntity(bullBoxCursorEntity);
 
   if (currentDozer == destroyTool) {
-    vec3 center = .5f*(bulldozerLine.start + bulldozerLine.end);
-    vec3 size = vec3(
+    glm::vec3 center = .5f*(bulldozerLine.start + bulldozerLine.end);
+    glm::vec3 size = glm::vec3(
         abs(bulldozerLine.start.x-center.x)*2.f,
         abs(bulldozerLine.start.y-center.y)*2.f,
         5);
@@ -203,7 +202,7 @@ void renderBulldozerBox() {
   } else if (currentDozer == earthworksTool) {
     float z = !earthworksContinuous ? earthworksHeight :
       bulldozerCursorLoc.z + (bulldozer_wasMod ? -10 : 10);
-    makeCylinder(mesh, vec3(0,0,-bulldozerCursorLoc.z), z,
+    makeCylinder(mesh, glm::vec3(0,0,-bulldozerCursorLoc.z), z,
         dozerBrushRadius[dozerBrush], 48, colorTransparentWhite);
   }
 
@@ -301,7 +300,7 @@ void bulldozer_mouse_move_callback(InputEvent event) {
   demGraphElems.clear();
   demStops.clear();
   demPillars.clear();
-  vec3 landPoint = landIntersect(event.mouseLine);
+  glm::vec3 landPoint = landIntersect(event.mouseLine);
   bulldozerCursorLoc = landPoint;
   bool isMod = event.mods & GLFW_MOD_ALT;
   bulldozer_wasMod = isMod;
@@ -320,7 +319,7 @@ void bulldozer_mouse_move_callback(InputEvent event) {
         // This was the former Alt + Earthworks behavior
         earthworksHeight = round(bulldozerCursorLoc.z);
       } else if (canBuy(BuildingBuildExpenses, 1)) {
-        vec3 target = bulldozerCursorLoc;
+        glm::vec3 target = bulldozerCursorLoc;
         float bypassHeight = 0.0f;
 
         if (!earthworksContinuous) {
@@ -362,8 +361,8 @@ void bulldozer_mouse_move_callback(InputEvent event) {
 
         float angle = randFloat(0, pi_o*2);
         float mag = sqrt(randFloat(0, 1)) * throwDist;
-        vec3 thrw = vec3(sin(angle), cos(angle), 0.f) * mag;
-        vec3 loc = bulldozerCursorLoc + thrw;
+        glm::vec3 thrw = glm::vec3(sin(angle), cos(angle), 0.f) * mag;
+        glm::vec3 loc = bulldozerCursorLoc + thrw;
 
         if (isMod) {
           clearTrees(loc);
@@ -384,7 +383,7 @@ void bulldozer_mouse_move_callback(InputEvent event) {
 
     demGraphElems = getCollisions(GraphCollisions, b, 0);
 
-    vector<item> buildings = getCollisions(BuildingCollisions, b, 0);
+    std::vector<item> buildings = getCollisions(BuildingCollisions, b, 0);
     std::copy(buildings.begin(),
         buildings.end(),
         std::inserter(demBuildings, demBuildings.end()));
@@ -604,15 +603,15 @@ bool toggleContinuous(Part* part, InputEvent event) {
 
 Part* bulldozer_render(Line dim) {
   Part* result = panel(dim);
-  r(result, label(vec2(0,0), 1, strdup_s(dozerLabel[currentDozer])));
-  //r(result, hr(vec2(0,1), dim.end.x-toolPad*2));
-  r(result, icon(vec2(4.5f,0.0f), iconDozer[currentDozer]));
+  r(result, label(glm::vec2(0,0), 1, strdup_s(dozerLabel[currentDozer])));
+  //r(result, hr(glm::vec2(0,1), dim.end.x-toolPad*2));
+  r(result, icon(glm::vec2(4.5f,0.0f), iconDozer[currentDozer]));
 
   if (currentDozer != destroyTool) {
     for(int b = 0; b < numDozerBrushes; b++) {
       bool tree = currentDozer == placeTreeTool;
       float brushOffset = (tree ? 2.f : 3.5f) + b*1.5f;
-      Part* butt = button(vec2(brushOffset, tree ? 3. : 1.5),
+      Part* butt = button(glm::vec2(brushOffset, tree ? 3. : 1.5),
           iconDozerBrush[b], setTreeBrush);
       butt->itemData = b;
       butt->inputAction = (InputAction)(ActBTBrushXSmall+b);
@@ -626,18 +625,18 @@ Part* bulldozer_render(Line dim) {
   if (currentDozer == earthworksTool) {
     if (!earthworksContinuous) {
       float z = earthworksHeight;
-      Part* buttUp = button(vec2(1,2), iconUp, earthworksHeightCallback);
+      Part* buttUp = button(glm::vec2(1,2), iconUp, earthworksHeightCallback);
       buttUp->inputAction = ActBTRaiseElevation;
       buttUp->itemData = 1;
       setPartTooltipValues(buttUp, TooltipType::RoadRaiseEle);
       //if (z > 0) buttUp->flags |= _partHighlight;
       r(result, buttUp);
 
-      r(result, labelCenter(vec2(.5f,2.85f), vec2(2.f,.85f),
+      r(result, labelCenter(glm::vec2(.5f,2.85f), glm::vec2(2.f,.85f),
              sprintf_o("%s%dm", z == 0 ? " " : z < 0 ? "" : "+", int(z))));
-      r(result, labelCenter(vec2(.5f,3.5f), vec2(2.f,.6f), strdup_s(z < 0 ? "Below Sea Lvl" : "Above Sea Lvl")));
+      r(result, labelCenter(glm::vec2(.5f,3.5f), glm::vec2(2.f,.6f), strdup_s(z < 0 ? "Below Sea Lvl" : "Above Sea Lvl")));
 
-      Part* buttDown = button(vec2(1,4), iconDown, earthworksHeightCallback);
+      Part* buttDown = button(glm::vec2(1,4), iconDown, earthworksHeightCallback);
       buttDown->inputAction = ActBTLowerElevation;
       buttDown->itemData = -1;
       setPartTooltipValues(buttDown, TooltipType::RoadLowerEle);
@@ -645,7 +644,7 @@ Part* bulldozer_render(Line dim) {
       r(result, buttDown);
     }
 
-    Part* buttSmoooth = buttonCenter(vec2(3.5,2.75), vec2(6,0.85),
+    Part* buttSmoooth = buttonCenter(glm::vec2(3.5,2.75), glm::vec2(6,0.85),
         strdup_s("Smooth"), toggleSmooth);
     buttSmoooth->inputAction = ActBTSmooth;
     //setPartTooltipValues(buttDown, TooltipType::RoadLowerEle);
@@ -656,20 +655,20 @@ Part* bulldozer_render(Line dim) {
     Revisit this; add a callback? -supersoup
     KeyBind bind = getKeyBind(buttSmoooth->inputAction);
     if (bind.key != GLFW_KEY_UNKNOWN) {
-      Part* buttSmooothKey = button(vec2(6.5, 3.5), iconNull, 0);
+      Part* buttSmooothKey = button(glm::vec2(6.5, 3.5), iconNull, 0);
       buttSmooothKey->text = strdup_s(getKeyStr(bind.key).c_str());
       r(result, buttSmooothKey);
     }
     */
 
-Part* superButton(vec2 start, vec2 size, vec3 ico, char* text,
+Part* superButton(glm::vec2 start, glm::vec2 size, glm::vec3 ico, char* text,
   InputCallback callback, item itemData, InputAction action, bool highlight);
 
-    r(result, superButton(vec2(3.5, 3.75), vec2(6, 0.85), iconEarthworks, strdup_s("Raise/Lower"), toggleContinuous, 1, ActBTContinuous, earthworksContinuous));
-    r(result, superButton(vec2(3.5, 4.75), vec2(6, 0.85), iconEarthworksLevel, strdup_s("Level"), toggleContinuous, 0, ActBTContinuous, !earthworksContinuous));
+    r(result, superButton(glm::vec2(3.5, 3.75), glm::vec2(6, 0.85), iconEarthworks, strdup_s("Raise/Lower"), toggleContinuous, 1, ActBTContinuous, earthworksContinuous));
+    r(result, superButton(glm::vec2(3.5, 4.75), glm::vec2(6, 0.85), iconEarthworksLevel, strdup_s("Level"), toggleContinuous, 0, ActBTContinuous, !earthworksContinuous));
   }
 
-  Part* tabPanel = panel(vec2(0,6), vec2(10,1));
+  Part* tabPanel = panel(glm::vec2(0,6), glm::vec2(10,1));
   tabPanel->flags |= _partLowered;
   r(result, tabPanel);
 
@@ -681,7 +680,7 @@ Part* superButton(vec2 start, vec2 size, vec3 ico, char* text,
     if (i == placeTreeTool && !isFeatureEnabled(FPlaceTrees)) continue;
     if (i == earthworksTool && !isFeatureEnabled(FEarthworks)) continue;
 
-    Part* butt = button(vec2(i*2+tabOffset,0), iconDozer[i], setDozer, i);
+    Part* butt = button(glm::vec2(i*2+tabOffset,0), iconDozer[i], setDozer, i);
     if (i == currentDozer) {
       butt->flags |= _partHighlight;
     }
@@ -695,25 +694,25 @@ Part* superButton(vec2 start, vec2 size, vec3 ico, char* text,
 
 void bulldozerInstructionPanel(Part* panel) {
   if (currentDozer == destroyTool) {
-    r(panel, label(vec2(1,1.5), .85, strdup_s(
+    r(panel, label(glm::vec2(1,1.5), .85, strdup_s(
       "Use left click to destroy\n"
       "roads or buildings. Click\n"
       "and drag to destroy multiple\n"
       "things at once. Be careful where\n"
       "you click!")));
   } else if (currentDozer == placeTreeTool) {
-    r(panel, label(vec2(1,2), .85, strdup_s(
+    r(panel, label(glm::vec2(1,2), .85, strdup_s(
       "Use left click to place trees.\n"
       "Hold down Alt and left click\n"
       "to remove trees.")));
   } else if (currentDozer == earthworksTool) {
     if (earthworksContinuous) {
-      r(panel, label(vec2(1,2), .85, strdup_s(
+      r(panel, label(glm::vec2(1,2), .85, strdup_s(
         "Use left click to raise terrain.\n"
         "Hold down Alt and left click to\n"
         "lower terrain.")));
     } else {
-      r(panel, label(vec2(1,1.5), .85, strdup_s(
+      r(panel, label(glm::vec2(1,1.5), .85, strdup_s(
         "Use left click to level\n"
         "terrain to the set height.\n"
         "Hold down Alt and left\n"

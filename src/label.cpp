@@ -67,28 +67,28 @@ void renderLabel(item ndx) {
   //setEntityBringToFront(label->entity, true);
   setEntityTransparent(label->entity, false);
   setEntityHighlight(label->entity, true);
-  vec3 loc = pointOnLand(label->location);
+  glm::vec3 loc = pointOnLand(label->location);
   loc.z += fontSize + 50;
   placeEntity(label->entity, loc, 0.f, 0.f);
   createMeshForEntity(label->entity);
   createSimpleMeshForEntity(label->entity);
   Mesh* textMesh = getMesh(textEntity->simpleMesh);
 
-  vec3 normal = vec3(0,-1,0);
+  glm::vec3 normal = glm::vec3(0,-1,0);
   renderStringCentered(textMesh, label->text,
-    vec3(0,-fontSize*.5f, 0), -zNormal(normal)*fontSize, -normal*fontSize);
+    glm::vec3(0,-fontSize*.5f, 0), -zNormal(normal)*fontSize, -normal*fontSize);
 
   setEntityRedHighlight(label->entity, label->flags & _labelRed);
   setEntityBlueHighlight(label->entity, label->flags & _labelBlue);
 
   //renderStringCentered(getMesh(textEntity->mesh), label->text,
-    //vec3(0,-fontSize*.5f, 0), zNormal(normal)*fontSize, normal*fontSize);
+    //glm::vec3(0,-fontSize*.5f, 0), zNormal(normal)*fontSize, normal*fontSize);
   //bufferMesh(textEntity->mesh);
 
   bufferMesh(textEntity->simpleMesh);
 }
 
-item addLabel(vec3 location, uint32_t flags) {
+item addLabel(glm::vec3 location, uint32_t flags) {
   item ndx = labels->create();
   Label* label = getLabel(ndx);
   label->flags = _labelExists | flags;
@@ -128,7 +128,7 @@ item intersectLabel(Line mouseLine) {
     if (!(label->flags & _labelExists)) continue;
 
     float fontSize = getLabelFontSize(i);
-    vec3 loc = label->location;
+    glm::vec3 loc = label->location;
     loc.z += fontSize + 50;
     float dist = pointLineDistance(loc, mouseLine);
 

@@ -1,7 +1,6 @@
-#ifndef IMAGE_H
-#define IMAGE_H
+#pragma once
 
-#include "../main.hpp"
+#include <glm/glm.hpp>
 
 struct Image {
   int x;
@@ -19,6 +18,6 @@ Image createImage(int x, int y);
 void freeImage(Image img);
 
 void blitImage(Image source, Image dest, int x, int y);
-vec4 samplePixel(Image source, float x, float y);
+glm::vec4 samplePixel(Image source, float x, float y);
 
-#endif
+

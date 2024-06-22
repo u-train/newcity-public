@@ -9,7 +9,7 @@
 #include "travelGroup.hpp"
 
 const int numPedColors = 5;
-const vec3 pedColors[numPedColors] = {
+const glm::vec3 pedColors[numPedColors] = {
   colorWhite, colorGray, colorWaterBlue, colorRed, colorDarkGray
 };
 
@@ -28,7 +28,7 @@ void updatePedestrianRender_g(item groupNdx) {
   if (groupMesh_g[color] == 0) {
     groupMesh_g[color] = addMesh();
     Mesh* mesh = getMesh(groupMesh_g[color]);
-    makeCylinder(mesh, vec3(0,0,0), 2,
+    makeCylinder(mesh, glm::vec3(0,0,0), 2,
       0.25, 6, pedColors[color]);
     bufferMesh(groupMesh_g[color]);
   }
@@ -57,8 +57,8 @@ void updatePedestrianRender_g(item groupNdx) {
     setCull(entityNdx, 0, 2000);
   }
 
-  vec3 loc = locationToWorldspace_g(group->location);
-  loc += vec3(groupNdx%10-5, (groupNdx/10)%10-5, 0) * .5f;
+  glm::vec3 loc = locationToWorldspace_g(group->location);
+  loc += glm::vec3(groupNdx%10-5, (groupNdx/10)%10-5, 0) * .5f;
   placeEntity(entityNdx, loc, 0, 0);
 }
 

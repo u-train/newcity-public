@@ -6,40 +6,40 @@
 #include "spdlog/spdlog.h"
 #include <string.h>
 
-Part* labelRight(vec2 start, vec2 size, char* text) {
+Part* labelRight(glm::vec2 start, glm::vec2 size, char* text) {
   Part* result = label(start, size.y, text);
-  result->dim.end = vec3(size, 0);
+  result->dim.end = glm::vec3(size, 0);
   result->flags |= _partAlignRight;
   return result;
 }
 
-Part* labelCenter(vec2 start, vec2 size, char* text) {
+Part* labelCenter(glm::vec2 start, glm::vec2 size, char* text) {
   Part* result = label(start, size.y, text);
-  result->dim.end = vec3(size, 0);
+  result->dim.end = glm::vec3(size, 0);
   result->flags |= _partAlignCenter;
   return result;
 }
 
-Part* labelRed(vec2 loc, float size, char* text) {
+Part* labelRed(glm::vec2 loc, float size, char* text) {
   Part* result = label(loc, size, text);
   result->foregroundColor = PickerPalette::RedDark;
   return result;
 }
 
-Part* label(vec2 start, vec2 size, char* text) {
+Part* label(glm::vec2 start, glm::vec2 size, char* text) {
   Part* result = part(start);
   result->padding = 0.125;
-  result->dim.end = vec3(size, 0);
+  result->dim.end = glm::vec3(size, 0);
   result->renderMode = RenderText;
   result->text = text;
   return result;
 }
 
-Part* label(vec2 start, float size, char* text) {
-  return label(start, vec2(1, size), text);
+Part* label(glm::vec2 start, float size, char* text) {
+  return label(start, glm::vec2(1, size), text);
 }
 
-Part* label(vec2 start, float size, char* text, bool red) {
+Part* label(glm::vec2 start, float size, char* text, bool red) {
   Part* result = label(start, size, text);
   if (red) {
     result->foregroundColor = PickerPalette::RedDark;
@@ -47,7 +47,7 @@ Part* label(vec2 start, float size, char* text, bool red) {
   return result;
 }
 
-Part* multiline(vec2 start, vec2 size, char* text, float* ySize) {
+Part* multiline(glm::vec2 start, glm::vec2 size, char* text, float* ySize) {
   Part* result = part(start);
   float padding = 0.125;
   result->padding = padding;

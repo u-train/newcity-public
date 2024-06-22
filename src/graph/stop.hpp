@@ -13,12 +13,12 @@ struct Stop {
   char* name;
   item plan;
   item currentVehicle;
-  vector<item> travelGroups;
+  std::vector<item> travelGroups;
   item numWaiting;
   item updateNdx;
   GraphLocation graphLoc;
-  vec3 location;
-  vector<item> lines;
+  glm::vec3 location;
+  std::vector<item> lines;
 };
 
 item addStop(GraphLocation loc);

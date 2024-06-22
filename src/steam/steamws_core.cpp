@@ -371,7 +371,7 @@ void steamws_core::PrepareMoveWorkshopItems(PublishedFileId_t *items, uint32_t n
   SPDLOG_INFO("Searching for Steam Workshop items to be moved to NewCity directory...");
 
   std::string workshopNewCityContentPath = steamws_contentPath + "/" + std::to_string(NewCityAppID);
-  vector<std::string> workshopItemSubfolders = getSubfoldersInDir(workshopNewCityContentPath.c_str(), false);
+  std::vector<std::string> workshopItemSubfolders = getSubfoldersInDir(workshopNewCityContentPath.c_str(), false);
   uint32_t numSubfolders = workshopItemSubfolders.size();
 
   if(numSubfolders > 0) {
@@ -405,7 +405,7 @@ void steamws_core::MoveSubbedItemsToGameDir() {
   SPDLOG_INFO("Moving Steam Workshop items to NewCity directory...");
 
   std::string workshopNewCityContentPath = steamws_contentPath + "/" + std::to_string(NewCityAppID);
-  vector<std::string> workshopItemSubfolders = getSubfoldersInDir(workshopNewCityContentPath.c_str(), false);
+  std::vector<std::string> workshopItemSubfolders = getSubfoldersInDir(workshopNewCityContentPath.c_str(), false);
   uint32_t numSubfolders = workshopItemSubfolders.size();
 
   if(numSubfolders > 0) {
@@ -444,7 +444,7 @@ void steamws_core::MoveSubbedItemsToGameDir() {
   // Get the returned item ids
   PublishedFileId_t *items = new PublishedFileId_t[returnedItems];
   steamws_itemTag *itemTags = new steamws_itemTag[returnedItems];
-  // Freeing itemNames as array throws a fatal error, so it's a vector
+  // Freeing itemNames as array throws a fatal error, so it's a std::vector
   std::vector<std::string> itemNames;
   std::vector<std::string>().swap(itemNames);
 

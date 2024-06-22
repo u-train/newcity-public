@@ -1,5 +1,4 @@
-#ifndef NAMES_H
-#define NAMES_H
+#pragma once
 
 #include "item.hpp"
 
@@ -15,4 +14,4 @@ void initNames();
 void resetNames();
 char* randomName(item type);
 
-#endif
+

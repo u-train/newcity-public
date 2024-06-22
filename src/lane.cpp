@@ -1,18 +1,15 @@
 #include "lane.hpp"
 
-#include "error.hpp"
 #include "graph.hpp"
 #include "graph/transitRouter.hpp"
-#include "option.hpp"
 #include "pool.hpp"
-#include "renderGraph.hpp"
 #include "serialize.hpp"
 #include "route/broker.hpp"
-#include "route/router.hpp"
 #include "thread.hpp"
 #include "time.hpp"
 #include "util.hpp"
 #include "vehicle/update.hpp"
+#include "game/constants.hpp"
 
 #include "spdlog/spdlog.h"
 
@@ -23,13 +20,13 @@ const int laneBlockIndexMultiplier = 10;
 
 Pool<LaneBlock>* laneBlocks = Pool<LaneBlock>::newPool(20000);
 static bool updateLaneCache = false;
-static atomic<bool> laneMemoryBarrier(false);
-static atomic<bool> routerMemoryBarrier(false);
-static atomic<bool> lanesReady(false);
+static std::atomic<bool> laneMemoryBarrier(false);
+static std::atomic<bool> routerMemoryBarrier(false);
+static std::atomic<bool> lanesReady(false);
 
 // for router
-Cup<vec3> laneBlockStarts_r;
-Cup<vec3> laneBlockEnds_r;
+Cup<glm::vec3> laneBlockStarts_r;
+Cup<glm::vec3> laneBlockEnds_r;
 Cup<unsigned char> laneBlockOpen;
 Cup<float> laneTimeEstimate;
 Cup<item> laneDrainsSlot;
@@ -55,10 +52,10 @@ void computeLengths(LaneBlock* block) {
   for (int i = 0; i < numLanes; i ++) {
     Lane* lane = &block->lanes[i];
     float lngth = 0;
-    vec3 s = lane->ends[0];
+    glm::vec3 s = lane->ends[0];
     const int numSamples = 24;
     for (int j = 1; j <= numSamples; j++) {
-      vec3 c = interpolateSpline(lane->spline, float(j)/numSamples);
+      glm::vec3 c = interpolateSpline(lane->spline, float(j)/numSamples);
       lngth += length(c-s);
       s = c;
     }
@@ -74,8 +71,8 @@ void positionLanes(LaneBlock* block, EndDescriptor source, EndDescriptor drain) 
   for (int i = 0; i < numLanes; i ++) {
     Lane* lane = &block->lanes[i];
     float offset = (float(i) + 0.5) * c(CLaneWidth);
-    vec3 end0 = source.location + source.normal * offset + source.median;
-    vec3 end1 = drain.location - drain.normal * offset - drain.median;
+    glm::vec3 end0 = source.location + source.normal * offset + source.median;
+    glm::vec3 end1 = drain.location - drain.normal * offset - drain.median;
     lane->ends[0] = end0;
     lane->ends[1] = end1;
     lane->spline = spline(line(end0, end0 - hand*zNormal(source.normal)),
@@ -103,8 +100,8 @@ void positionLanesSplines(LaneBlock* block) {
   float hand = trafficHandedness();
   for (int i = 0; i < numLanes; i ++) {
     Lane* lane = &block->lanes[i];
-    vec3 end0 = lane->ends[0];
-    vec3 end1 = lane->ends[1];
+    glm::vec3 end0 = lane->ends[0];
+    glm::vec3 end1 = lane->ends[1];
     lane->spline = spline(line(end0, end0 - hand*zNormal(source.normal)),
       line(end1, end1 - hand*zNormal(drain.normal)));
   }
@@ -124,14 +121,14 @@ void setDefaultTimeEstimate(item ndx) {
       estimate += c(CStopLightMaxPhaseDuration)*.25f/gameDayInRealSeconds;
     }
   }
-  estimate = clamp(estimate, 0.00000000001f, 1.0f/24.f);
+  estimate = glm::clamp(estimate, 0.00000000001f, 1.0f/24.f);
   b->staticTimeEstimate = estimate;
 }
 
 void broker_addLaneBlock_g(item ndx) {
   LaneBlock* laneBlock = getLaneBlock(ndx);
   Lane* lane0 = &laneBlock->lanes[0];
-  vec3 center = .5f * (lane0->ends[0] + lane0->ends[1]);
+  glm::vec3 center = .5f * (lane0->ends[0] + lane0->ends[1]);
   broker_addLaneBlock_g(ndx, center);
 }
 
@@ -339,12 +336,12 @@ Lane* getLane(item ndx) {
   return lane;
 }
 
-vec3 getLocation(GraphLocation location) {
+glm::vec3 getLocation(GraphLocation location) {
   item lbNdx = location.lane/10;
-  if (lbNdx < 1 || lbNdx > laneBlocks->size()) return vec3(0,0,0);
+  if (lbNdx < 1 || lbNdx > laneBlocks->size()) return glm::vec3(0,0,0);
   Lane* lane = getLane(location.lane);
   float length = lane->length;
-  location.dap = clamp(location.dap, 0.f, length);
+  location.dap = glm::clamp(location.dap, 0.f, length);
   return interpolateSpline(lane->spline, location.dap/length);
 }
 
@@ -362,9 +359,9 @@ GraphLocation graphLocation(item laneNdx, float dap) {
   return result;
 }
 
-GraphLocation graphLocation(item laneNdx, vec3 loc) {
+GraphLocation graphLocation(item laneNdx, glm::vec3 loc) {
   Lane* lane = getLane(laneNdx);
-  vec3 p = nearestPointOnLine(loc, line(lane->ends[0], lane->ends[1]));
+  glm::vec3 p = nearestPointOnLine(loc, line(lane->ends[0], lane->ends[1]));
 
   GraphLocation result;
   result.lane = laneNdx;
@@ -424,7 +421,7 @@ item getElement(GraphLocation loc) {
   return blk->graphElements[1];
 }
 
-GraphLocation graphLocationForEdge(item edgeNdx, vec3 loc) {
+GraphLocation graphLocationForEdge(item edgeNdx, glm::vec3 loc) {
   if (edgeNdx <= 0) {
     return nullGraphLoc();
   }
@@ -450,12 +447,12 @@ GraphLocation graphLocationForEdge(item edgeNdx, vec3 loc) {
   return graphLocation(laneNdx, loc);
 }
 
-GraphLocation graphLocation(vec3 loc) {
+GraphLocation graphLocation(glm::vec3 loc) {
   item edgeNdx = nearestEdge(loc, false);
   return graphLocationForEdge(edgeNdx, loc);
 }
 
-GraphLocation graphLocation(vec3 loc, Configuration config) {
+GraphLocation graphLocation(glm::vec3 loc, Configuration config) {
   item edgeNdx = nearestEdge(loc, false, config);
   return graphLocationForEdge(edgeNdx, loc);
 }
@@ -482,7 +479,7 @@ GraphLocation graphLocation(Line l, item edgeNdx) {
   }
 
   Lane* lane = getLane(laneNdx);
-  vec3 p = pointOfIntersection(line(lane->ends[0], lane->ends[1]), l);
+  glm::vec3 p = pointOfIntersection(line(lane->ends[0], lane->ends[1]), l);
 
   GraphLocation result;
   result.lane = laneNdx;
@@ -553,7 +550,7 @@ bool laneVehiclesComparator(item a, item b) {
 
 void sortVehiclesInLane(item laneNdx) {
   Lane* lane = getLane(laneNdx);
-  vector<item>* list = &lane->vehicles;
+  std::vector<item>* list = &lane->vehicles;
   sort(list->begin(), list->end(), laneVehiclesComparator);
   int listSize = list->size();
   for(int i = 0; i < listSize; i++) {
@@ -623,7 +620,7 @@ void recordTraversal_v(item blockNdx, float time) {
   item ndx = blockNdx/laneBlockIndexMultiplier;
   time /= gameDayInRealSeconds;
   float lastTime = traversalRecord[ndx];
-  float estimate = mix(lastTime, time, c(CTraversalRecordDynamism));
+  float estimate = glm::mix(lastTime, time, c(CTraversalRecordDynamism));
   //estimate = std::max(estimate, 0.00000000001f);
   traversalRecord.set(ndx, estimate);
 }
@@ -850,7 +847,7 @@ float laneBlockCost_r(item a) {
   return laneTimeEstimate[a];
 }
 
-vec3 getBlockLoc_r(item blockNdx) {
+glm::vec3 getBlockLoc_r(item blockNdx) {
   blockNdx /= laneBlockIndexMultiplier;
   return laneBlockStarts_r[blockNdx];
 }
@@ -923,9 +920,9 @@ Spline getLaneSpline(item lane) {
   return laneSplines[ndx+laneIndexInBlock(lane)];
 }
 
-vec3 getLocationV(GraphLocation loc) {
+glm::vec3 getLocationV(GraphLocation loc) {
   float length = getLaneLength(loc.lane);
-  float dap = clamp(loc.dap/length, 0.f, 1.f);
+  float dap = glm::clamp(loc.dap/length, 0.f, 1.f);
   return interpolateSpline(getLaneSpline(loc.lane), dap);
 }
 
@@ -984,7 +981,7 @@ void finishLanes() {
     laneBlockEnds_r.set(i, blk->lanes[0].ends[1]);
     bool open = (blk->flags & _laneExists) && (blk->flags & _laneOpen);
     if (open) laneBlockOpen.set(i/8, laneBlockOpen[i/8] | (1 << i%8));
-    float time = mix(blk->staticTimeEstimate, blk->timeEstimate,
+    float time = glm::mix(blk->staticTimeEstimate, blk->timeEstimate,
         c(CRoutingTrafficAwareness));
     laneTimeEstimate.set(i, std::max(time, 0.00000000001f));
     laneBlockSpeeds_r.set(i, blk->speedLimit/10);
@@ -1041,9 +1038,9 @@ void swapLanesForVehicles(bool fromSave) {
       }
 
     } else {
-      blk->timeEstimate = mix(blk->timeEstimate, traversalRecord[i], 0.5);
+      blk->timeEstimate = glm::mix(blk->timeEstimate, traversalRecord[i], 0.5);
 
-      blk->timeEstimate = clamp(blk->timeEstimate, 0.00000000001f,
+      blk->timeEstimate = glm::clamp(blk->timeEstimate, 0.00000000001f,
           blk->staticTimeEstimate*c(CTraversalRecordMax));
       bool active = blockIsActive_r(i*laneBlockIndexMultiplier);
       if (blk->flags & _laneAlwaysActive) active = true;

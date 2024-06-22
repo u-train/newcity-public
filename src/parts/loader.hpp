@@ -1,10 +1,9 @@
-#ifndef PART_LOADER_H
-#define PART_LOADER_H
+#pragma once
 
 #include "part.hpp"
 
 Part* loader();
-Part* loaderBar(vec2 loc, vec2 size);
-Part* loaderBar(vec2 loc, vec2 size, vec3 ico);
+Part* loaderBar(glm::vec2 loc, glm::vec2 size);
+Part* loaderBar(glm::vec2 loc, glm::vec2 size, glm::vec3 ico);
 
-#endif
+

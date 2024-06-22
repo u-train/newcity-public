@@ -79,8 +79,8 @@ item getStopForLeg_g(Location location) {
   //}
 }
 
-vec3 locationToWorldspace_g(Location loc) {
-  if (loc <= 10) return vec3(0,0,0);
+glm::vec3 locationToWorldspace_g(Location loc) {
+  if (loc <= 10) return glm::vec3(0,0,0);
   item type = locationType(loc);
   if (type == LocLaneBlock) {
     GraphLocation gl;
@@ -105,17 +105,17 @@ vec3 locationToWorldspace_g(Location loc) {
     return getBuilding(locationNdx(loc))->location;
 
   } else {
-    return vec3(0,0,0);
+    return glm::vec3(0,0,0);
   }
 }
 
 /*
-RouteInfo computeRouteInfo_g(vector<Location> route, bool walking, bool bus) {
+RouteInfo computeRouteInfo_g(std::vector<Location> route, bool walking, bool bus) {
   RouteInfo result;
   Location lastTransitLeg = 0;
   const float walkingSpeedFactor = oneHour / c(CWalkingSpeed) / 1000;
   bool wasWalking = false;
-  vec3 lastWorldspace = vec3(0,0,0);
+  glm::vec3 lastWorldspace = glm::vec3(0,0,0);
   item lastLaneBlock = 0;
   item linesTaken = 0;
   bool transit = false;
@@ -128,7 +128,7 @@ RouteInfo computeRouteInfo_g(vector<Location> route, bool walking, bool bus) {
       if (lastLaneBlock == loc) continue;
       lastLaneBlock = loc;
 
-      vec3 newLoc = getBlockLoc_r(loc);
+      glm::vec3 newLoc = getBlockLoc_r(loc);
       if (wasWalking) {
         float dist = length(lastWorldspace - newLoc);
         result.walkingTime += dist * walkingSpeedFactor;
@@ -140,7 +140,7 @@ RouteInfo computeRouteInfo_g(vector<Location> route, bool walking, bool bus) {
       wasWalking = walking;
 
     } else if (type == LocTransitStop) {
-      vec3 newLoc = getStopLocation_r(locationNdx(loc));
+      glm::vec3 newLoc = getStopLocation_r(locationNdx(loc));
       if (wasWalking) {
         float dist = length(lastWorldspace - newLoc);
         result.walkingTime += dist * walkingSpeedFactor;
@@ -199,12 +199,12 @@ RouteInfo computeRouteInfo_g(vector<Location> route, bool walking, bool bus) {
 }
 
 /*
-float estimateRouteCost_g(vector<Location> route, bool walking) {
+float estimateRouteCost_g(std::vector<Location> route, bool walking) {
   float estimate = 0;
   Location lastTransitLeg = 0;
   const float walkingSpeedFactor = oneHour / c(CWalkingSpeed) / 1000;
   bool wasWalking = false;
-  vec3 lastWorldspace = vec3(0,0,0);
+  glm::vec3 lastWorldspace = glm::vec3(0,0,0);
   item lastLaneBlock = 0;
 
   for (int i = 0; i < route.size(); i++) {
@@ -215,7 +215,7 @@ float estimateRouteCost_g(vector<Location> route, bool walking) {
       if (lastLaneBlock == loc) continue;
       lastLaneBlock = loc;
 
-      vec3 newLoc = getBlockLoc_r(loc);
+      glm::vec3 newLoc = getBlockLoc_r(loc);
       if (wasWalking) {
         float dist = length(lastWorldspace - newLoc);
         estimate += dist * walkingSpeedFactor;
@@ -227,7 +227,7 @@ float estimateRouteCost_g(vector<Location> route, bool walking) {
       wasWalking = walking;
 
     } else if (type == LocTransitStop) {
-      vec3 newLoc = getStopLocation_r(locationNdx(loc));
+      glm::vec3 newLoc = getStopLocation_r(locationNdx(loc));
       if (wasWalking) {
         float dist = length(lastWorldspace - newLoc);
         estimate += dist * walkingSpeedFactor;
@@ -268,7 +268,7 @@ float estimateRouteCost_g(Route route, bool walking) {
   return estimateRouteCost_g(route.steps, walking);
 }
 
-double getRouteTransitPrice_g(vector<Location> route) {
+double getRouteTransitPrice_g(std::vector<Location> route) {
   Location lastTransitLeg = 0;
   item linesTaken = 0;
   float result = 0;
@@ -295,7 +295,7 @@ double getRouteTransitPrice_g(vector<Location> route) {
   return result;
 }
 
-double getRouteFuelMaintPrice_r(vector<Location> route, bool bus) {
+double getRouteFuelMaintPrice_r(std::vector<Location> route, bool bus) {
   money time = 0;
 
   for (int i = 0; i < route.size(); i++) {
@@ -316,7 +316,7 @@ double getRouteFuelMaintPrice_r(vector<Location> route, bool bus) {
 */
 
 /*
-bool isRouteValid_g(vector<Location> route, Location start, Location end) {
+bool isRouteValid_g(std::vector<Location> route, Location start, Location end) {
   //TODO: handle transit
   int routeS = route.size();
   if (routeS == 0) return false;
@@ -349,7 +349,7 @@ bool isRouteValid_g(vector<Location> route, Location start, Location end) {
   return true;
 }
 
-char* routeString(vector<Location> steps, item currentStep) {
+char* routeString(std::vector<Location> steps, item currentStep) {
   int stepS = steps.size();
   if (stepS == 0) return strdup_s("[empty route]");
 

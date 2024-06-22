@@ -1,17 +1,16 @@
-#ifndef PART_BLOCK_H
-#define PART_BLOCK_H
+#pragma once
 
 #include "part.hpp"
 
-Part* block(vec2 loc, vec2 size);
-Part* sunkenBlock(vec2 loc, vec2 size);
-Part* darkBlock(vec2 loc, vec2 size);
-Part* blackBlock(vec2 loc, vec2 size);
-Part* brightBox(vec2 loc, vec2 size);
-Part* redBlock(vec2 loc, vec2 size);
-Part* greenBlock(vec2 loc, vec2 size);
-Part* gradientBlock(vec2 loc, vec2 size, vec3 grads, vec3 grade);
-Part* gradientBlock(vec2 loc, vec2 size, Line grad);
-Part* colorBlock(vec2 loc, vec2 size, item color);
+Part* block(glm::vec2 loc, glm::vec2 size);
+Part* sunkenBlock(glm::vec2 loc, glm::vec2 size);
+Part* darkBlock(glm::vec2 loc, glm::vec2 size);
+Part* blackBlock(glm::vec2 loc, glm::vec2 size);
+Part* brightBox(glm::vec2 loc, glm::vec2 size);
+Part* redBlock(glm::vec2 loc, glm::vec2 size);
+Part* greenBlock(glm::vec2 loc, glm::vec2 size);
+Part* gradientBlock(glm::vec2 loc, glm::vec2 size, glm::vec3 grads, glm::vec3 grade);
+Part* gradientBlock(glm::vec2 loc, glm::vec2 size, Line grad);
+Part* colorBlock(glm::vec2 loc, glm::vec2 size, item color);
 
-#endif
+

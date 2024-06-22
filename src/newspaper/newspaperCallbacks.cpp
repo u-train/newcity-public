@@ -4,6 +4,8 @@
 
 #include "../platform/lua.hpp"
 #include "../time.hpp"
+#include "../string_proxy.hpp"
+#include <spdlog/spdlog.h>
 
 int newspaperNameShort(lua_State* L) {
   lua_pushstring(L, getNewspaperNameShort().c_str());

@@ -9,13 +9,15 @@
 #include "../string.hpp"
 #include "../string_proxy.hpp"
 #include "../util.hpp"
+#include "../main.hpp"
+#include "../draw/camera.hpp"
 
 #include "spdlog/spdlog.h"
 #include <stdio.h>
 #include <algorithm>
 
 item currentPartEntity = 0;
-vector<item> partsEntities;
+std::vector<item> partsEntities;
 
 item getPartEntity(Shader s) {
   if (currentPartEntity < partsEntities.size()) {
@@ -43,14 +45,14 @@ struct PartRenderer {
   item paletteEntity;
   item shadowEntity;
   char foregroundColor;
-  vec3 start;
+  glm::vec3 start;
   Line clip;
-  vec2 mouseLoc;
+  glm::vec2 mouseLoc;
   bool lowered;
   bool highlight;
 };
 
-PartRenderer makeRenderer(vec2 mouseLoc) {
+PartRenderer makeRenderer(glm::vec2 mouseLoc) {
   PartRenderer result;
   result.lowered = false;
   result.highlight = false;
@@ -59,23 +61,23 @@ PartRenderer makeRenderer(vec2 mouseLoc) {
   result.paletteEntity = 0;
   result.shadowEntity = 0;
   result.foregroundColor = PickerPalette::White;
-  result.start = vec3(0,0,0);
+  result.start = glm::vec3(0,0,0);
   result.mouseLoc = mouseLoc;
-  result.clip = line(vec3(-100000, -100000, 0),
-    vec3(100000, 100000, 0));
+  result.clip = line(glm::vec3(-100000, -100000, 0),
+    glm::vec3(100000, 100000, 0));
   return result;
 }
 
 PartRenderer makeRenderer(PartRenderer parent, Part* part) {
   float padding = part->padding;
-  vec3 start = parent.start + part->dim.start;
-  vec3 size = part->dim.end;
-  vec3 end = start + size + vec3(padding*2.f, padding*2.f, 0);
+  glm::vec3 start = parent.start + part->dim.start;
+  glm::vec3 size = part->dim.end;
+  glm::vec3 end = start + size + glm::vec3(padding*2.f, padding*2.f, 0);
 
   PartRenderer result;
   result.lowered = parent.lowered;
   result.highlight = parent.highlight;
-  result.start = start + vec3(padding, padding, 2);
+  result.start = start + glm::vec3(padding, padding, 2);
   result.mouseLoc = parent.mouseLoc;
   if (part->foregroundColor != PickerPalette::Transparent) {
     result.foregroundColor = part->foregroundColor;
@@ -85,9 +87,9 @@ PartRenderer makeRenderer(PartRenderer parent, Part* part) {
   uint32_t entityDataFlags = result.foregroundColor;
 
   if (part->flags & _partClip) {
-    vec3 clipStart = vec3(std::max(start.x, parent.clip.start.x),
+    glm::vec3 clipStart = glm::vec3(std::max(start.x, parent.clip.start.x),
       std::max(start.y, parent.clip.start.y), start.z);
-    vec3 clipEnd = vec3(std::min(end.x, parent.clip.end.x),
+    glm::vec3 clipEnd = glm::vec3(std::min(end.x, parent.clip.end.x),
       std::min(end.y, parent.clip.end.y), parent.clip.end.z);
     result.clip = line(clipStart, clipEnd);
   } else {
@@ -159,45 +161,45 @@ void renderImage(PartRenderer renderer, Part* part, Line dim) {
     entity->flags &= ~_entityDesaturate;
   }
 
-  vec3 c0 = dim.start;
-  vec3 c3 = dim.start + dim.end;
+  glm::vec3 c0 = dim.start;
+  glm::vec3 c3 = dim.start + dim.end;
   c0.z += 0.25f;
   c3.z = c0.z;
-  vec3 c1 = vec3(c3.x, c0.y, c0.z);
-  vec3 c2 = vec3(c0.x, c3.y, c0.z);
+  glm::vec3 c1 = glm::vec3(c3.x, c0.y, c0.z);
+  glm::vec3 c2 = glm::vec3(c0.x, c3.y, c0.z);
 
   makeQuad(getMeshForEntity(entityNdx),
-    c0, c1, c2, c3, vec3(0,0,0), vec3(1,1,0));
+    c0, c1, c2, c3, glm::vec3(0,0,0), glm::vec3(1,1,0));
 }
 
-void renderBox(PartRenderer renderer, Line dim, float zOff, vec3 color) {
-  vec3 c0 = dim.start;
-  vec3 c3 = dim.start + dim.end;
+void renderBox(PartRenderer renderer, Line dim, float zOff, glm::vec3 color) {
+  glm::vec3 c0 = dim.start;
+  glm::vec3 c3 = dim.start + dim.end;
   c0.z += zOff;
   c3.z = c0.z;
-  vec3 c1 = vec3(c3.x, c0.y, c0.z);
-  vec3 c2 = vec3(c0.x, c3.y, c0.z);
+  glm::vec3 c1 = glm::vec3(c3.x, c0.y, c0.z);
+  glm::vec3 c2 = glm::vec3(c0.x, c3.y, c0.z);
 
   makeQuad(getMeshForEntity(renderer.paletteEntity),
     c0, c1, c2, c3, color, color);
 }
 
 void renderGradient(PartRenderer renderer, Line dim, float zOff,
-    vec3 startColor, vec3 endColor, vec3 adjustment, bool rotate) {
-  vec3 c0 = dim.start;
-  vec3 c3 = dim.start + dim.end;
+    glm::vec3 startColor, glm::vec3 endColor, glm::vec3 adjustment, bool rotate) {
+  glm::vec3 c0 = dim.start;
+  glm::vec3 c3 = dim.start + dim.end;
   c0.z += zOff;
   c3.z = c0.z;
-  vec3 c1 = vec3(c3.x, c0.y, c0.z);
-  vec3 c2 = vec3(c0.x, c3.y, c0.z);
-  vec3 up = vec3(0, 0, 1);
-  vec3 t0 = startColor;
-  vec3 t3 = endColor;
-  vec3 t1 = vec3(endColor.x, startColor.y, startColor.z);
-  vec3 t2 = vec3(startColor.x, endColor.y, startColor.z);
+  glm::vec3 c1 = glm::vec3(c3.x, c0.y, c0.z);
+  glm::vec3 c2 = glm::vec3(c0.x, c3.y, c0.z);
+  glm::vec3 up = glm::vec3(0, 0, 1);
+  glm::vec3 t0 = startColor;
+  glm::vec3 t3 = endColor;
+  glm::vec3 t1 = glm::vec3(endColor.x, startColor.y, startColor.z);
+  glm::vec3 t2 = glm::vec3(startColor.x, endColor.y, startColor.z);
 
   if (rotate) {
-    vec3 temp = t1;
+    glm::vec3 temp = t1;
     t1 = t2;
     t2 = temp;
   }
@@ -218,34 +220,34 @@ void renderGradient(PartRenderer renderer, Line dim, float zOff,
 }
 
 void renderGradient(PartRenderer renderer, Line dim, float zOff,
-    vec3 startColor, vec3 endColor) {
-  renderGradient(renderer, dim, zOff, startColor, endColor, vec3(0,0,0), false);
+    glm::vec3 startColor, glm::vec3 endColor) {
+  renderGradient(renderer, dim, zOff, startColor, endColor, glm::vec3(0,0,0), false);
 }
 
-vec3 shadowColor(int x, int y) {
-  return vec3(
+glm::vec3 shadowColor(int x, int y) {
+  return glm::vec3(
       (x == 1 || x == 2) ? 0 : 1,
       (y == 1 || y == 2) ? 0 : 1,
       0);
 
   //return (x == 1 || x == 2) && (y == 1 || y == 2) ?
-    //vec3(0,0,0) :
-    //vec3(1,1,0);
+    //glm::vec3(0,0,0) :
+    //glm::vec3(1,1,0);
     //xShadowColor : xShadowTransparent;
 }
 
 void renderPanel(PartRenderer renderer, Line dim, Line gradient, bool shadow) {
-  vec3 c0 = dim.start;
+  glm::vec3 c0 = dim.start;
   c0.z -= 0.5;
-  vec3 c3 = dim.start + dim.end;
+  glm::vec3 c3 = dim.start + dim.end;
   c3.z = c0.z;
-  vec3 c1 = vec3(c3.x, c0.y, c0.z);
-  vec3 c2 = vec3(c0.x, c3.y, c0.z);
-  vec3 offset = vec3(0.5, 0.5, -0.25);
-  vec3 normal = vec3(0, 0, 1);
-  vec3 grad0 = gradient.start;
-  vec3 grad2 = gradient.end;
-  vec3 grad1 = .5f*(gradient.start + gradient.end);
+  glm::vec3 c1 = glm::vec3(c3.x, c0.y, c0.z);
+  glm::vec3 c2 = glm::vec3(c0.x, c3.y, c0.z);
+  glm::vec3 offset = glm::vec3(0.5, 0.5, -0.25);
+  glm::vec3 normal = glm::vec3(0, 0, 1);
+  glm::vec3 grad0 = gradient.start;
+  glm::vec3 grad2 = gradient.end;
+  glm::vec3 grad1 = .5f*(gradient.start + gradient.end);
 
   makeQuad(getMeshForEntity(renderer.paletteEntity),
     c0, c1, c2, c3, normal, normal, normal, normal,
@@ -256,33 +258,33 @@ void renderPanel(PartRenderer renderer, Line dim, Line gradient, bool shadow) {
   Mesh* shadowMesh = getMeshForEntity(renderer.shadowEntity);
 
   /*
-  vec3 offDown = vec3(0,1,0);
-  vec3 offRight = vec3(1,0,0);
-  vec3 panelAlong = c3-c0;
-  vec3 texAlong = panelAlong + offDown*3.f + offRight*3.f;
-  //vec3 ratio = texAlong / panelAlong;
-  vec3 texStart = (-offDown-offRight)/panelAlong;
-  vec3 texEnd = (offDown*2.f+offRight*2.f)/panelAlong + vec3(1,1,0);
+  glm::vec3 offDown = glm::vec3(0,1,0);
+  glm::vec3 offRight = glm::vec3(1,0,0);
+  glm::vec3 panelAlong = c3-c0;
+  glm::vec3 texAlong = panelAlong + offDown*3.f + offRight*3.f;
+  //glm::vec3 ratio = texAlong / panelAlong;
+  glm::vec3 texStart = (-offDown-offRight)/panelAlong;
+  glm::vec3 texEnd = (offDown*2.f+offRight*2.f)/panelAlong + glm::vec3(1,1,0);
   makeQuad(shadowMesh, c0-offDown-offRight, c1-offDown+offRight*2.f,
     c2+offDown*2.f-offRight, c3+offDown*2.f+offRight*2.f,
     texStart, texEnd);
-    //vec3(0,0,0), vec3(1,1,0));
+    //glm::vec3(0,0,0), glm::vec3(1,1,0));
   */
 
-  //vec3 boxOffset[4] = {c0, c0+offset, c3+offset, c3+offset*2.f};
-  vec3 boxOffset[4] = {c0-offset*.25f, c0+offset*.25f, c3,
+  //glm::vec3 boxOffset[4] = {c0, c0+offset, c3+offset, c3+offset*2.f};
+  glm::vec3 boxOffset[4] = {c0-offset*.25f, c0+offset*.25f, c3,
     c3+offset*.5f};
   for (int x = 0; x < 3; x++) {
     for (int y = 0; y < 3; y++) {
 
-      vec3 tr = vec3(boxOffset[x].x, boxOffset[y].y, offset.z);
-      vec3 bl = vec3(boxOffset[x+1].x, boxOffset[y+1].y, offset.z);
-      vec3 tl = vec3(bl.x, tr.y, tr.z);
-      vec3 br = vec3(tr.x, bl.y, tr.z);
-      vec3 xtr = shadowColor(x,y);
-      vec3 xtl = shadowColor(x+1,y);
-      vec3 xbr = shadowColor(x,y+1);
-      vec3 xbl = shadowColor(x+1,y+1);
+      glm::vec3 tr = glm::vec3(boxOffset[x].x, boxOffset[y].y, offset.z);
+      glm::vec3 bl = glm::vec3(boxOffset[x+1].x, boxOffset[y+1].y, offset.z);
+      glm::vec3 tl = glm::vec3(bl.x, tr.y, tr.z);
+      glm::vec3 br = glm::vec3(tr.x, bl.y, tr.z);
+      glm::vec3 xtr = shadowColor(x,y);
+      glm::vec3 xtl = shadowColor(x+1,y);
+      glm::vec3 xbr = shadowColor(x,y+1);
+      glm::vec3 xbl = shadowColor(x+1,y+1);
       if (x == y) {
         makeQuad(shadowMesh, tl, tr, bl, br, normal, normal, normal, normal,
             xtl, xtr, xbl, xbr);
@@ -323,15 +325,15 @@ void renderTextCentered(PartRenderer renderer, Line dim,
     const char* text, float lineHeight) {
   dim.start.z += 0.25;
   renderStringCentered(getMeshForEntity(renderer.textEntity),
-      text, dim.start, vec3(lineHeight, 0, 0), vec3(0, lineHeight, 0));
+      text, dim.start, glm::vec3(lineHeight, 0, 0), glm::vec3(0, lineHeight, 0));
 }
 
 void renderIcon(PartRenderer renderer, Line dim, Line texture) {
-  vec3 c0 = dim.start;
-  vec3 c3 = dim.start + dim.end;
+  glm::vec3 c0 = dim.start;
+  glm::vec3 c3 = dim.start + dim.end;
   c3.z = dim.start.z;
-  vec3 c1 = vec3(c3.x, c0.y, c0.z);
-  vec3 c2 = vec3(c0.x, c3.y, c0.z);
+  glm::vec3 c1 = glm::vec3(c3.x, c0.y, c0.z);
+  glm::vec3 c2 = glm::vec3(c0.x, c3.y, c0.z);
 
   makeQuad(getMeshForEntity(renderer.iconEntity), c0, c1, c2, c3,
     texture.start, texture.end);
@@ -363,7 +365,7 @@ void renderPart(Part* part, PartRenderer renderer) {
     renderer = makeRenderer(renderer, part);
   }
 
-  bool dimClip = part->renderMode == RenderSpan ? isInDim(part, renderer.mouseLoc - vec2(renderer.start))
+  bool dimClip = part->renderMode == RenderSpan ? isInDim(part, renderer.mouseLoc - glm::vec2(renderer.start))
     : isInDim(renderer.mouseLoc, dim);
   if ((part->flags & _partHighlight) || ((part->flags & _partHover) && (dimClip||inputActionPressed(part->inputAction)))) {
     renderer.highlight = true;
@@ -394,7 +396,7 @@ void renderPart(Part* part, PartRenderer renderer) {
       ttDim.start.x = renderer.mouseLoc.x;
       ttDim.start.y = renderer.mouseLoc.y + ttYOffset;
       ttDim.start.z = 40;
-      vec2 textDim = stringDimensions(ttText);
+      glm::vec2 textDim = stringDimensions(ttText);
       textDim.y *= 1.1;
       ttDim.end.x = ttTxtSize*textDim.x + (ttPadding*3);
       ttDim.end.y = ttTxtSize*textDim.y + (ttPadding*2);
@@ -402,10 +404,10 @@ void renderPart(Part* part, PartRenderer renderer) {
 
       Line clip = renderer.clip;
       float uiX = uiGridSizeX*getAspectRatio();
-      clip.start.x = clamp(clip.start.x, 0.f, uiX);
-      clip.start.y = clamp(clip.start.y, 0.f, uiGridSizeY);
-      clip.end.x = clamp(clip.end.x, 0.f, uiX);
-      clip.end.y = clamp(clip.end.y, 0.f, uiGridSizeY);
+      clip.start.x = glm::clamp(clip.start.x, 0.f, uiX);
+      clip.start.y = glm::clamp(clip.start.y, 0.f, uiGridSizeY);
+      clip.end.x = glm::clamp(clip.end.x, 0.f, uiX);
+      clip.end.y = glm::clamp(clip.end.y, 0.f, uiGridSizeY);
 
       //SPDLOG_INFO("ttDim ({},{};{},{}) clip ({},{};{},{})",
           //ttDim.start.x, ttDim.start.y, ttDim.end.x, ttDim.end.y,
@@ -442,8 +444,8 @@ void renderPart(Part* part, PartRenderer renderer) {
         ttYStart = 0;
       }
 
-      ttDim.start = vec3(ttXStart, ttYStart, 10.0f);
-      ttDim.end = vec3(ttXEnd, ttYEnd, 10.0f);
+      ttDim.start = glm::vec3(ttXStart, ttYStart, 10.0f);
+      ttDim.end = glm::vec3(ttXEnd, ttYEnd, 10.0f);
 
       renderTooltip(renderer, ttDim, ttText);
       */
@@ -494,7 +496,7 @@ void renderPart(Part* part, PartRenderer renderer) {
     renderGradient(renderer, dim, 0, part->texture.start, part->texture.end);
   } else if (part->renderMode == RenderGradientRotated) {
     renderGradient(renderer, dim, 0,
-        part->texture.start, part->texture.end, vec3(0,0,0), true);
+        part->texture.start, part->texture.end, glm::vec3(0,0,0), true);
 
   } else if (part->renderMode == RenderGradientAdjusted) {
     renderGradient(renderer, dim, 0,
@@ -567,7 +569,7 @@ void renderPart(Part* part, PartRenderer renderer) {
     renderIcon(renderer, dim, part->texture);
 
     bool anyText = false;
-    string text = "";
+    std::string text = "";
     if (part->text != 0) {
       anyText = true;
       text = part->text;
@@ -584,13 +586,13 @@ void renderPart(Part* part, PartRenderer renderer) {
     if (anyText) {
       Line dim2 = dim;
       float width = stringWidth(text.c_str()) * 0.4;
-      dim2.start += vec3(dim.end.x-width+0.05, dim.end.y-0.35, 80.0);
-      dim2.end = vec3(width, 0.4, 0);
+      dim2.start += glm::vec3(dim.end.x-width+0.05, dim.end.y-0.35, 80.0);
+      dim2.end = glm::vec3(width, 0.4, 0);
       renderBox(renderer, dim2, -0.1, colorDarkGrad0);
 
       Line dim3 = dim2;
-      dim3.start += vec3(0.025, 0.025, 0.25);
-      dim3.end = vec3(0.35, 0.35, 0);
+      dim3.start += glm::vec3(0.025, 0.025, 0.25);
+      dim3.end = glm::vec3(0.35, 0.35, 0);
       renderText(renderer, dim2, text.c_str(), dim2.end.y);
     }
   }
@@ -618,7 +620,7 @@ void resetPartsRender() {
   currentPartEntity = 0;
 }
 
-void renderPart(Part* part, vec2 mouseLoc) {
+void renderPart(Part* part, glm::vec2 mouseLoc) {
   PartRenderer renderer = makeRenderer(mouseLoc);
   renderPart(part, renderer);
 

@@ -1,8 +1,8 @@
 #include "compass.hpp"
 
+#include "draw/entity.hpp"
 #include "color.hpp"
 #include "draw/camera.hpp"
-#include "draw/entity.hpp"
 #include "draw/texture.hpp"
 #include "item.hpp"
 #include "renderUtils.hpp"
@@ -31,9 +31,9 @@ void renderCompass() {
   createMeshForEntity(compassEntity);
   Mesh* mesh = getMeshForEntity(compassEntity);
 
-  makeCone(mesh, vec3(24,0,60),
-    vec3(-48,0,0), 30, colorWhite, true);
-  makeCylinder(mesh, vec3(0,0,60), vec3(0,0,25), 1, 24, colorWhite);
+  makeCone(mesh, glm::vec3(24,0,60),
+    glm::vec3(-48,0,0), 30, colorWhite, true);
+  makeCylinder(mesh, glm::vec3(0,0,60), glm::vec3(0,0,25), 1, 24, colorWhite);
   bufferMesh(entity->mesh);
 
   if (windVaneEntity != 0) {
@@ -49,9 +49,9 @@ void renderCompass() {
   createMeshForEntity(windVaneEntity);
   Mesh* wvMesh = getMeshForEntity(windVaneEntity);
 
-  vec3 wvLoc = vec3(0,0,80);
-  vec3 wvUp = vec3(0,0,5);
-  vec3 wvAlong = vec3(0,20,0);
+  glm::vec3 wvLoc = glm::vec3(0,0,80);
+  glm::vec3 wvUp = glm::vec3(0,0,5);
+  glm::vec3 wvAlong = glm::vec3(0,20,0);
   makeTriangle(wvMesh, wvLoc+wvUp, wvLoc-wvUp, wvLoc+wvAlong, colorWhite);
   makeTriangle(wvMesh, wvLoc-wvUp, wvLoc+wvUp, wvLoc+wvAlong, colorWhite);
   bufferMesh(wvEntity->mesh);
@@ -63,11 +63,11 @@ void updateCompass() {
   }
 
   float dist = getCameraDistance();
-  vec3 loc = getCameraTarget();
+  glm::vec3 loc = getCameraTarget();
   float angle = getHorizontalCameraAngle();
   float xoff = 1/cos(getVerticalCameraAngle()) - 0.15;
-  loc += rotate(vec3(xoff, -getAspectRatio()*0.9, 0)*dist,
-      angle, vec3(0,0,1));
+  loc += rotate(glm::vec3(xoff, -getAspectRatio()*0.9, 0)*dist,
+      angle, glm::vec3(0,0,1));
   float scal = dist/500;
 
   placeEntity(compassEntity, loc, 0, 0, scal);

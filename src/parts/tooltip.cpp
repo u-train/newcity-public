@@ -1,11 +1,14 @@
 #include "tooltip.hpp"
+#include "../main.hpp"
+
+#include <glm/glm.hpp>
 
 const char* ttDefTxt = "Default Tooltip";
 const char* ttUnk = "Unknown Tooltip Type";
 
 static float ttLastHover = 0.0f;
 static int ttActiveType = 0;
-static vec3 ttActiveDim = vec3(0, 0, 0);
+static glm::vec3 ttActiveDim = glm::vec3(0, 0, 0);
 static bool ttShow = true;
 static bool ttEnable = true;
 
@@ -510,7 +513,7 @@ void updateTooltip(Part* part) {
   }
 
   int type = part->ttType;
-  vec3 newDim = part->dim.start;
+  glm::vec3 newDim = part->dim.start;
 
   if(newDim == ttActiveDim
     && ttActiveType == type) {
@@ -524,13 +527,13 @@ void updateTooltip(Part* part) {
   setTooltipShow(true);
 }
 
-Part* tooltip(vec2 pos, const char* txt) {
+Part* tooltip(glm::vec2 pos, const char* txt) {
   float xVal = ttWidth;
   float yVal = 0.0f;
   float* yPtr = &yVal;
-  Part* ttTxt = multiline(pos, vec2(xVal, ttTxtSize),
+  Part* ttTxt = multiline(pos, glm::vec2(xVal, ttTxtSize),
     strdup_s(txt), yPtr);
-  Part* ttPanel = panel(pos, vec2(xVal, yVal));
+  Part* ttPanel = panel(pos, glm::vec2(xVal, yVal));
   r(ttPanel, ttTxt);
 
   return ttPanel;

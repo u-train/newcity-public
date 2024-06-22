@@ -1,6 +1,7 @@
 #pragma once
 
 #include "shader.hpp"
+#include <glm/vec4.hpp>
 
 struct UngroupedDrawCommand {
   item mesh;
@@ -21,5 +22,5 @@ void collectDrawBuffer();
 void runDrawCommands(Shader shader, Shader group);
 void bufferABOs();
 void resetVAOs(item mesh);
-void writeTreeData(Cup<vec4>* data, item entity);
+void writeTreeData(Cup<glm::vec4>* data, item entity);
 

@@ -1,9 +1,8 @@
-#ifndef SELECTION_H
-#define SELECTION_H
+#pragma once
 
 #include "item.hpp"
-#include "main.hpp"
 #include "route/location.hpp"
+#include <glm/glm.hpp>
 
 enum SelectionTypes {
   NoSelection=0, SelectionVehicle, SelectionBuilding, SelectionPerson,
@@ -29,6 +28,6 @@ bool isSelected(item st, item element);
 bool isMonitored(item st, item element);
 item getSelectionType();
 item getSelection();
-vec3 getSelectionLocation();
+glm::vec3 getSelectionLocation();
 
-#endif
+

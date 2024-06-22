@@ -3,7 +3,6 @@
 #include "conCmd.hpp"
 #include "conDisplay.hpp"
 #include "conInput.hpp"
-#include "conMod.hpp"
 
 #include "../building/design.hpp"
 #include "../business.hpp"
@@ -14,27 +13,25 @@
 #include "../graph.hpp"
 #include "../import/obj.hpp"
 #include "../input.hpp"
-#include "../main.hpp"
 #include "../newspaper/article.hpp"
 #include "../option.hpp"
 #include "../person.hpp"
 #include "../parts/tutorialPanel.hpp"
 #include "../platform/binaryfilereader.hpp"
 #include "../platform/binaryfilebuilder.hpp"
-#include "../platform/lua.hpp"
 #include "../platform/lookup.hpp"
 #include "../platform/mod.hpp"
 #include "../route/location.hpp"
 #include "../selection.hpp"
 #include "../sound.hpp"
 #include "../steam/steamwrapper.hpp"
-#include "../string.hpp"
 #include "../tools/building.hpp"
 #include "../tutorial.hpp"
 #include "../weather.hpp"
 #include "../vehicle/travelGroup.hpp"
-#include "../zone.hpp"
-
+#include "../draw/camera.hpp"
+#include "../main.hpp"
+#include "../util.hpp"
 
 bool conCallbackAnyBuildingPlop(std::string data) {
   setAnyBuildingPlop(true);
@@ -1029,7 +1026,7 @@ bool conCallbackWeather(std::string data) {
       w.pressure = 1;
       w.snow = 0;
       w.temp = 20;
-      w.wind = vec3(10, 0, 0);
+      w.wind = glm::vec3(10, 0, 0);
       break;
     case WeatherType::RAIN:
       SPDLOG_INFO("Setting weather to Rain");
@@ -1039,7 +1036,7 @@ bool conCallbackWeather(std::string data) {
       w.pressure = -1;
       w.snow = 0;
       w.temp = 25;
-      w.wind = vec3(10, 0, 0);
+      w.wind = glm::vec3(10, 0, 0);
       break;
     case WeatherType::SNOW:
       SPDLOG_INFO("Setting weather to Snow");
@@ -1049,7 +1046,7 @@ bool conCallbackWeather(std::string data) {
       w.pressure = -1;
       w.snow = 1;
       w.temp = -5;
-      w.wind = vec3(10, 0, 0);
+      w.wind = glm::vec3(10, 0, 0);
       break;
   }
 
