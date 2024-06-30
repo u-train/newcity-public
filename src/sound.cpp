@@ -7,21 +7,18 @@
 #include "item.hpp"
 #include "error.hpp"
 #include "option.hpp"
-#include "platform/mod.hpp"
 #include "parts/optionsPanel.hpp"
-#include "platform/file.hpp"
 #include "string_proxy.hpp"
 #include "util.hpp"
 #include "vorbis_proxy.hpp"
-#include "thread.hpp"
 #include "main.hpp"
 
 #include "spdlog/spdlog.h"
 #include <stdio.h>
 #include <time.h>
 #include <queue>
-#include "AL/al.h"
-#include "AL/alc.h"
+#include <AL/al.h>
+#include <AL/alc.h>
 
 #include <boost/lockfree/spsc_queue.hpp>
 using namespace boost::lockfree;

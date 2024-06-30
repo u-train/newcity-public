@@ -13,5 +13,8 @@
 	// https://github.com/mitaki28/vscode-clang/issues/53
 	"c-cpp-flylint.clang.extraArgs": ["-Wno-pragma-once-outside-header"],
     "c-cpp-flylint.flexelint.enable": false,
+	"clangd.arguments": [
+		"-missing-includes=strict"
+	],
 	"cSpell.ignorePaths": ["./external"]
 }

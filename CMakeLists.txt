@@ -112,6 +112,11 @@ include_directories(SYSTEM
   external/freetype/include/
   external/steam/include
   external/StackWalker/include
+  external/AL
+  external/freetype
+  external/OBJ-Loader/Source
+  external/md4c
+  external/stb
   .
 )
 
@@ -184,10 +189,12 @@ if(CMAKE_BUILD_TYPE MATCHES Release)
 endif()
 
 file(GLOB LUA_SOURCE external/lua-5.3.5/src/*.c)
+file(GLOB MD4C_SOURCE external/md4c/md4c.c)
 
 # Main Source
 SET(ALL_FILES
   ${LUA_SOURCE}
+  ${MD4C_SOURCE}
 
   src/amenity.cpp
   src/blueprint.cpp
@@ -262,7 +269,6 @@ SET(ALL_FILES
   src/lot.cpp
   src/lz4.c
   src/main.cpp
-  src/md4c/md4c.c
   src/money.cpp
   src/name.cpp
 
@@ -510,6 +516,7 @@ else ()
 endif ()
 add_custom_command(
   TARGET newcity POST_BUILD
+
   COMMAND ${COPY_CMD} "${CMAKE_CURRENT_SOURCE_DIR}/src/shaders/" "${CMAKE_CURRENT_BINARY_DIR}/shaders/"
   COMMAND ${COPY_CMD} "${CMAKE_CURRENT_SOURCE_DIR}/src/textures/" "${CMAKE_CURRENT_BINARY_DIR}/textures/"
   COMMAND ${COPY_CMD} "${CMAKE_CURRENT_SOURCE_DIR}/src/fonts/" "${CMAKE_CURRENT_BINARY_DIR}/fonts/"

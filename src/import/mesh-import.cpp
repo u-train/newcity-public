@@ -8,6 +8,7 @@
 #include "../pool.hpp"
 #include <spdlog/spdlog.h>
 #include "../game/game.hpp"
+#include "../platform/lua.hpp"
 
 Pool<MeshImport> imports;
 std::vector<item> meshImportsToLoad;

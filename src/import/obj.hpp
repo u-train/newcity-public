@@ -1,17 +1,8 @@
 #pragma once
 
-#include "../console/conDisplay.hpp"
-#include "../console/conInput.hpp"
-#include "../draw/entity.hpp"
-#include "../draw/mesh.hpp"
 #include "../draw/shader.hpp"
-#include "../draw/texture.hpp"
-#include "../platform/file.hpp"
 
 #include "../item.hpp"
-#include "../renderUtils.hpp"
-#include "../string.hpp"
-#include "../string_proxy.hpp"
 
 // Taken from OBJ_Loader.hpp and adapted for our purposes
 struct ObjMaterial {

@@ -24,6 +24,7 @@ const char* versionStringUnderscored() {
 }
 
 int combinedVersionNumber() {
+  
   return saveVersion*100 + patchVersion;
 }
 

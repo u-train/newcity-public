@@ -11,6 +11,7 @@
 #include "draw/camera.hpp"
 #include "weather.hpp"
 #include <glm/glm.hpp>
+#include <ctime>
 
 //const glm::vec3 white   = glm::vec3(1  , 1  , 0.9);
 //const glm::vec3 gold    = glm::vec3(1  , 0.5, 0.1);
@@ -146,9 +147,9 @@ double getLightTime() {
     return 0;
 
   } else if (dayMode == DaylightSystemTime) {
-    time_t rawtime = time(NULL);
-    struct tm * timeinfo;
-    timeinfo = localtime ( &rawtime );
+    auto rawtime = std::time(NULL);
+    std::tm * timeinfo;
+    timeinfo = std::localtime ( &rawtime );
     float hour = timeinfo->tm_hour;
     float minute = timeinfo->tm_hour;
     float second = timeinfo->tm_hour;
@@ -172,9 +173,9 @@ double getLightSeason() {
     return 1.5;
 
   } else if (dayMode == DaylightSystemTime) {
-    time_t rawtime = time(NULL);
-    struct tm * timeinfo;
-    timeinfo = localtime ( &rawtime );
+    auto rawtime = std::time(NULL);
+    std::tm * timeinfo;
+    timeinfo = std::localtime ( &rawtime );
     float day = timeinfo->tm_yday;
     return day*4.f/365.f;
 

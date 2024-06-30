@@ -1,12 +1,15 @@
 #include "obj.hpp"
-#include "OBJ_Loader.hpp"
-
+#include "OBJ_Loader.h"
 #include "../draw/camera.hpp"
 #include "../platform/lookup.hpp"
 #include <spdlog/spdlog.h>
-
+#include "../console/conDisplay.hpp"
 #include <cstring>
 #include "../game/constants.hpp"
+#include "../console/conInput.hpp"
+#include "../draw/mesh.hpp"
+#include "../draw/texture.hpp"
+#include "../draw/entity.hpp"
 
 enum {
   OBJ_LOOKUP_FAILED = -1
